@@ -39,8 +39,10 @@ SECTIONS
         start_bss = .;
 		*(COMMON)
 		*(.bss)
-        *(.bootstrap_stack)
         end_bss = .;
+        *(.bootstrap_stack)
+        . += 4096;
+        heap_start = .;
 	}
  
 	/* The compiler may produce other sections, by default it will put them in

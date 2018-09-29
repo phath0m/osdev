@@ -22,6 +22,7 @@ KERNEL_OBJECTS += i686/startup.o
 KERNEL_OBJECTS += dev/vga_textscreen.o
 
 KERNEL_OBJECTS += fs/devfs.o
+KERNEL_OBJECTS += fs/initramfs.o
 
 KERNEL_OBJECTS += kern/device.o
 KERNEL_OBJECTS += kern/vfs.o
@@ -29,6 +30,7 @@ KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/kputs.o
 
 # Kernel runtime library
+KERNEL_OBJECTS += rtl/dict.o
 KERNEL_OBJECTS += rtl/list.o
 KERNEL_OBJECTS += rtl/malloc.o
 KERNEL_OBJECTS += rtl/mutex.o

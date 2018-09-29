@@ -1,22 +1,30 @@
 #include <rtl/list.h>
+#include <rtl/malloc.h>
 #include <rtl/string.h>
 #include <rtl/types.h>
 #include <sys/limits.h>
 #include <sys/vfs.h>
 
+// plz remove me. kthnks 
+#include <rtl/printf.h>
 
 static int devfs_close(struct vfs_node *node);
-static int devfs_open(struct fs_mount *mount, struct vfs_node *node, const char *path);
+static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
+static int devfs_mount(struct device *dev, struct vfs_node **root);
 static int devfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
-static int devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
+static bool devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 static int devfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
-struct fs_ops devfs_ops = {
+struct file_ops devfs_file_ops = {
     .close      = devfs_close,
-    .open       = devfs_open,
+    .lookup     = devfs_lookup,
     .read       = devfs_read,
     .readdirent = devfs_readdirent,
     .write      = devfs_write
+};
+
+struct fs_ops devfs_ops = {
+    .mount      = devfs_mount,
 };
 
 
@@ -31,19 +39,62 @@ devfs_close(struct vfs_node *node)
     return 0;
 }
 
+
 static int
-devfs_open(struct fs_mount *mount, struct vfs_node *node, const char *path)
+devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name)
 {
+    list_iter_t iter;
+
+    list_get_iter(&device_list, &iter);
+
+    struct device *dev;
+
+    while (iter_move_next(&iter, (void**)&dev)) {
+        if (strcmp(name, dev->name) == 0) {
+            struct vfs_node *node = vfs_node_new(parent->device, &devfs_file_ops);
+            node->inode = (ino_t)dev;
+            node->group = 0;
+            node->owner = 0;
+            node->state = (void*)dev;
+
+            *result = node;
+
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+static int
+devfs_mount(struct device *dev, struct vfs_node **root)
+{
+    printf("devfs_mount reached\n");
+    struct vfs_node *node = vfs_node_new(dev, &devfs_file_ops);
+
+    node->inode = 0;
+    node->group = 0;
+    node->owner = 0;
+
+    *root = node;
+
     return 0;
 }
 
 static int
 devfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
 {
-    return 0;
+
+    struct device *dev = (struct device*)node->state;
+
+    if (dev && node->inode != 0) {
+        return device_read(dev, buf, nbyte, pos);
+    }
+
+    return -1;
 }
 
-static int
+static bool
 devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 {
     list_iter_t iter;
@@ -52,19 +103,18 @@ devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 
     struct device *dev;
 
-    int i = 0;
-    int ret = -1;
+    bool ret = false;
 
-    while (iter_move_next(&iter, (void**)&dev)) {
+    for (int i = 0; iter_move_next(&iter, (void**)&dev); i++) {
         if (i == entry) {
             strncpy(dirent->name, dev->name, PATH_MAX);
 
-            ret = 0;
+            dirent->type = DT_CHR;
+
+            ret = true;
 
             break;
         }
-
-        i++;
     }
 
     iter_close(&iter);
@@ -75,6 +125,12 @@ devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 static int
 devfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
 {
+    struct device *dev = (struct device*)node->state;
+
+    if (dev) {
+        return device_write(dev, buf, nbyte, pos);
+    }
+
     return 0;
 }
 

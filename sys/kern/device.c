@@ -29,9 +29,9 @@ device_open(struct device *dev)
 }
 
 int
-device_read(struct device *dev, int pos, char *buf, size_t nbyte)
+device_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
 {
-    return dev->read(dev, pos, buf, nbyte);
+    return dev->read(dev, buf, nbyte, pos);
 }
 
 int
@@ -42,7 +42,7 @@ device_register(struct device *dev)
 }
 
 int
-device_write(struct device *dev, int pos, const char *buf, size_t nbyte)
+device_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
-    return dev->write(dev, pos, buf, nbyte);
+    return dev->write(dev, buf, nbyte, pos);
 }

@@ -9,7 +9,7 @@ kputs(const char *str)
     size_t nbyte = strlen(str);
 
     if (output_device) {
-        device_write(output_device, 0, str, nbyte);
+        device_write(output_device, str, nbyte, 0);
     }
 }   
 

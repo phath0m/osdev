@@ -6,7 +6,7 @@
 void
 list_append(struct list *listp, void *ptr)
 {
-    struct list_elem *elem = (struct list_elem*)malloc(sizeof(struct list_elem));
+    struct list_elem *elem = (struct list_elem*)calloc(0, sizeof(struct list_elem));
 
     spinlock_lock(&listp->lock);
 
@@ -60,6 +60,42 @@ list_get_iter(struct list *listp, list_iter_t *iterp)
     iterp->listp = listp;
     iterp->current_item = listp->head;
     iterp->iteration = 0;
+}
+
+bool
+list_remove_top(struct list *listp, void **item)
+{
+    bool res = false;
+
+    spinlock_lock(&listp->lock);
+
+    struct list_elem *tail = listp->tail;
+
+    if (tail) {
+        listp->tail = tail->prev_elem;
+    
+        if (listp->tail) {
+            listp->tail->next_elem = NULL;
+        }
+
+        if (listp->head == tail) {
+            listp->head = NULL;
+        }
+
+        if (item) {
+            *item = tail->data;
+        }
+
+        listp->count--;
+
+        free(tail);
+
+        res = true;
+    }
+
+    spinlock_unlock(&listp->lock);
+    
+    return res;
 }
 
 void

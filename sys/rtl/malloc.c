@@ -1,5 +1,6 @@
 #include <rtl/malloc.h>
 #include <rtl/mutex.h>
+#include <rtl/string.h>
 #include <rtl/types.h>
 
 #define MALLOC_ALIGNMENT 256
@@ -43,6 +44,16 @@ find_free_block(size_t size)
 }
 
 void *
+calloc(int num, size_t size)
+{
+    void *ptr = malloc(size);
+
+    memset(ptr, num, size);
+
+    return ptr;
+}
+
+void *
 malloc(size_t size)
 {
     spinlock_lock(&malloc_lock);
@@ -67,6 +78,9 @@ malloc(size_t size)
     last_allocated = new_block;
 
     spinlock_unlock(&malloc_lock);
+
+
+    memset(ptr, 0, size);
 
     return ptr;
 }
@@ -108,6 +122,9 @@ brk(void *ptr)
 {
     kernel_break = (intptr_t)ptr;
 
+    last_allocated = NULL;
+    last_freed = NULL;
+    spinlock_unlock(&malloc_lock);
     return 0; 
 }
 

@@ -2,6 +2,30 @@
 #include <rtl/string.h>
 #include <rtl/types.h>
 
+#define MAX(X, Y) ((X > Y) ? X : Y)
+#define MIN(X, Y) ((X < Y) ? X : Y)
+
+int
+atoi(const char *str, int base)
+{
+    int len = strlen(str);
+
+    int result = 0;
+    int place_value = 1;
+
+    for (int i = len - 1; i >= 0; i--) {
+        char c = str[i];
+
+        int digit = c - '0';
+
+        result = (digit * place_value) + result;
+
+        place_value *= base;
+    }
+
+    return result;
+}
+
 char *
 itoa(int value, char *str, int base)
 {
@@ -40,6 +64,33 @@ itoa_u(unsigned int value, char *str, int base)
     return str;
 }
 
+
+void *
+memcpy(void *dest, const void *src, size_t nbyte)
+{
+    char *dest_buf = (char*)dest;
+    char *src_buf = (char*)src;
+
+
+    for (int i = 0; i < nbyte; i++) {
+        *(dest_buf++) = *(src_buf++);
+    }
+
+    return dest;
+}
+
+void *
+memset(void *ptr, int value, size_t nbyte)
+{
+    char *buf = (char*)ptr;
+
+    for (int i = 0; i < nbyte; i++, *buf++) {
+        *buf = 0;
+    }
+
+    return ptr;
+}
+
 void
 sprintf(char *str, const char *fmt, ...)
 {
@@ -73,6 +124,12 @@ strlen(const char *str)
     return len;
 }
 
+int
+strcmp(const char *str1, const char *str2)
+{
+    return strncmp(str1, str2, MIN(strlen(str1), strlen(str2)));
+}
+
 char *
 strncpy(char *dest, const char *src, size_t nbyte)
 {
@@ -87,6 +144,46 @@ strncpy(char *dest, const char *src, size_t nbyte)
     dest[i] = 0;
 
     return dest;
+}
+
+int
+strncmp(const char *str1, const char *str2, size_t nbyte)
+{
+    int len1 = strlen(str1);
+    int len2 = strlen(str2);
+
+    int minlen = MIN(len1, len2);
+
+    minlen = MIN(minlen, nbyte);
+
+    for (int i = 0; i < minlen; i++) {
+        char c1 = str1[i];
+        char c2 = str2[i];
+
+        if (c1 != c2) {
+            return c1 - c2;
+        }
+    }
+
+    if (len1 != len2) {
+        return -1;
+    }
+
+    return 0;
+}
+
+char *
+strrchr(const char *str, char ch)
+{
+    int len = strlen(str);
+
+    for (int i = 0; i < len; i++) {
+        if (str[i] == ch) {
+            return (char*)(str + i);
+        }
+    }
+
+    return NULL;
 }
 
 void

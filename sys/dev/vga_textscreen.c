@@ -25,7 +25,7 @@ struct textscreen_state state;
 static int textscreen_close(struct device *dev);
 static int textscreen_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
 static int textscreen_open(struct device *dev);
-static int textscreen_write(struct device *dev, int pos, const char *buf, size_t nbyte);
+static int textscreen_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct device textscreen_device = {
     .name   =   "textscreen",
@@ -94,7 +94,7 @@ textscreen_scroll(uint8_t attr)
 }
 
 static int
-textscreen_write(struct device *dev, int pos, const char *buf, size_t nbyte)
+textscreen_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     struct textscreen_state *statep = (struct textscreen_state*)dev->state;
 
