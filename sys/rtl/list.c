@@ -38,8 +38,6 @@ list_destroy(struct list *listp, bool free_children)
     struct list_elem *cur = listp->head;
 
     while (cur) {
-        cur = cur->next_elem;
-
         if (free_children) {
             free(cur->data);
         }
@@ -47,6 +45,8 @@ list_destroy(struct list *listp, bool free_children)
         if (cur->prev_elem) {
             free(cur->prev_elem);
         }
+
+        cur = cur->next_elem;
     }
 
     spinlock_unlock(&listp->lock);

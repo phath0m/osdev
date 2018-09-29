@@ -3,6 +3,9 @@
 #include <rtl/string.h>
 #include <rtl/types.h>
 
+// remove
+#include <rtl/printf.h>
+
 #define MALLOC_ALIGNMENT 256
 
 struct malloc_block {
@@ -79,7 +82,6 @@ malloc(size_t size)
 
     spinlock_unlock(&malloc_lock);
 
-
     memset(ptr, 0, size);
 
     return ptr;
@@ -91,6 +93,7 @@ free(void *ptr)
     spinlock_lock(&malloc_lock);
 
     struct malloc_block *iter = last_allocated;
+
     struct malloc_block *prev = NULL;
 
     while (iter) {
@@ -105,14 +108,14 @@ free(void *ptr)
             iter->prev = last_freed;
             
             last_freed = iter;
-            
+             
             break;
         }
 
         prev = iter;
         iter = (struct malloc_block*)iter->prev;
     }
-
+    
     spinlock_unlock(&malloc_lock);
 }
 
@@ -134,6 +137,8 @@ sbrk(size_t increment)
     intptr_t prev_brk = kernel_break;
 
     brk((void*)(kernel_break + increment));
+
+    memset((void*)prev_brk, 0, increment);
 
     return (void*)prev_brk;
 }
