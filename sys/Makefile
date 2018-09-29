@@ -4,7 +4,7 @@ LD=i686-elf-gcc
 
 AFLAGS= -f elf32
 CFLAGS = -c -std=gnu99 --freestanding -Wall -Werror -nostartfiles -nodefaultlibs -I ../include
-LDFLAGS = -T linker.ld --freestanding -O2 -nostdlib
+LDFLAGS = -T i686/linker.ld --freestanding -O2 -nostdlib
 
 # TODO: Make this conditional (for different arch)
 # i686 specific things....
