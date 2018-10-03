@@ -135,7 +135,7 @@ parse_tar_archive(const void *archive)
             for (int i = 0; i < delta; i++) {
                 struct ramfs_node *node;
 
-                list_remove_top(&stack, (void**)&node);
+                list_remove_back(&stack, (void**)&node);
             }
         }
 

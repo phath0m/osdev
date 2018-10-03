@@ -2,13 +2,18 @@
 #include <rtl/printf.h>
 #include <rtl/string.h>
 #include <sys/kernel.h>
+#include <sys/vm.h>
 #include <sys/vfs.h>
+
+// remove
+#include <sys/i686/vm.h>
 
 int
 kmain()
 {
 
     struct vfs_node *root;
+    printf("well, hello there\n");
 
     if (vfs_openfs(NULL, &root, "initramfs", MS_RDONLY) == 0) {
 
@@ -30,16 +35,15 @@ kmain()
             if (vfs_open(root, &screen, "/dev/textscreen", O_WRONLY) == 0) {
                 vfs_write(screen, "Hello, World", 12);
             }
-            printf("Done!\n");
         }
     }
-
-
+    printf("Done!\n");
     /*
      * There isn't much we can do right now :P
      */
-    asm volatile("cli");
-    asm volatile("hlt");
+
+    for (;; ) {
+    }
 
     return 0;
 }

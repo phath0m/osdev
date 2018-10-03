@@ -9,7 +9,7 @@
 
 #include <sys/dev/textscreen.h>
 
-#define TEXTSCREEN_ADDR         0xB8000
+#define TEXTSCREEN_ADDR         0xC00B8000
 #define TEXTSCREEN_HEIGHT       25
 #define TEXTSCREEN_WIDTH        80
 #define TEXTSCREEN_BUFFER_SIZE  TEXTSCREEN_HEIGHT*TEXTSCREEN_WIDTH

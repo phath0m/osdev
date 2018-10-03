@@ -27,6 +27,23 @@ vprint_d(int arg)
 }
 
 static inline void
+vprint_p(uintptr_t arg)
+{
+    char buf[16];
+
+    itoa_u(arg, buf, 16);
+
+    int len = strlen(buf);
+    int padding = (sizeof(uintptr_t) * 2) - len;
+
+    for (int i = 0; i < padding; i++) {
+        kputs("0");
+    }
+
+    kputs(buf);
+}
+
+static inline void
 vprint_s(const char *arg)
 {
     kputs(arg);
@@ -36,31 +53,10 @@ static inline void
 vprint_x(unsigned int arg)
 {
     char buf[16];
-
+    
     itoa_u(arg, buf, 16);
 
     kputs(buf);
-}
-
-static inline void
-vprint_arg(const char spec, va_list arg)
-{
-    switch (spec) {
-        case '%':
-            kputs("%");
-            break;
-        case 'd':
-            vprint_d(va_arg(arg, int));
-            break;
-        case 's':
-            vprint_s(va_arg(arg, const char*));
-            break;
-        case 'x':
-            vprint_x(va_arg(arg, unsigned int));
-            break;
-        default:
-            break;
-    }
 }
 
 void
@@ -72,7 +68,28 @@ vprintf(const char *fmt, va_list arg)
         char ch = fmt[i];
 
         if (ch == '%') {
-            vprint_arg(fmt[++i], arg);
+            char spec = fmt[++i];
+
+            switch (spec) {
+                case '%':
+                    kputs("%");
+                    break;
+                case 'd':
+                    vprint_d(va_arg(arg, int));
+                    break;
+                case 'p':
+                    vprint_p(va_arg(arg, uintptr_t));
+                    break;
+                case 's':
+                    vprint_s(va_arg(arg, const char*));
+                    break;
+                case 'x':
+                    vprint_x(va_arg(arg, unsigned int));
+                    break;
+                default:
+                    break;
+            }
+
         } else {
             char buf[2];
             buf[0] = fmt[i];

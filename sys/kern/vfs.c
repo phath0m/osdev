@@ -47,7 +47,7 @@ int
 vfs_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int flags)
 {
     struct filesystem *fs = getfsbyname(fsname);
-    
+
     if (fs) {
         struct vfs_node *node = NULL;
 

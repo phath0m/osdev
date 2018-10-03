@@ -63,7 +63,76 @@ list_get_iter(struct list *listp, list_iter_t *iterp)
 }
 
 bool
-list_remove_top(struct list *listp, void **item)
+list_remove_front(struct list *listp, void **item)
+{
+    bool res = false;
+
+    spinlock_lock(&listp->lock);
+
+    struct list_elem *head = listp->head;
+
+    if (head) {
+        listp->head = head->next_elem;
+
+        if (listp->head) {
+            listp->head->prev_elem = NULL;
+        } else {
+            listp->tail = NULL;
+        }
+
+        if (item) {
+            *item = head->data;
+        }
+
+        listp->count--;
+
+        free(head);
+
+        res = true;
+    }
+
+    spinlock_unlock(&listp->lock);
+    
+    return res;
+}
+
+bool
+list_remove(struct list *listp, void *item)
+{
+    bool res = false;
+
+    spinlock_lock(&listp->lock);
+    
+    struct list_elem *iter = listp->head;
+    struct list_elem *prev = NULL;
+    while (iter) {
+        struct list_elem *next = iter->next_elem;
+
+        if (iter->data == item) {
+            if (prev) {
+                prev->next_elem = iter->next_elem;
+            }
+
+            if (next) {
+                next->prev_elem = prev;
+            }
+
+            listp->count--;
+            res = true;
+            break;
+        }
+
+        prev = iter;
+        iter = next;
+    }
+
+    spinlock_unlock(&listp->lock);
+    
+    return res;
+}
+
+bool
+list_remove_back(struct list *listp, void **item)
 {
     bool res = false;
 

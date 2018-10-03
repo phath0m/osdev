@@ -12,10 +12,20 @@ LDFLAGS = -T i686/linker.ld --freestanding -O2 -nostdlib
 CRTBEGIN_OBJECT := $(shell $(CC) $(CFLAGS) -print-file-name=crtbegin.o)
 CRTEND_OBJECT   := $(shell $(CC) $(CFLAGS) -print-file-name=crtend.o)
 
-KERNEL_OBJECTS += i686/crti.o
-KERNEL_OBJECTS += i686/crtbegin.o
-KERNEL_OBJECTS += i686/preinit.o
-KERNEL_OBJECTS += i686/startup.o
+KERNEL_OBJECTS += i686/rtl/crti.o
+KERNEL_OBJECTS += i686/rtl/crtbegin.o
+KERNEL_OBJECTS += i686/rtl/malloc.o
+KERNEL_OBJECTS += i686/kern/context_switch.o
+KERNEL_OBJECTS += i686/kern/preinit.o
+KERNEL_OBJECTS += i686/kern/boot.o
+KERNEL_OBJECTS += i686/kern/exceptions.o
+KERNEL_OBJECTS += i686/kern/gdt.o
+KERNEL_OBJECTS += i686/kern/interrupt.o
+KERNEL_OBJECTS += i686/kern/interrupt_dispatch.o
+KERNEL_OBJECTS += i686/kern/interrupt_handler.o
+KERNEL_OBJECTS += i686/kern/sched.o
+KERNEL_OBJECTS += i686/kern/shutdown.o
+KERNEL_OBJECTS += i686/kern/vm.o
 
 # non i686 things here
 
@@ -25,9 +35,11 @@ KERNEL_OBJECTS += fs/devfs.o
 KERNEL_OBJECTS += fs/initramfs.o
 
 KERNEL_OBJECTS += kern/device.o
+KERNEL_OBJECTS += kern/interrupt.o
 KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/kputs.o
+KERNEL_OBJECTS += kern/panic.o
 
 # Kernel runtime library
 KERNEL_OBJECTS += rtl/dict.o
@@ -37,8 +49,8 @@ KERNEL_OBJECTS += rtl/mutex.o
 KERNEL_OBJECTS += rtl/printf.o
 KERNEL_OBJECTS += rtl/string.o
 
-KERNEL_OBJECTS += i686/crtend.o
-KERNEL_OBJECTS += i686/crtn.o
+KERNEL_OBJECTS += i686/rtl/crtend.o
+KERNEL_OBJECTS += i686/rtl/crtn.o
 
 KERNEL = kernel.bin
 
@@ -46,7 +58,7 @@ all: $(KERNEL)
 
 $(KERNEL): $(KERNEL_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
-i686/crtbegin.o i686/crtend.o:
+i686/rtl/crtbegin.o i686/rtl/crtend.o:
 	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@

@@ -1,3 +1,8 @@
+/*
+ * sys/rtl/malloc.h
+ * Cross platform malloc implementation
+ */
+
 #include <rtl/malloc.h>
 #include <rtl/mutex.h>
 #include <rtl/string.h>
@@ -15,31 +20,39 @@ struct malloc_block {
 };
 
 
-static intptr_t kernel_break;
+intptr_t kernel_break;
+intptr_t kernel_heap_end;
 
-static struct malloc_block *last_allocated = NULL;
-static struct malloc_block *last_freed = NULL;
+struct malloc_block *last_allocated = NULL;
+struct malloc_block *last_freed = NULL;
 
-static spinlock_t malloc_lock;
+spinlock_t malloc_lock;
 
+/*
 static inline size_t
-align_malloc_size(size_t size)
+align_addr(size_t size, uint32_t align)
 {
-    return (size + MALLOC_ALIGNMENT) - (size + MALLOC_ALIGNMENT) % MALLOC_ALIGNMENT;
-}
+    return (size + align) - (size + align) % align;
+}*/
 
 static struct malloc_block *
 find_free_block(size_t size)
 {
     struct malloc_block *iter = last_freed;
-    
-    size_t aligned_size = align_malloc_size(size);
+    struct malloc_block *prev = NULL;
 
     while (iter) {
-        if (iter->size == aligned_size) {
+        if (iter->size == size) {
+            if (prev) {
+                prev->prev = iter->prev;
+            } else {
+                last_freed = iter->prev;
+            }
+
             return iter;
         }
 
+        prev = iter;
         iter = (struct malloc_block*)iter->prev;
     }
 
@@ -61,30 +74,23 @@ malloc(size_t size)
 {
     spinlock_lock(&malloc_lock);
 
-    struct malloc_block *free_block = find_free_block(size);
+    size_t aligned_size = (size + MALLOC_ALIGNMENT) & 0xFFFFFF00;
 
-    if (free_block) {
-        spinlock_unlock(&malloc_lock);
-        return free_block->ptr;
+    struct malloc_block *free_block = find_free_block(aligned_size);
+
+    if (!free_block) {
+        free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block->ptr = sbrk(size);
+        free_block->size = aligned_size;
     }
 
-    size_t aligned_size = align_malloc_size(size);
-
-    struct malloc_block *new_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
-
-    void *ptr = sbrk(aligned_size);
-
-    new_block->ptr = ptr;
-    new_block->size = aligned_size;
-    new_block->prev = last_allocated;
-
-    last_allocated = new_block;
+    free_block->prev = last_allocated;
+    last_allocated = free_block;
 
     spinlock_unlock(&malloc_lock);
+    memset(free_block->ptr, 0, size);
 
-    memset(ptr, 0, size);
-
-    return ptr;
+    return free_block->ptr;
 }
 
 void
@@ -93,7 +99,6 @@ free(void *ptr)
     spinlock_lock(&malloc_lock);
 
     struct malloc_block *iter = last_allocated;
-
     struct malloc_block *prev = NULL;
 
     while (iter) {
@@ -106,9 +111,7 @@ free(void *ptr)
             }
 
             iter->prev = last_freed;
-            
             last_freed = iter;
-             
             break;
         }
 
@@ -123,10 +126,13 @@ free(void *ptr)
 int
 brk(void *ptr)
 {
-    kernel_break = (intptr_t)ptr;
-
+    kernel_break = (uintptr_t)ptr + MALLOC_ALIGNMENT;
+    kernel_break &= 0xFFFFFF00;
     last_allocated = NULL;
     last_freed = NULL;
+    
+    kernel_heap_end = kernel_break + 0x1000000;
+    
     spinlock_unlock(&malloc_lock);
     return 0; 
 }
@@ -134,11 +140,21 @@ brk(void *ptr)
 void *
 sbrk(size_t increment)
 {
+    kernel_break += MALLOC_ALIGNMENT;
+    kernel_break &= 0xFFFFFF00;
+
     intptr_t prev_brk = kernel_break;
 
-    brk((void*)(kernel_break + increment));
+    kernel_break += MALLOC_ALIGNMENT + increment;
+    kernel_break &= 0xFFFFFF00;
 
     memset((void*)prev_brk, 0, increment);
 
-    return (void*)prev_brk;
+    if (kernel_break >= kernel_heap_end) {
+        printf("full stop!\n");
+        asm volatile("cli");
+        asm volatile("hlt");
+    }
+
+    return (void*)prev_brk; 
 }

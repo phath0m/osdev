@@ -8,13 +8,17 @@ CHECKSUM    equ -(MAGIC + FLAGS)
 KERNEL_VIRTUAL_BASE equ 0xC0000000
 KERNEL_PAGE_NUMBER equ (KERNEL_VIRTUAL_BASE >> 22)
 
+global _start
+global boot_page_directory
+
 section .data
 align 0x1000
 boot_page_directory:
     dd 0x00000083
     times (KERNEL_PAGE_NUMBER - 1) dd 0
     dd 0x00000083
-    times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0
+    dd 0x40000083
+    times (1024 - KERNEL_PAGE_NUMBER - 2) dd 0
 
 section .text
 
@@ -31,8 +35,6 @@ align 4
     dd 0x00000000
     dd 0x00000000
     dd 0x00000000
-
-global _start
 
 _start:
     mov ecx, (boot_page_directory - KERNEL_VIRTUAL_BASE)
