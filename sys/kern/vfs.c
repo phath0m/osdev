@@ -44,6 +44,17 @@ file_new(struct vfs_node *node)
 }
 
 int
+vfs_close(struct file *file)
+{
+    /*
+     * TODO: decrement vfs_node reference count and free if 0
+     */
+    free(file);
+    
+    return 0;
+}
+
+int
 vfs_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int flags)
 {
     struct filesystem *fs = getfsbyname(fsname);
@@ -130,7 +141,7 @@ vfs_open(struct vfs_node *root, struct file **result, const char *path, int flag
         //bool will_read = (flags == O_RDWR || flags == O_RDONLY);
 
         if ((child->mount_flags & MS_RDONLY) && will_write) {
-            return EPERM;
+            return EROFS;
         }
 
         struct file *file = file_new(child);
@@ -144,7 +155,7 @@ vfs_open(struct vfs_node *root, struct file **result, const char *path, int flag
         return 0;
     }
 
-    return -1;
+    return ENOENT;
 }
 
 void
@@ -216,26 +227,67 @@ vfs_read(struct file *file, char *buf, size_t nbyte)
     struct vfs_node *node = file->node;
     struct file_ops *ops = node->ops;
 
-    int read = ops->read(node, buf, nbyte, file->position);
+    if (ops->read) {
+        int read = ops->read(node, buf, nbyte, file->position);
     
-    file->position += read;
+        file->position += read;
 
-    return read;
+        return read;
+    }
+
+    return -(EPERM);
 }
 
-bool
+int
 vfs_readdirent(struct file *file, struct dirent *dirent)
 {
     struct vfs_node *node = file->node;
     struct file_ops *ops = node->ops;
 
-    bool succ = ops->readdirent(node, dirent, file->position);
+    if (ops->readdirent) {
+        int res = ops->readdirent(node, dirent, file->position);
     
-    if (succ) {
-        file->position++;
+        if (res == 0) {
+            file->position++;
+        }
+
+        return res;
     }
 
-    return succ;
+    return -(EPERM);
+}
+
+int
+vfs_seek(struct file *file, off_t off, int whence)
+{
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+
+    if (ops->seek) {
+        return ops->seek(node, &file->position, off, whence);
+    }
+
+    return ESPIPE;
+}
+
+int
+vfs_stat(struct file *file, struct stat *stat)
+{
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+    if (ops->stat) {
+        return ops->stat(node, stat);
+    }
+
+    return -1;
+}
+
+uint64_t
+vfs_tell(struct file *file)
+{
+    return file->position;
 }
 
 int
@@ -248,9 +300,13 @@ vfs_write(struct file *file, const char *buf, size_t nbyte)
     struct vfs_node *node = file->node;
     struct file_ops *ops = node->ops;
 
-    int written = ops->write(node, buf, nbyte, file->position);
+    if (ops->write) {
+        int written = ops->write(node, buf, nbyte, file->position);
 
-    file->position += written;
+        file->position += written;
 
-    return written;
+        return written;
+    }
+
+    return -(EPERM);
 }
