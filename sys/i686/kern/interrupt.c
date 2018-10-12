@@ -59,7 +59,7 @@ struct tss_entry {
     uint32_t    ldt;
     uint16_t    trap;
     uint16_t    iomap_base;
-};
+} __attribute__((packed));
 
 
 struct gdt_entry global_descriptor_table[6];
@@ -74,7 +74,7 @@ gdt_set_gate(uint8_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t
     entry->base_low = (base & 0xFFFF);
     entry->base_middle = (base >> 16) & 0xFF;
     entry->base_high = (base >> 24) & 0xFF;
-    entry->limit_low = (limit >> 16) & 0x0F;
+    entry->limit_low = (limit & 0xFFFF);
     entry->granularity = (limit >> 16) & 0x0F;
     entry->granularity |= granularity & 0xF0;
     entry->access = access;
@@ -115,6 +115,7 @@ set_task_segment(uint32_t num, uint16_t ss0, uint32_t esp0)
     task_state_segment.ds = 0x13;
     task_state_segment.es = 0x13;
     task_state_segment.fs = 0x13;
+    task_state_segment.gs = 0x13;
     task_state_segment.ss = 0x13;
 }
 
@@ -125,7 +126,7 @@ _init_idt()
     struct dt_ptr idt_ptr;
 
     memset(&global_descriptor_table, 0, sizeof(struct gdt_entry) * 6);
-
+    
     gdt_ptr.limit = sizeof(struct gdt_entry) * 6;
     gdt_ptr.base = (uint32_t)&global_descriptor_table;
 
@@ -135,12 +136,13 @@ _init_idt()
     gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // usermode code segment
     gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // usermode data segment
 
-    extern void gdt_flush_ptr(struct dt_ptr *ptr); // defined in gdt.asm
+    set_task_segment(5, 0x10, 0xFFFFFFFF);
+    /* defined in sys/i686/kern/gdt.asm */
+    
+    extern void gdt_flush_ptr(struct dt_ptr *ptr);
 
     gdt_flush_ptr(&gdt_ptr);
 
-    set_task_segment(5, 0x10, 0xFFFFFF00);
-    
     asm volatile (
         ".Intel_syntax noprefix;"
         "mov ax, 0x2B;"
@@ -200,6 +202,8 @@ _init_idt()
     extern void isr29(struct regs *regs);
     extern void isr30(struct regs *regs);
     extern void isr31(struct regs *regs);
+    
+    extern void isr128(struct regs *regs);
 
     extern void irq0(struct regs *regs);
     extern void irq1(struct regs *regs);
@@ -249,6 +253,8 @@ _init_idt()
     for (int i = 0; handler_pointers[i]; i++) {
         idt_set_gate(i, handler_pointers[i], 0x08, 0x8E);
     }
+
+    idt_set_gate(128, (uint32_t)isr128, 0x08, 0xEE);
 
     asm volatile("lidt (%0)" : : "p"(&idt_ptr));
 }

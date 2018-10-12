@@ -4,12 +4,6 @@ extern sched_get_next_proc
 
 global sched_switch_context
 
-global biz_baz
-biz_baz:
-
-    cli
-    hlt
-
 sched_switch_context:
     pushad
     push ds

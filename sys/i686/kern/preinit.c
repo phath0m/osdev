@@ -18,6 +18,16 @@ void *start_initramfs;
 int
 run_kernel(void *state)
 {
+    /* defined in sys/i686/kern/sched.c */
+    extern struct thread *sched_curr_thread;
+
+    struct proc *init = proc_new();
+    
+    init->thread = sched_curr_thread;
+
+    current_proc = init;
+    sched_curr_thread->proc = init;
+
     if (kmain() != 0) {
         printf("Unable to boot kernel!\n");
     }
@@ -30,29 +40,11 @@ run_kernel(void *state)
     return 0;
 }
 
-int
-counter1(void *state)
-{
-    for (int i = 0; ; i += 2) {
-        printf("counter1 is at %d\n", i);
-    }
-    return 0;
-}
-
-int
-counter2(void*state)
-{
-    for (int i = 1; ; i += 2) {
-        printf("counter2 is at %d\n", i);
-    }
-    return 0;
-}
-
 void
 _preinit(multiboot_info_t *multiboot_hdr)
 {
     extern void _init();
-    extern struct device textscreen_device;
+    extern struct device serial0_device;
 
     uint32_t initrd = KERNEL_BASE + *(uint32_t*)(KERNEL_BASE + multiboot_hdr->mods_addr);
     uint32_t heap = KERNEL_BASE + *(uint32_t*)(KERNEL_BASE + multiboot_hdr->mods_addr + 4);
@@ -63,9 +55,9 @@ _preinit(multiboot_info_t *multiboot_hdr)
 
     brk((void*)(heap));
     
-    device_ioctl(&textscreen_device, TEXTSCREEN_SETFG, 0x0F);
+    //device_ioctl(&textscreen_device, TEXTSCREEN_SETFG, 0x0F);
 
-    kset_output(&textscreen_device);
+    kset_output(&serial0_device);
     
     _init();
 
@@ -83,14 +75,10 @@ _preinit(multiboot_info_t *multiboot_hdr)
             usable_memory += entry->len;
         }
     }
-    printf("detected %dMB of usable memory\n", (usable_memory / 1024 / 1024));
-    printf("heap is located at %p\n", heap);
-
-    sched_run_kthread((kthread_entry_t)counter2);
-    sched_run_kthread((kthread_entry_t)counter1);
+    printf("kernel: detected %dMB of usable memory\n", (usable_memory / 1024 / 1024));
     
+    sched_run_kthread((kthread_entry_t)run_kernel, NULL, NULL);
 
-    //sched_run_kthread((kthread_entry_t)counter1);
     /*
      * At this point, we are still using the stack initialized by the bootloader. 
      * We need to create a new thread using our own stack initialized at 0xFFFFFFFF

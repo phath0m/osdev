@@ -11,7 +11,7 @@ dispatch_intr(struct regs *regs)
     // defined in sys/interrupt.c
     extern void dispatch_to_intr_handler(int inum, struct regs *regs);
     
-    int inum = regs->inum;
+    uint8_t inum = regs->inum;
 
     if (inum >= 40) {
         io_write_byte(0xA0, 0x20);

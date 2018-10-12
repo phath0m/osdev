@@ -80,7 +80,7 @@ handle_page_fault(int inum, struct regs *regs)
 
     if (present && user) {
         /* send SIGSEGV to program */
-        panic("user page fault not implemented");
+        //panic("user page fault not implemented (fault at %p\n)", fault_addr);
     }
     
     printf("\n");

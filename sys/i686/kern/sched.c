@@ -8,6 +8,7 @@
 #include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/vm.h>
+#include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
 #include <sys/i686/vm.h>
 
@@ -17,9 +18,9 @@
 // list of processes to run
 struct list run_queue;
 
-// pointer to next process's address space
+struct proc *       current_proc;
 struct vm_space *   sched_curr_address_space;
-struct proc *       sched_curr_proc;
+struct thread *     sched_curr_thread;
 
 uintptr_t           sched_curr_page_dir;
 
@@ -33,59 +34,65 @@ init_pit(uint32_t frequency)
     io_write_byte(0x40, (divisor >> 8) & 0xFF);
 }
 
-uintptr_t
+int
 sched_get_next_proc(uintptr_t prev_esp)
 {
     /* defined in sys/i686/kern/interrupt.c */
     extern void set_tss_esp0(uint32_t esp0);
 
-    struct proc *next_proc = NULL;
+    struct thread *next_thread = NULL;
 
-    if (sched_curr_proc) {
-        sched_curr_proc->stack = prev_esp;
+    if (list_remove_front(&run_queue, (void**)&next_thread) && next_thread != sched_curr_thread) {
+        
+        if (sched_curr_thread) {
+            sched_curr_thread->stack = prev_esp;
 
-        if (sched_curr_proc->state == SRUN) {
-            list_append(&run_queue, sched_curr_proc);
+            if (sched_curr_thread->state == SRUN) {
+                list_append(&run_queue, sched_curr_thread);
+            }
         }
+
+        sched_curr_address_space = next_thread->address_space;
+        sched_curr_thread = next_thread;
+        sched_curr_page_dir = (uintptr_t)next_thread->address_space->state_physical;
+
+        current_proc = sched_curr_thread->proc;
+
+        return next_thread->stack;
     }
 
-    if (list_remove_front(&run_queue, (void**)&next_proc) && next_proc != sched_curr_proc) {
-        sched_curr_proc = next_proc;
-        sched_curr_page_dir = (uintptr_t)next_proc->address_space->state_physical;
-        //printf("at %p\n", next_proc);        
-        //set_tss_esp0(next_proc->stack);
-        //
-        return next_proc->stack;
+    if (sched_curr_thread) {
+        current_proc = sched_curr_thread->proc;
     }
 
     return prev_esp;
 }
+
 
 uintptr_t
 sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg)
 {
     uintptr_t stack_top = (uintptr_t)vm_share(sched_curr_address_space, space, NULL, (void*)stack_start, 0x1000, PROT_READ | PROT_WRITE | PROT_KERN);
 
-    printf("stack top is at %p in our address space\n", stack_top);
     uint32_t *stack = (uint32_t*)stack_top;
 
     *--stack = (uint32_t)arg;
-    *--stack = 0;
-    *--stack = 0x202;
-    *--stack = 0x08;
+    *--stack = stack_top; /* idk (I think ESP?)) */
+    *--stack = 0x202; /* EFLAGS???? */
+    *--stack = 0x08; /* code segment */
     *--stack = (uint32_t)entry;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0;
-    *--stack = 0x10;
-    *--stack = 0x10;
-    *--stack = 0x10;
-    *--stack = 0x10;
+    *--stack = 0;       /* EAX */
+    *--stack = 0;       /* ECX */
+    *--stack = 0;       /* EDX */
+    *--stack = 0;       /* EBX */
+    *--stack = 0;       /* reserved */
+    *--stack = 0;       /* EBP */
+    *--stack = 0;       /* ESI */
+    *--stack = 0;       /* EDI */
+    *--stack = 0x10;    /* GS */
+    *--stack = 0x10;    /* ES */
+    *--stack = 0x10;    /* FS */
+    *--stack = 0x10;    /* GS  */
 
     uint32_t delta = (uint32_t)stack_top - (uint32_t)stack;
 
@@ -95,19 +102,23 @@ sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t
 }
 
 void
-sched_run_kthread(kthread_entry_t entrypoint)
+sched_run_kthread(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 {
-    struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
+    struct thread *thread = (struct thread*)calloc(0, sizeof(struct thread));
 
-    proc->address_space = vm_space_new();
-    proc->state = SRUN;
+    if (space) {
+        thread->address_space = space;
+    } else {
+        thread->address_space = vm_space_new();
+    }
 
-    vm_map(proc->address_space, (void*)0xFFFFF000, 1, PROT_WRITE | PROT_READ | PROT_KERN);
+    thread->state = SRUN;
+
+    vm_map(thread->address_space, (void*)0xFFFFF000, 1, PROT_WRITE | PROT_READ | PROT_KERN);
     
-    proc->stack = sched_init_thread(proc->address_space, 0xFFFFFA00, entrypoint, NULL);
-    printf("proc was allocated at %x\n", proc);   
-    list_append(&run_queue, proc);
+    thread->stack = sched_init_thread(thread->address_space, 0xFFFFFA00, entrypoint, arg);
 
+    list_append(&run_queue, thread);
 }
 
 __attribute__((constructor)) static void

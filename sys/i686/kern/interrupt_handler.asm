@@ -57,6 +57,7 @@ ISR_NOERRCODE 29
 ISR_NOERRCODE 30
 ISR_NOERRCODE 31
 
+ISR_NOERRCODE 128
 ; defined in i686/kern/context_switch.asm
 extern sched_switch_context
 

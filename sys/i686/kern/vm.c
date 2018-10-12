@@ -36,7 +36,7 @@ page_find_free_block()
     return NULL;
 }
 
-uintptr_t
+static uintptr_t
 page_alloc(struct page_block **res)
 {
     struct page_block *block = page_find_free_block();
@@ -54,7 +54,7 @@ page_alloc(struct page_block **res)
     return block->addr;
 }
 
-void
+static void
 page_free(void *addr)
 {
     list_iter_t iter;
@@ -77,7 +77,7 @@ page_free(void *addr)
     iter_close(&iter);
 }
 
-void
+static void
 page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t paddr, bool write, bool user)
 {
     uint32_t page_table = vaddr / PAGE_SIZE;
@@ -111,7 +111,7 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
     page->frame = paddr >> 12;
     page->present = true;
     page->read_write = write;
-    page->user = user;
+    page->user = 1;
     
     asm volatile("invlpg (%0)" : : "b"(vaddr) : "memory");
 }
@@ -172,12 +172,21 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
 
     for (int i = 0; i < required_pages; i++) {
         struct vm_block *src_block = vm_find_block(space2, (uintptr_t)addr2 + (i * PAGE_SIZE));
+        struct vm_block *block = vm_block_new();
         struct page_block *frame = (struct page_block*)src_block->state;
 
         uintptr_t paddr = src_block->start_physical;
         uintptr_t vaddr = (uintptr_t)addr1 + (PAGE_SIZE * i);
 
         frame->ref_count++;
+
+        block->size = PAGE_SIZE;
+        block->start_physical = paddr;
+        block->start_virtual = vaddr;
+        block->prot = prot;
+        block->state = frame;
+
+        list_append(&space1->map, block);
 
         page_map_entry(directory, vaddr, paddr, write, user);
     }
@@ -188,7 +197,7 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
 void *
 vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 {
-    int required_pages = (length >> 12) + 1;
+    int required_pages = ((length - 1) >> 12) + 1;
 
     if (addr == NULL && (prot & PROT_KERN)) {
         addr = (void*)space->kernel_brk;
@@ -215,7 +224,7 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 
         list_append(&space->map, block);
 
-        bool write = (prot & PROT_WRITE);
+        bool write = (prot & PROT_WRITE) != 0;
         bool user = (prot & PROT_KERN) == 0;
 
         page_map_entry(directory, block->start_virtual, block->start_physical, write, user);
@@ -227,15 +236,13 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 void
 vm_unmap(struct vm_space *space, void *addr, size_t length)
 {
-    int required_pages = (length >> 12) + 1;
-   
+    int required_pages = ((length - 1) >> 12) + 1;
+    
     addr = (void*)((uintptr_t)addr & 0xFFFFF000);
 
     for (int i = 0; i < required_pages; i++) {
         struct vm_block *block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
-        
         struct page_block *frame = (struct page_block*)block->state;
-
         frame->ref_count--;
 
         if (frame && frame->ref_count <= 0) {
