@@ -1,0 +1,81 @@
+--- gcc-4.9.4/config.sub	2013-10-01 12:50:56.000000000 -0400
++++ config.sub	2018-10-06 15:28:01.881288986 -0400
+@@ -1360,7 +1360,7 @@
+ 	      | -nindy* | -vxsim* | -vxworks* | -ebmon* | -hms* | -mvs* \
+ 	      | -clix* | -riscos* | -uniplus* | -iris* | -rtu* | -xenix* \
+ 	      | -hiux* | -386bsd* | -knetbsd* | -mirbsd* | -netbsd* \
+-	      | -bitrig* | -openbsd* | -solidbsd* \
++	      | -bitrig* | -openbsd* | -solidbsd* | -elysium* \
+ 	      | -ekkobsd* | -kfreebsd* | -freebsd* | -riscix* | -lynxos* \
+ 	      | -bosx* | -nextstep* | -cxux* | -aout* | -elf* | -oabi* \
+ 	      | -ptx* | -coff* | -ecoff* | -winnt* | -domain* | -vsta* \
+--- gcc-4.9.4/gcc/config.gcc	2016-03-14 06:03:12.000000000 -0400
++++ config.gcc	2018-10-06 15:33:50.359670320 -0400
+@@ -804,6 +804,11 @@
+   default_use_cxa_atexit=yes
+   use_gcc_stdint=wrap
+   ;;
++*-*-elysium*)
++  gas=yes
++  gnu_ld=yes
++  default_use_cxa_atexit=yes
++  ;;
+ *-*-uclinux*)
+   extra_options="$extra_options gnu-user.opt"
+   use_gcc_stdint=wrap
+@@ -1350,6 +1355,12 @@
+ x86_64-*-elf*)
+ 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h newlib-stdint.h i386/i386elf.h i386/x86-64.h"
+ 	;;
++i[34567]86-*-elysium*)
++    tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h glibc-stdint.h i386/i386elf.h elysium.h"
++    ;;
++x86_64-*-elysium*)
++    tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h glibc-stdint.h i386/i386elf.h i386/x86-64.h elysium.h"
++    ;;
+ i[34567]86-*-rdos*)
+     tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h newlib-stdint.h i386/i386elf.h i386/rdos.h"
+     ;;
+--- gcc-4.9.4/libstdc++-v3/crossconfig.m4	2014-03-20 14:57:07.000000000 -0400
++++ crossconfig.m4	2018-10-06 15:36:22.803712577 -0400
+@@ -64,7 +64,12 @@
+     AC_DEFINE(HAVE_SINCOS)
+     AC_DEFINE(HAVE_HYPOT)
+     ;;
+-
++  *-elysium*)
++    GLIBCXX_CHECK_COMPILER_FEATURES
++    GLIBCXX_CHECK_LINKER_FEATURES
++    GLIBCXX_CHECK_MATH_SUPPORT
++    GLIBCXX_CHECK_STDLIB_SUPPORT
++    ;;
+   *-freebsd*)
+     SECTION_FLAGS='-ffunction-sections -fdata-sections'
+     AC_SUBST(SECTION_FLAGS) 
+--- gcc-4.9.4/libgcc/config.host	2016-05-17 02:22:28.000000000 -0400
++++ config.host	2018-10-07 04:55:47.320717160 -0400
+@@ -545,6 +545,14 @@
+ x86_64-*-elf*)
+ 	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
+ 	;;
++i[34567]86-*-elysium*)
++    extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++    tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++    ;;
++x86_64-*-elysium*)
++    extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++    tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++    ;;
+ i[34567]86-*-freebsd*)
+ 	tmake_file="${tmake_file} i386/t-freebsd i386/t-crtstuff"
+ 	;;
+--- gcc-4.9.4/fixincludes/mkfixinc.sh	2012-10-28 17:42:48.000000000 -0400
++++ mkfixinc.sh	2018-10-06 15:40:04.628080172 -0400
+@@ -11,6 +11,7 @@
+ 
+ # Check for special fix rules for particular targets
+ case $machine in
++    *-elysium* | \
+     i?86-*-cygwin* | \
+     i?86-*-mingw32* | \
+     x86_64-*-mingw32* | \

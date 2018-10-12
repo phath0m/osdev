@@ -1,0 +1,104 @@
+--- binutils-2.26/config.sub	2015-11-13 03:27:41.000000000 -0500
++++ config.sub	2018-10-06 15:10:30.736022206 -0400
+@@ -1379,7 +1379,7 @@
+ 	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
+ 	      | -sym* | -kopensolaris* | -plan9* \
+ 	      | -amigaos* | -amigados* | -msdos* | -newsos* | -unicos* | -aof* \
+-	      | -aos* | -aros* | -cloudabi* \
++	      | -aos* | -aros* | -cloudabi* | -elysium* \
+ 	      | -nindy* | -vxsim* | -vxworks* | -ebmon* | -hms* | -mvs* \
+ 	      | -clix* | -riscos* | -uniplus* | -iris* | -rtu* | -xenix* \
+ 	      | -hiux* | -386bsd* | -knetbsd* | -mirbsd* | -netbsd* \
+--- binutils-2.26/bfd/config.bfd	2015-11-13 03:27:40.000000000 -0500
++++ config.bfd	2018-10-07 05:36:42.709374895 -0400
+@@ -529,6 +529,10 @@
+     targ_defvec=i370_elf32_vec
+     targ_selvecs="i370_elf32_vec"
+     ;;
++  i[3-7]86-*-elysium*)
++    targ_defvec=i386_elf32_vec
++    targ_selvecs=
++    ;;
+   i[3-7]86-*-sco3.2v5*coff)
+     targ_defvec=i386_coff_vec
+     targ_selvecs=i386_elf32_vec
+@@ -546,6 +550,11 @@
+     want64=true
+     ;;
+ #ifdef BFD64
++  x86_64-*-elysium*)
++    targ_defvec=x86_64_elf64_vec
++    targ_selvecs=i386_elf32_vec
++    want64=true
++    ;;
+   x86_64-*-solaris2*)
+     targ_defvec=i386_elf32_sol2_vec
+     targ_selvecs="x86_64_elf64_sol2_vec l1om_elf64_vec k1om_elf64_vec iamcu_elf32_vec i386_coff_vec i386_pei_vec x86_64_pei_vec"
+--- binutils-2.26/gas/configure.tgt	2015-11-13 03:27:41.000000000 -0500
++++ gas.configure.tgt	2018-10-06 15:10:30.736022206 -0400
+@@ -219,6 +219,7 @@
+   i386-*-coff)				fmt=coff ;;
+   i386-*-elfiamcu)			fmt=elf arch=iamcu ;;
+   i386-*-elf*)				fmt=elf ;;
++  i386-*-elysium*)          fmt=elf ;;
+   i386-*-kaos*)				fmt=elf ;;
+   i386-*-bsd*)				fmt=aout em=386bsd ;;
+   i386-*-nacl*)				fmt=elf em=nacl
+--- binutils-2.26/ld/configure.tgt	2015-11-13 03:27:42.000000000 -0500
++++ ld.configure.tgt	2018-10-07 05:37:07.469493625 -0400
+@@ -243,6 +243,14 @@
+ i[3-7]86-*-bsd)		targ_emul=i386bsd ;;
+ i[3-7]86-*-bsd386)	targ_emul=i386bsd ;;
+ i[3-7]86-*-bsdi*)	targ_emul=i386bsd ;;
++i[3-7]86-*-elysium*)
++                    targ_emul=elf_i386_elysium
++                    targ_extra_emuls=elf_i386
++                    ;;
++x86_64-*-elysium*)
++                    targ_emul=elf_x86_64_elysium
++                    targ_extra_emuls="elf_i386_elysium elf_x86_64 elf_i386"
++                    ;;
+ i[3-7]86-*-aout)	targ_emul=i386aout ;;
+ i[3-7]86-*-linux*aout*)	targ_emul=i386linux
+ 			targ_extra_emuls="elf_i386 elf_iamcu"
+--- binutils-2.26/ld/Makefile.am	2015-11-13 03:27:42.000000000 -0500
++++ Makefile.am	2018-10-06 15:10:30.736022206 -0400
+@@ -282,6 +282,7 @@
+ 	eelf_i386.c \
+ 	eelf_i386_be.c \
+ 	eelf_i386_chaos.c \
++	eelf_i386_elysium.c \
+ 	eelf_i386_fbsd.c \
+ 	eelf_i386_ldso.c \
+ 	eelf_i386_nacl.c \
+@@ -497,6 +498,7 @@
+ 	eelf_k1om_fbsd.c \
+ 	eelf_x86_64.c \
+ 	eelf_x86_64_cloudabi.c \
++	eelf_x86_64_elysium.c \
+ 	eelf_x86_64_fbsd.c \
+ 	eelf_x86_64_nacl.c \
+ 	eelf_x86_64_sol2.c \
+@@ -1301,6 +1303,10 @@
+ eelf_i386_chaos.c: $(srcdir)/emulparams/elf_i386_chaos.sh \
+   $(ELF_DEPS) $(srcdir)/scripttempl/elf_chaos.sc ${GEN_DEPENDS}
+ 
++eelf_i386_elysium.c: $(srcdir)/emulparams/elf_i386_elysium.sh \
++	$(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++		${GENSCRIPTS} elf_i386_elysium "$(tdir_elf_i386_elysium)"
++
+ eelf_i386_fbsd.c: $(srcdir)/emulparams/elf_i386_fbsd.sh \
+   $(srcdir)/emulparams/elf_i386.sh \
+   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+@@ -1991,6 +1997,11 @@
+   $(srcdir)/emulparams/elf_x86_64.sh \
+   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+ 
++eelf_x86_64_elysium.c: $(srcdir)/emulparams/elf_x86_64_elysium.sh \
++	$(srcdir)/emulparams/elf_x86_64.sh \
++	$(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++		${GENSCRIPTS} elf_x86_64_elysium "$(tdir_elf_x86_64_elysium)"
++
+ eelf_x86_64_fbsd.c: $(srcdir)/emulparams/elf_x86_64_fbsd.sh \
+   $(srcdir)/emulparams/elf_x86_64.sh \
+   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}

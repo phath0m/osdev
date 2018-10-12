@@ -1,0 +1,33 @@
+--- newlib-2.5.0/config.sub	2016-12-22 21:33:54.000000000 -0500
++++ config.sub	2018-10-06 12:52:14.723883832 -0400
+@@ -1378,7 +1378,7 @@
+ 	      | -hpux* | -unos* | -osf* | -luna* | -dgux* | -auroraux* | -solaris* \
+ 	      | -sym* | -kopensolaris* | -plan9* \
+ 	      | -amigaos* | -amigados* | -msdos* | -newsos* | -unicos* | -aof* \
+-	      | -aos* | -aros* | -cloudabi* | -sortix* \
++	      | -aos* | -aros* | -cloudabi* | -sortix* | -elysium* \
+ 	      | -nindy* | -vxsim* | -vxworks* | -ebmon* | -hms* | -mvs* \
+ 	      | -clix* | -riscos* | -uniplus* | -iris* | -rtu* | -xenix* \
+ 	      | -hiux* | -386bsd* | -knetbsd* | -mirbsd* | -netbsd* \
+--- newlib-2.5.0/newlib/configure.host	2016-12-22 21:33:54.000000000 -0500
++++ configure.host	2018-10-06 12:54:26.497907641 -0400
+@@ -429,6 +429,9 @@
+ 	# crt0 is provided by libgloss.
+ 	have_crt0="no"
+ 	;;
++  i[3-7]86-*-elysium*)
++        sys_dir=elysium
++        ;;
+   frv*)
+         sys_dir=
+         ;;
+--- newlib-2.5.0/newlib/libc/sys/configure.in	2016-12-22 21:33:54.000000000 -0500
++++ configure.in	2018-10-06 12:55:33.508257995 -0400
+@@ -27,6 +27,7 @@
+ 	d10v) AC_CONFIG_SUBDIRS(d10v) ;;
+ 	decstation) AC_CONFIG_SUBDIRS(decstation) ;;
+ 	epiphany) AC_CONFIG_SUBDIRS(epiphany) ;;
++	elysium) AC_CONFIG_SUBDIRS(elysium) ;;
+ 	h8300hms) AC_CONFIG_SUBDIRS(h8300hms) ;;
+ 	h8500hms) AC_CONFIG_SUBDIRS(h8500hms) ;;
+ 	linux) AC_CONFIG_SUBDIRS(linux) ;;
