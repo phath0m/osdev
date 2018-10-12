@@ -6,5 +6,7 @@
 int kmain();
 void kputs(const char *str);
 void kset_output(struct device *dev);
+void panic(const char *fmt, ...);
+void shutdown();
 
 #endif

@@ -111,10 +111,14 @@ list_remove(struct list *listp, void *item)
         if (iter->data == item) {
             if (prev) {
                 prev->next_elem = iter->next_elem;
+            } else {
+                listp->head = next;
             }
 
             if (next) {
                 next->prev_elem = prev;
+            } else if (prev) {
+                listp->tail = prev;
             }
 
             listp->count--;

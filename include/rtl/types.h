@@ -13,6 +13,9 @@ typedef signed char int8_t;
 typedef signed short int16_t;
 typedef signed int int32_t;
 
+typedef int dev_t;
+typedef int mode_t;
+typedef int nlink_t;
 typedef int uid_t;
 typedef int gid_t;
 typedef int pid_t;
@@ -26,5 +29,7 @@ typedef unsigned long int uint64_t;
 
 typedef int intptr_t;
 typedef unsigned int uintptr_t;
+
+typedef signed long int off_t;
 
 #endif

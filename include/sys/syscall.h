@@ -1,0 +1,43 @@
+#ifndef SYS_SYSCALL_H
+#define SYS_SYSCALL_H
+
+#include <rtl/types.h>
+#include <sys/proc.h>
+
+#define SYS_READ        0x00
+#define SYS_WRITE       0x01
+#define SYS_OPEN        0x02
+#define SYS_CLOSE       0x03
+#define SYS_STAT        0x04
+#define SYS_FSTAT       0x05
+#define SYS_LSEEK       0x06
+#define SYS_FNCTL       0x07
+#define SYS_IOCTL       0x08
+#define SYS_SBRK        0x09
+#define SYS_ACCESS      0x0A
+#define SYS_EXECVE      0x0B
+#define SYS_FORK        0x0C
+#define SYS_EXIT        0x0D
+#define SYS_UNAME       0x0E
+
+#define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
+#define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
+
+struct syscall_args {
+    void *      state;
+    uintptr_t * args;
+};
+
+typedef struct syscall_args * syscall_args_t;
+
+typedef int (*syscall_t)(struct proc *proc, syscall_args_t argv);
+
+struct syscall {
+    uint8_t     num;
+    uint16_t    argc;
+    syscall_t   handler;
+};
+
+int register_syscall(int num, int argc, syscall_t handler);
+
+#endif

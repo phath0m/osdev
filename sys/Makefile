@@ -1,6 +1,6 @@
 AS=nasm
-CC=i686-elf-gcc
-LD=i686-elf-gcc
+CC=i686-elysium-gcc
+LD=i686-elysium-gcc
 
 AFLAGS= -f elf32
 CFLAGS = -c -std=gnu99 --freestanding -Wall -Werror -nostartfiles -nodefaultlibs -I ../include
@@ -15,6 +15,7 @@ CRTEND_OBJECT   := $(shell $(CC) $(CFLAGS) -print-file-name=crtend.o)
 KERNEL_OBJECTS += i686/rtl/crti.o
 KERNEL_OBJECTS += i686/rtl/crtbegin.o
 KERNEL_OBJECTS += i686/rtl/malloc.o
+KERNEL_OBJECTS += i686/dev/serial_tty.o
 KERNEL_OBJECTS += i686/kern/context_switch.o
 KERNEL_OBJECTS += i686/kern/preinit.o
 KERNEL_OBJECTS += i686/kern/boot.o
@@ -23,16 +24,21 @@ KERNEL_OBJECTS += i686/kern/gdt.o
 KERNEL_OBJECTS += i686/kern/interrupt.o
 KERNEL_OBJECTS += i686/kern/interrupt_dispatch.o
 KERNEL_OBJECTS += i686/kern/interrupt_handler.o
+KERNEL_OBJECTS += i686/kern/exec.o
+KERNEL_OBJECTS += i686/kern/fork.o
 KERNEL_OBJECTS += i686/kern/sched.o
 KERNEL_OBJECTS += i686/kern/shutdown.o
+KERNEL_OBJECTS += i686/kern/syscall_dispatch.o
+KERNEL_OBJECTS += i686/kern/usermode.o
 KERNEL_OBJECTS += i686/kern/vm.o
+KERNEL_OBJECTS += i686/kern/vm_copy.o
 
 # non i686 things here
 
 KERNEL_OBJECTS += dev/vga_textscreen.o
 
 KERNEL_OBJECTS += fs/devfs.o
-KERNEL_OBJECTS += fs/initramfs.o
+KERNEL_OBJECTS += fs/tarfs.o
 
 KERNEL_OBJECTS += kern/device.o
 KERNEL_OBJECTS += kern/interrupt.o
@@ -40,6 +46,9 @@ KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/kputs.o
 KERNEL_OBJECTS += kern/panic.o
+KERNEL_OBJECTS += kern/proc.o
+KERNEL_OBJECTS += kern/proc_syscalls.o
+KERNEL_OBJECTS += kern/vfs_syscalls.o
 
 # Kernel runtime library
 KERNEL_OBJECTS += rtl/dict.o

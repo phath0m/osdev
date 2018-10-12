@@ -21,12 +21,16 @@ static int ramfs_lookup(struct vfs_node *parent, struct vfs_node **result, const
 static int ramfs_mount(struct device *dev, struct vfs_node **root);
 static struct ramfs_node *ramfs_node_new();
 static int ramfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
-static bool ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
+static int ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
+static int ramfs_seek(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
+static int ramfs_stat(struct vfs_node *node, struct stat *stat);
 
 struct file_ops ramfs_file_ops = {
     .lookup     = ramfs_lookup,
     .read       = ramfs_read,
-    .readdirent = ramfs_readdirent
+    .readdirent = ramfs_readdirent,
+    .seek       = ramfs_seek,
+    .stat       = ramfs_stat
 };
 
 struct fs_ops ramfs_ops = {
@@ -200,8 +204,9 @@ ramfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
     if (dict_get(&dir->children, name, (void**)&child)) {
         struct vfs_node *node = vfs_node_new(NULL, &ramfs_file_ops);
         
+        node->size = child->size;
         node->state = child;
-
+        
         *result = node;
 
         return 0;
@@ -249,7 +254,7 @@ ramfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
     return nbyte;
 }
 
-static bool
+static int
 ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 {
     struct ramfs_node *dir = (struct ramfs_node*)node->state;
@@ -260,7 +265,7 @@ ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 
     char *name = NULL;
 
-    bool res = false;
+    int res = -1;
 
     for (int i = 0; iter_move_next(&iter, (void**)&name); i++) {
         struct ramfs_node *node = NULL;
@@ -268,7 +273,7 @@ ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
         if (i == entry && name && dict_get(&dir->children, name, (void**)node)) {
             strncpy(dirent->name, name, PATH_MAX);
             dirent->type = node->type;
-            res = true; 
+            res = 0; 
             break;
         }
     }
@@ -278,6 +283,49 @@ ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
     return res;
 }
 
+static int
+ramfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
+{
+    struct ramfs_node *file = (struct ramfs_node*)node->state;
+
+    off_t new_pos;
+
+    switch (whence) {
+        case SEEK_CUR:
+            new_pos = *cur_pos + off;
+            break;
+        case SEEK_END:
+            new_pos = file->size - (off + 1);
+            break;
+        case SEEK_SET:
+            new_pos = off;
+            break;
+    }
+
+    if (new_pos >= file->size) {
+        return ESPIPE;
+    }
+
+    if (new_pos < 0) {
+        return ESPIPE;
+    }
+
+    *cur_pos = new_pos;
+
+    return 0;
+}
+
+static int
+ramfs_stat(struct vfs_node *node, struct stat *stat)
+{
+    struct ramfs_node *file = (struct ramfs_node*)node->state;
+
+    stat->st_dev = (dev_t)0;
+    stat->st_size = file->size;
+    stat->st_ino = (ino_t)file;
+
+    return 0;
+}
 
 __attribute__((constructor)) static void
 ramfs_init()
