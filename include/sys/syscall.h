@@ -19,6 +19,11 @@
 #define SYS_FORK        0x0C
 #define SYS_EXIT        0x0D
 #define SYS_UNAME       0x0E
+#define SYS_CHROOT      0x0F
+#define SYS_WAITPID     0x10
+#define SYS_WAIT        0x11
+#define SYS_READDIR     0x12
+#define SYS_CHDIR       0x13
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
@@ -30,7 +35,7 @@ struct syscall_args {
 
 typedef struct syscall_args * syscall_args_t;
 
-typedef int (*syscall_t)(struct proc *proc, syscall_args_t argv);
+typedef int (*syscall_t)(syscall_args_t argv);
 
 struct syscall {
     uint8_t     num;

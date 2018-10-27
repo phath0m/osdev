@@ -13,7 +13,7 @@ typedef signed char int8_t;
 typedef signed short int16_t;
 typedef signed int int32_t;
 
-typedef int dev_t;
+typedef short dev_t;
 typedef int mode_t;
 typedef int nlink_t;
 typedef int uid_t;

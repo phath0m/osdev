@@ -5,6 +5,7 @@
 #include <rtl/types.h>
 #include <sys/proc.h>
 #include <sys/vm.h>
+#include <sys/wait.h>
 
 #define SRUN    0x02
 #define SSLEEP  0x03
@@ -12,26 +13,41 @@
 #define SZOMB   0x05
 #define SWAIT   0x06
 #define SLOCK   0x07
+#define SDEAD   0x08
 
 typedef int (*kthread_entry_t)(void *state);
+
+struct cred {
+    uid_t   uid;
+    gid_t   gid;
+    uid_t   euid;
+    gid_t   egid;
+};
 
 struct container {
     int     id;
 };
 
 struct proc {
+    struct cred         creds;
     struct list         threads;
+    struct list         children;
     struct container *  container;
     struct file *       files[4096];
+    struct proc *       parent;
     struct thread *     thread;
+    struct vfs_node *   cwd;
     struct vfs_node *   root;
     struct vm_space *   address_space;
-    pid_t               pid;
+    struct wait_queue   waiters;
     uintptr_t           base;
     uintptr_t           brk;
+    pid_t               pid;
+    int                 status;
 };
 
 struct thread {
+    struct list         joined_queues;
     struct regs *       regs;
     struct proc *       proc;
     struct vm_space *   address_space;
@@ -71,6 +87,11 @@ void proc_destroy(struct proc *);
 struct proc *proc_new();
 
 uintptr_t sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg);
+
 void sched_run_kthread(kthread_entry_t entrypoint, struct vm_space *space, void *arg);
+
+void sched_yield();
+
+void schedule_thread(int state, struct thread *thread);
 
 #endif

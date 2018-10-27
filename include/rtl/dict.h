@@ -18,7 +18,7 @@ struct dict {
 };
 
 
-void dict_destroy(struct dict *dict);
+void dict_clear(struct dict *dict);
 bool dict_get(struct dict *dict, const char *key, void **result);
 void dict_get_keys(struct dict *dict, list_iter_t *iter);
 void dict_set(struct dict *dict, const char *key, void *value);

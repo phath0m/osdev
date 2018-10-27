@@ -28,8 +28,23 @@
 #define SEEK_CUR    0x01
 #define SEEK_END    0x02
 
+#define	S_IRWXU     0000700
+#define	S_IRUSR     0000400
+#define	S_IWUSR     0000200
+#define	S_IXUSR     0000100
+
+
+#define	S_IRWXG     0000070
+#define	S_IRGRP     0000040
+#define	S_IWGRP     0000020
+#define	S_IXGRP     0000010
+#define	S_IRWXO     0000007
+#define	S_IROTH     0000004
+#define	S_IWOTH     0000002
+#define	S_IXOTH     0000001
+
 #define INC_NODE_REF(p) __sync_fetch_and_add(&(p)->refs, 1)
-#define DEC_NODE_REF(p) if (__sync_fetch_and_sub(&(p)->refs, 1) == 1) free(p);
+#define DEC_NODE_REF(p) if (__sync_fetch_and_sub(&(p)->refs, 1) == 1) vfs_node_destroy(p);
 
 struct dirent;
 struct file;
@@ -58,6 +73,7 @@ struct dirent {
 
 struct file {
     struct vfs_node *   node;
+    char                name[PATH_MAX];
     int                 flags;
     uint64_t            position;
 };
@@ -119,11 +135,22 @@ struct vfs_node {
 };
 
 struct file *file_new(struct vfs_node *node);
+
 int vfs_close(struct file *file);
 
+struct file *vfs_duplicate_file(struct file *file);
+
 int vfs_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int flags);
+
+void vfs_node_destroy(struct vfs_node *node);
+
 struct vfs_node *vfs_node_new(struct device *dev, struct file_ops *ops);
+
+int vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **result, const char *path);
+
 int vfs_open(struct vfs_node *root, struct file **result, const char *path, int flags);
+
+int vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags);
 
 void register_filesystem(char *name, struct fs_ops *ops);
 
@@ -203,4 +230,5 @@ uint64_t vfs_tell(struct file *file);
  * @param nbyte     how many bytes to write
  */
 int vfs_write(struct file *file, const char *buf, size_t nbyte);
+
 #endif

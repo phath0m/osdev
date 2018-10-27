@@ -30,6 +30,7 @@ struct vm_space {
 
 void *vm_map(struct vm_space *space, void *addr, size_t length, int prot);
 void *vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *addr2, size_t length, int prot);
+void vm_space_destroy(struct vm_space *space);
 struct vm_space *vm_space_new();
 void vm_unmap(struct vm_space *space, void *addr, size_t length);
 
