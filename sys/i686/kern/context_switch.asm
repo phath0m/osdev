@@ -5,6 +5,7 @@ extern sched_get_next_proc
 global sched_switch_context
 
 sched_switch_context:
+    cli
     pushad
     push ds
     push es
@@ -42,4 +43,5 @@ sched_switch_context:
     pop es
     pop ds
     popad
+    sti
     iret

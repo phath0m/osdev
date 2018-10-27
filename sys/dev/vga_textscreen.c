@@ -28,7 +28,7 @@ static int textscreen_open(struct device *dev);
 static int textscreen_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct device textscreen_device = {
-    .name   =   "textscreen",
+    .name   =   "vga",
     .close  =   textscreen_close,
     .ioctl  =   textscreen_ioctl,
     .open   =   textscreen_open,

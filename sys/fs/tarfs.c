@@ -42,6 +42,9 @@ struct ramfs_node {
     struct tar_header * header;
     void *              data;
     size_t              size;
+    uid_t               uid;
+    gid_t               gid;
+    uint8_t             mode;
     uint8_t             type;
 };
 
@@ -126,7 +129,6 @@ parse_tar_archive(const void *archive)
         }
 
         char name[100];
-
         strcpy(name, header->name);
 
         discard_trailing_slash(name);
@@ -147,7 +149,9 @@ parse_tar_archive(const void *archive)
         
         node->header = header;
         node->data = (void*)(archive + 512);
-        
+        node->gid = atoi(header->gid, 8);
+        node->mode = atoi(header->mode, 8);
+        node->uid = atoi(header->uid, 8);
         int size = atoi(header->size, 8);
 
         node->size = size;
@@ -270,10 +274,10 @@ ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
     for (int i = 0; iter_move_next(&iter, (void**)&name); i++) {
         struct ramfs_node *node = NULL;
 
-        if (i == entry && name && dict_get(&dir->children, name, (void**)node)) {
+        if (i == entry && name && dict_get(&dir->children, name, (void**)&node)) {
             strncpy(dirent->name, name, PATH_MAX);
             dirent->type = node->type;
-            res = 0; 
+            res = 0;
             break;
         }
     }
@@ -302,7 +306,7 @@ ramfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
             break;
     }
 
-    if (new_pos >= file->size) {
+    if (new_pos > file->size) {
         return ESPIPE;
     }
 
@@ -321,9 +325,12 @@ ramfs_stat(struct vfs_node *node, struct stat *stat)
     struct ramfs_node *file = (struct ramfs_node*)node->state;
 
     stat->st_dev = (dev_t)0;
+    stat->st_gid = file->gid;
+    stat->st_mode = file->mode;
     stat->st_size = file->size;
+    stat->st_uid = file->uid;
     stat->st_ino = (ino_t)file;
-
+    
     return 0;
 }
 

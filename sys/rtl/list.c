@@ -49,6 +49,10 @@ list_destroy(struct list *listp, bool free_children)
         cur = cur->next_elem;
     }
 
+    listp->count = 0;
+    listp->head = NULL;
+    listp->tail = NULL;
+
     spinlock_unlock(&listp->lock);
 }
 

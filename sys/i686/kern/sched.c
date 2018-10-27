@@ -16,7 +16,8 @@
 #include <rtl/printf.h>
 
 // list of processes to run
-struct list run_queue;
+struct list         run_queue;
+struct list         dead_threads;
 
 struct proc *       current_proc;
 struct vm_space *   sched_curr_address_space;
@@ -34,6 +35,25 @@ init_pit(uint32_t frequency)
     io_write_byte(0x40, (divisor >> 8) & 0xFF);
 }
 
+static void
+sched_reap_threads()
+{
+    list_iter_t iter;
+
+    list_get_iter(&dead_threads, &iter);
+
+    struct thread *thread;
+
+    while (iter_move_next(&iter, (void**)&thread)) {
+        proc_destroy(thread->proc);
+    }
+
+    iter_close(&iter);
+    
+    list_destroy(&dead_threads, true);
+}
+
+
 int
 sched_get_next_proc(uintptr_t prev_esp)
 {
@@ -48,6 +68,11 @@ sched_get_next_proc(uintptr_t prev_esp)
             sched_curr_thread->stack = prev_esp;
 
             if (sched_curr_thread->state == SRUN) {
+                
+                if (LIST_SIZE(&dead_threads) > 0) {
+                    sched_reap_threads();
+                }
+
                 list_append(&run_queue, sched_curr_thread);
             }
         }
@@ -56,7 +81,7 @@ sched_get_next_proc(uintptr_t prev_esp)
         sched_curr_thread = next_thread;
         sched_curr_page_dir = (uintptr_t)next_thread->address_space->state_physical;
 
-        current_proc = sched_curr_thread->proc;
+        current_proc = next_thread->proc;
 
         return next_thread->stack;
     }
@@ -119,6 +144,25 @@ sched_run_kthread(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
     thread->stack = sched_init_thread(thread->address_space, 0xFFFFFA00, entrypoint, arg);
 
     list_append(&run_queue, thread);
+}
+
+void
+sched_yield()
+{
+    asm volatile("sti");
+    asm volatile("hlt");
+}
+
+void
+schedule_thread(int state, struct thread *thread)
+{
+    thread->state = state;
+
+    if (state == SRUN) {
+        list_append(&run_queue, thread);
+    } else if (state == SDEAD) {
+        list_append(&dead_threads, thread);
+    }
 }
 
 __attribute__((constructor)) static void

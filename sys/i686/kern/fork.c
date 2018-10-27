@@ -2,10 +2,9 @@
 #include <rtl/string.h>
 #include <rtl/types.h>
 #include <sys/proc.h>
+#include <sys/vfs.h>
 #include <sys/vm.h>
 #include <sys/i686/interrupt.h>
-// remove
-#include <rtl/printf.h>
 
 struct fork_state {
     struct proc *   proc;
@@ -15,7 +14,7 @@ struct fork_state {
 static void
 copy_image(struct proc *proc, struct vm_space *new_space)
 {
-    size_t image_size = ((proc->brk - proc->base) + 0x1000) & 0xFFFFF000;
+    size_t image_size = ((proc->brk - proc->base));
     
     vm_map(new_space, (void*)proc->base, image_size, PROT_READ | PROT_WRITE);
 
@@ -30,8 +29,10 @@ copy_image(struct proc *proc, struct vm_space *new_space)
 static void
 copy_fildes(struct proc *proc, struct proc *new_proc)
 {
-    for (int i = 0; i < 10; i++) {
-        new_proc->files[i] = proc->files[i];
+    for (int i = 0; i < 4096; i++) {
+        if (proc->files[i]) {
+            new_proc->files[i] = vfs_duplicate_file(proc->files[i]);
+        }
     }
 }
 
@@ -61,35 +62,57 @@ init_child_proc(void *statep)
     proc->thread = sched_curr_thread;
     sched_curr_thread->proc = state->proc;
 
+    current_proc = proc;
+
+    uintptr_t eip = state->regs.eip;
+    uintptr_t esp = state->regs.uesp;
+    uintptr_t ebp = state->regs.ebp;
+
+    free(statep);
+
     /* defined in sys/i686/kern/usermode.asm */
-    extern void return_to_usermode(uintptr_t target, uintptr_t stack);
+    extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);
 
-    return_to_usermode(state->regs.eip, state->regs.uesp);
-
+    return_to_usermode(eip, esp, ebp, 0);
+    
     return 0;
 }
 
 int
 proc_fork(struct regs *regs)
 {
+    asm volatile("cli");
+
     struct proc *proc = current_proc;
     struct proc *new_proc = proc_new();
     struct vm_space *new_space = vm_space_new();
 
     new_proc->base = proc->base;
     new_proc->brk = proc->brk;
+    new_proc->cwd = proc->cwd;
+    new_proc->parent = proc;
     new_proc->root = proc->root;
+
+    INC_NODE_REF(proc->root);
+    INC_NODE_REF(proc->cwd);
+
+    list_append(&proc->children, new_proc);
 
     copy_stack(proc->thread, new_space);
     copy_image(proc, new_space);
     copy_fildes(proc, new_proc);
 
     struct fork_state *state = (struct fork_state*)calloc(0, sizeof(struct fork_state));
+
     state->proc = new_proc;
 
     memcpy(&state->regs, regs, sizeof(struct regs));
 
     sched_run_kthread(init_child_proc, new_space, (void*)state);
 
-    return 0;
+    asm volatile("sti");
+
+    sched_yield();
+
+    return new_proc->pid;
 }

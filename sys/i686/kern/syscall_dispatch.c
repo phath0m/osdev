@@ -35,9 +35,6 @@ syscall_handler(int inum, struct regs *regs)
     struct syscall *syscall = syscall_table[syscall_num];
 
     if (syscall) {
-        /* defined in sys/i686/kern/sched.c */
-        extern struct thread *sched_curr_thread;
-
         uintptr_t arguments[16];
 
         arguments[0] = (uintptr_t)regs->ebx;
@@ -50,7 +47,7 @@ syscall_handler(int inum, struct regs *regs)
         args.args = (uintptr_t*)&arguments;
         args.state = regs;
 
-        int res = syscall->handler(sched_curr_thread->proc, &args);
+        int res = syscall->handler(&args);
 
         regs->eax = res;
 

@@ -88,6 +88,7 @@ global irq_handler
 extern dispatch_intr
 
 isr_handler:
+    cli
     pusha
 
     mov ax, ds
@@ -113,11 +114,12 @@ isr_handler:
 
     popa
     add esp, 8
-    sti
 
+    sti
     iret
 
 irq_handler:
+   cli
    pusha
 
    mov ax, ds
@@ -148,5 +150,4 @@ irq_handler:
    add esp, 8
    
    sti
-
    iret

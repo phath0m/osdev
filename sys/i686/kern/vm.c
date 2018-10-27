@@ -69,12 +69,12 @@ page_free(void *addr)
             to_remove = block;
         }
     }
+    
+    iter_close(&iter);
 
     if (to_remove) {
         list_remove(&pages_allocated, to_remove);
     }
-
-    iter_close(&iter);
 }
 
 static void
@@ -243,16 +243,47 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
     for (int i = 0; i < required_pages; i++) {
         struct vm_block *block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
         struct page_block *frame = (struct page_block*)block->state;
+
         frame->ref_count--;
 
         if (frame && frame->ref_count <= 0) {
             page_free((void*)block->start_physical);
         }
-
         list_remove(&space->map, block);
-        
         free(block);
     }
+}
+
+void
+vm_space_destroy(struct vm_space *space)
+{
+    list_iter_t iter;
+    
+    struct list to_remove;
+    struct vm_block *block;
+
+    memset(&to_remove, 0, sizeof(struct list));
+
+    list_get_iter(&space->map, &iter);
+
+    while (iter_move_next(&iter, (void**)&block)) {
+        list_append(&to_remove, block);
+    }
+
+    iter_close(&iter);
+
+    list_get_iter(&to_remove, &iter);
+
+    while (iter_move_next(&iter, (void**)&block)) {
+        vm_unmap(space, (void*)block->start_virtual, 0x1000);
+    }
+
+    iter_close(&iter);
+
+    list_destroy(&to_remove, false);
+
+    free(space->state_virtual);
+    free(space);
 }
 
 struct vm_space *

@@ -38,6 +38,8 @@ file_new(struct vfs_node *node)
 {
     struct file *file = (struct file*)calloc(0, sizeof(struct file));
 
+    INC_NODE_REF(node);
+
     file->node = node;
 
     return file;
@@ -46,12 +48,27 @@ file_new(struct vfs_node *node)
 int
 vfs_close(struct file *file)
 {
-    /*
-     * TODO: decrement vfs_node reference count and free if 0
-     */
+    DEC_NODE_REF(file->node);
+
     free(file);
-    
+
     return 0;
+}
+
+struct file *
+vfs_duplicate_file(struct file *file)
+{
+    if (!file) {
+        return NULL;
+    }
+
+    struct file *new_file = (struct file*)malloc(sizeof(struct file));
+
+    memcpy(new_file, file, sizeof(struct file));
+
+    INC_NODE_REF(new_file->node);
+
+    return new_file;
 }
 
 int
@@ -87,6 +104,17 @@ vfs_mount_new(struct device *dev, struct filesystem *fs, uint64_t flags)
     return mount;
 }
 
+void
+vfs_node_destroy(struct vfs_node *node)
+{
+    /*
+     * Note: this should actually attempt to free each item in children
+     * That being said, this will not get called as the reference counting
+     * is sort of broken atm
+     */
+    dict_clear(&node->children);
+}
+
 struct vfs_node *
 vfs_node_new(struct device *dev, struct file_ops *ops)
 {
@@ -99,14 +127,10 @@ vfs_node_new(struct device *dev, struct file_ops *ops)
 }
 
 int
-vfs_open(struct vfs_node *root, struct file **result, const char *path, int flags)
+vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **result, const char *path)
 {
     if (*path == 0) {
         return ENOENT;
-    }
-
-    if (*path == '/') {
-        path++;
     }
 
     char dir[PATH_MAX];
@@ -114,6 +138,22 @@ vfs_open(struct vfs_node *root, struct file **result, const char *path, int flag
 
     struct vfs_node *parent = root;
     struct vfs_node *child = NULL;
+
+    if (cwd && *path != '/') {
+        parent = cwd;
+    } else if (*path == '/') {
+        path++;
+
+        if (*path == 0) {
+            *result = root;
+            return 0;
+        }
+    }
+    
+    if (*path == '.' && path[1] == '\0') {
+        *result = cwd;
+        return 0;
+    }
 
     do {
         nextdir = strrchr(path, '/');
@@ -124,9 +164,8 @@ vfs_open(struct vfs_node *root, struct file **result, const char *path, int flag
         } else {
             strcpy(dir, path);
         }
-
         int res = vfs_lookup(parent, &child, dir);
-        
+
         if (res != 0) {
             return res;
         }
@@ -134,9 +173,28 @@ vfs_open(struct vfs_node *root, struct file **result, const char *path, int flag
         parent = child;
 
     } while (nextdir && *path);
-    
+
     if (child) {
-        
+        *result = child;
+
+        return 0;
+    }
+
+    return ENOENT;
+}
+
+int
+vfs_open(struct vfs_node *root, struct file **result, const char *path, int flags)
+{
+    return vfs_open_r(root, NULL, result, path, flags);
+}
+
+int
+vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags)
+{
+    struct vfs_node *child = NULL;
+
+    if (vfs_get_node(root, cwd, &child, path) == 0) {
         bool will_write = (flags == O_RDWR || flags == O_WRONLY);
         //bool will_read = (flags == O_RDWR || flags == O_RDONLY);
 
@@ -147,8 +205,6 @@ vfs_open(struct vfs_node *root, struct file **result, const char *path, int flag
         struct file *file = file_new(child);
         
         file->flags = flags;
-
-        INC_NODE_REF(child);
 
         *result = file;
 
@@ -210,6 +266,8 @@ vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const c
             mount_point->ismount = true;
             mount_point->mount = mount;
 
+            INC_NODE_REF(mount);
+
             return 0;
         }
     }
@@ -246,7 +304,7 @@ vfs_readdirent(struct file *file, struct dirent *dirent)
 
     if (ops->readdirent) {
         int res = ops->readdirent(node, dirent, file->position);
-    
+
         if (res == 0) {
             file->position++;
         }
@@ -262,7 +320,6 @@ vfs_seek(struct file *file, off_t off, int whence)
 {
     struct vfs_node *node = file->node;
     struct file_ops *ops = node->ops;
-
 
     if (ops->seek) {
         return ops->seek(node, &file->position, off, whence);

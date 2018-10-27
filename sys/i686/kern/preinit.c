@@ -25,8 +25,8 @@ run_kernel(void *state)
     
     init->thread = sched_curr_thread;
 
-    current_proc = init;
     sched_curr_thread->proc = init;
+    current_proc = init;
 
     if (kmain() != 0) {
         printf("Unable to boot kernel!\n");

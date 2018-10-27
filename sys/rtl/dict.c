@@ -26,8 +26,16 @@ dict_hash(const char *key)
 }
 
 void
-dict_destroy(struct dict *dict)
+dict_clear(struct dict *dict)
 {
+    for (int i = 0; i < DICT_HASH_SIZE; i++) {
+        struct dict_entry *entry = dict->entries[i];
+
+        if (entry) {
+            list_destroy(&entry->values, true);
+            free(entry);
+        }
+    }
     /* TODO: implement... */
 }
 

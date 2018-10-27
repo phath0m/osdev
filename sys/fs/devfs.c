@@ -2,6 +2,7 @@
 #include <rtl/malloc.h>
 #include <rtl/string.h>
 #include <rtl/types.h>
+#include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/vfs.h>
 
@@ -13,6 +14,7 @@ static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const
 static int devfs_mount(struct device *dev, struct vfs_node **root);
 static int devfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
+static int devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence);
 static int devfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops devfs_file_ops = {
@@ -20,6 +22,7 @@ struct file_ops devfs_file_ops = {
     .lookup     = devfs_lookup,
     .read       = devfs_read,
     .readdirent = devfs_readdirent,
+    .seek       = devfs_seek,
     .write      = devfs_write
 };
 
@@ -48,6 +51,8 @@ devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
     list_get_iter(&device_list, &iter);
 
     struct device *dev;
+    
+    int res = -1;
 
     while (iter_move_next(&iter, (void**)&dev)) {
         if (strcmp(name, dev->name) == 0) {
@@ -59,11 +64,14 @@ devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
 
             *result = node;
 
-            return 0;
+            res = 0;
+            break;
         }
     }
 
-    return -1;
+    iter_close(&iter);
+
+    return res;
 }
 
 static int
@@ -107,11 +115,8 @@ devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
     for (int i = 0; iter_move_next(&iter, (void**)&dev); i++) {
         if (i == entry) {
             strncpy(dirent->name, dev->name, PATH_MAX);
-
             dirent->type = DT_CHR;
-
             res = 0;
-
             break;
         }
     }
@@ -119,6 +124,17 @@ devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
     iter_close(&iter);
 
     return res;
+}
+
+static int
+devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
+{
+    if (whence == SEEK_SET) {
+        *cur_pos = off;
+        return 0;
+    }
+
+    return ESPIPE;
 }
 
 static int

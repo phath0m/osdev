@@ -89,6 +89,18 @@ echo_char(struct serial_state *state, char ch)
     io_write_byte(port, ch);
 }
 
+static void
+init_serial_device(int port)
+{
+    io_write_byte(port + 1, 0x00); // disable all interupts
+    io_write_byte(port + 3, 0x80);  // enable DLAB
+    io_write_byte(port + 0, 0x01);
+    io_write_byte(port + 1, 0x00);
+    io_write_byte(port + 3, 0x03);
+    io_write_byte(port + 2, 0xC7);
+    io_write_byte(port + 4, 0x0B);
+}
+
 static char
 read_char(struct serial_state *state)
 {
@@ -161,13 +173,14 @@ serial_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
 __attribute__((constructor)) static void
 serial_register()
 {
-    io_write_byte(PORT0 + 1, 0x00); // disable all interupts
-    io_write_byte(PORT0 + 3, 0x80);  // enable DLAB
-    io_write_byte(PORT0 + 0, 0x01);
-    io_write_byte(PORT0 + 1, 0x00);
-    io_write_byte(PORT0 + 3, 0x03);
-    io_write_byte(PORT0 + 2, 0xC7);
-    io_write_byte(PORT0 + 4, 0x0B);
+    init_serial_device(PORT0);
+    init_serial_device(PORT1);
+    init_serial_device(PORT2);
+    init_serial_device(PORT3);
+
     device_register(&serial0_device);
+    device_register(&serial1_device);
+    device_register(&serial2_device);
+    device_register(&serial3_device);
 }
 

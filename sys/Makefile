@@ -1,6 +1,6 @@
 AS=nasm
-CC=i686-elysium-gcc
-LD=i686-elysium-gcc
+CC=i686-pc-elysium-gcc
+LD=i686-pc-elysium-gcc
 
 AFLAGS= -f elf32
 CFLAGS = -c -std=gnu99 --freestanding -Wall -Werror -nostartfiles -nodefaultlibs -I ../include
@@ -21,20 +21,19 @@ KERNEL_OBJECTS += i686/kern/preinit.o
 KERNEL_OBJECTS += i686/kern/boot.o
 KERNEL_OBJECTS += i686/kern/exceptions.o
 KERNEL_OBJECTS += i686/kern/gdt.o
+KERNEL_OBJECTS += i686/kern/halt.o
 KERNEL_OBJECTS += i686/kern/interrupt.o
 KERNEL_OBJECTS += i686/kern/interrupt_dispatch.o
 KERNEL_OBJECTS += i686/kern/interrupt_handler.o
 KERNEL_OBJECTS += i686/kern/exec.o
 KERNEL_OBJECTS += i686/kern/fork.o
 KERNEL_OBJECTS += i686/kern/sched.o
-KERNEL_OBJECTS += i686/kern/shutdown.o
 KERNEL_OBJECTS += i686/kern/syscall_dispatch.o
 KERNEL_OBJECTS += i686/kern/usermode.o
 KERNEL_OBJECTS += i686/kern/vm.o
-KERNEL_OBJECTS += i686/kern/vm_copy.o
 
 # non i686 things here
-
+KERNEL_OBJECTS += dev/pseudo_device.o
 KERNEL_OBJECTS += dev/vga_textscreen.o
 
 KERNEL_OBJECTS += fs/devfs.o
@@ -49,6 +48,7 @@ KERNEL_OBJECTS += kern/panic.o
 KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
 KERNEL_OBJECTS += kern/vfs_syscalls.o
+KERNEL_OBJECTS += kern/wait_queue.o
 
 # Kernel runtime library
 KERNEL_OBJECTS += rtl/dict.o

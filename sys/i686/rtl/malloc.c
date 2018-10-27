@@ -24,12 +24,19 @@ static struct malloc_block *
 find_free_pa_block(size_t size)
 {
     struct malloc_block *iter = last_freed;
-
+    struct malloc_block *prev = NULL;
     while (iter) {
         if (iter->size == size && (((uint32_t)iter->ptr & 0xFFF) == 0)) {
+            
+            if (prev) {
+                prev->prev = iter->prev;
+            } else {
+                last_freed = iter->prev;
+            }
+
             return iter;
         }
-
+        prev = iter;
         iter = (struct malloc_block*)iter->prev;
     }
 
@@ -45,26 +52,20 @@ malloc_pa(size_t size)
 
     struct malloc_block *free_block = find_free_pa_block(aligned_size);
 
-    if (free_block) {
-        spinlock_unlock(&malloc_lock);
-        return free_block->ptr;
+    if (!free_block) {
+        free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block->ptr = sbrk_a(aligned_size);
+        free_block->size = aligned_size;
     }
 
-    struct malloc_block *new_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
-
-    void *ptr = sbrk_a(aligned_size);
-
-    new_block->ptr = ptr;
-    new_block->size = aligned_size;
-    new_block->prev = last_allocated;
-
-    last_allocated = new_block;
+    free_block->prev = last_allocated;
+    last_allocated = free_block;
 
     spinlock_unlock(&malloc_lock);
 
-    memset(ptr, 0, size);
+    memset(free_block->ptr, 0, size);
 
-    return ptr;
+    return free_block->ptr;
 }
 
 void *

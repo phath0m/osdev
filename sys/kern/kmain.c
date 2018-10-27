@@ -14,8 +14,6 @@ typedef void (*test_t)();
 int
 kmain()
 {
-    printf("Welcome to Elysium!\n");
-
     struct vfs_node *root;
 
     if (vfs_openfs(NULL, &root, "initramfs", MS_RDONLY) == 0) {
@@ -25,7 +23,10 @@ kmain()
             printf("kernel: mounted devfs to /dev\n");
         }
 
+        current_proc->cwd = root;
         current_proc->root = root;
+    } else {
+        panic("could not mount initramfs!\n");
     }
     
     extern struct vm_space *sched_curr_address_space;
@@ -37,13 +38,19 @@ kmain()
     set_tss_esp0(0xFFFFFF00);
 
     const char *argv[] = {
-        "foo",
-        "bar",
+        "/sbin/doit",
         NULL
     };
 
-    printf("running init\n");
-    proc_execve("/bin/test", argv, argv);
+
+    const char *envp[] = {
+        "CONSOLE=/dev/ttyS0",
+        NULL,
+    };
+
+    extern int proc_chdir(const char *path);
+
+    proc_execve("/sbin/doit", argv, envp);
 
     /*
      * There isn't much we can do right now :P
