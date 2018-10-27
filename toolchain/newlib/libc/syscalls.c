@@ -3,30 +3,26 @@
 #include <sys/fcntl.h>
 #include <sys/times.h>
 #include <sys/errno.h>
+#include <sys/syscalls.h>
 #include <sys/time.h>
 #include <stdio.h>
-
-#define SYS_READ        0x00
-#define SYS_WRITE       0x01
-#define SYS_OPEN        0x02
-#define SYS_CLOSE       0x03
-#define SYS_STAT        0x04
-#define SYS_FSTAT       0x05
-#define SYS_LSEEK       0x06
-#define SYS_FNCTL       0x07
-#define SYS_IOCTL       0x08
-#define SYS_SBRK        0x09
-#define SYS_ACCESS      0x0A
-#define SYS_EXECVE      0x0B
-#define SYS_FORK        0x0C
-#define SYS_EXIT        0x0D
-#define SYS_UNAME       0x0E
 
 char **environ;
 
 void
-_exit()
+_exit(int status)
 {
+    asm volatile("int $0x80" : : "a"(SYS_EXIT), "b"(status));
+}
+
+int
+chdir(const char *path)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHDIR), "b"(path));
+
+    return ret;
 }
 
 int
@@ -37,6 +33,12 @@ close(int file)
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CLOSE), "b"(file));
 
     return ret;
+}
+
+int
+execv(char *name, char **argv)
+{
+    return execve(name, argv, environ);
 }
 
 int
@@ -53,7 +55,7 @@ int
 fork()
 {
     int ret;
-
+    
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FORK));
 
     return ret;
@@ -158,7 +160,21 @@ unlink(char *name)
 int
 wait(int *status)
 {
-    return -1;
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WAIT), "b"(status));
+
+    return ret;
+}
+
+int
+waitpid(pid_t pid, int *status)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WAITPID), "b"(pid), "c"(status));
+
+    return ret;
 }
 
 int

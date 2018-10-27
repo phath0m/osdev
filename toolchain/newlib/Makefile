@@ -16,11 +16,15 @@ $(NEWLIB): $(NEWLIB_SRC)
 	patch -p0 -i newlib.patch
 	mkdir -p "$(NEWLIB)/newlib/libc/sys/elysium"
 	cp libc/*.c "$(NEWLIB)/newlib/libc/sys/elysium"
+	cp libc/*.asm "$(NEWLIB)/newlib/libc/sys/elysium"
+	cp include/sys/*.h "$(NEWLIB)/newlib/libc/include/sys"
+	cp include/machine/*.h "$(NEWLIB)/newlib/libc/include/machine"
 	cp libc/Makefile.am "$(NEWLIB)/newlib/libc/sys/elysium"
 	cp libc/configure.in "$(NEWLIB)/newlib/libc/sys/elysium"
 	cd "$(NEWLIB)/newlib/libc/sys" && autoreconf && autoconf
 	cd "$(NEWLIB)/newlib/libc/sys/elysium" && autoreconf
-	mkdir -p build
+	mkdir -p build/i686-elysium/newlib/libc/sys/elysium
+	nasm -f elf32 crt/crt0.asm -o "build/i686-elysium/newlib/libc/sys/elysium/crt0.o"
 	cd build && ../$(NEWLIB)/configure --prefix="$(PREFIX)" --target=$(TARGET) && make all
 $(NEWLIB_SRC):
 	wget $(NEWLIB_URL)

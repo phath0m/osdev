@@ -1,7 +1,7 @@
-CC = i686-elf-gcc
-LD = i686-elf-gcc
+CC=i686-elf-gcc
+LD=i686-elf-gcc
 
-CFLAGS = -c -std=gnu99 -Werror -I ./include
+CFLAGS = -c -std=gnu11 -Werror -I ./include
 
 KERNEL = ./sys/kernel.bin
 ISO_IMAGE = os.iso
@@ -19,5 +19,6 @@ $(KERNEL):
 	make -C sys
 
 $(ISO_IMAGE):
+	tar --owner=root -C ./initrd -cvf ./iso/boot/initrd.img .
 	cp -p $(KERNEL) ./iso/boot
 	grub-mkrescue -o $(ISO_IMAGE) iso
