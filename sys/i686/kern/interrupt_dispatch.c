@@ -2,9 +2,6 @@
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
 
-// remove me
-#include <rtl/printf.h>
-
 void
 dispatch_intr(struct regs *regs)
 {

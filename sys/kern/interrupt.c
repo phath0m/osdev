@@ -1,8 +1,5 @@
 #include <sys/interrupt.h>
 
-// remove
-#include <rtl/printf.h>
-
 intr_handler_t intr_handlers[256];
 
 void

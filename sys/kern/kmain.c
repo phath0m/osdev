@@ -1,6 +1,6 @@
-#include <rtl/dict.h>
-#include <rtl/printf.h>
-#include <rtl/string.h>
+#include <stdio.h>
+#include <string.h>
+#include <ds/dict.h>
 #include <sys/kernel.h>
 #include <sys/proc.h>
 #include <sys/vm.h>

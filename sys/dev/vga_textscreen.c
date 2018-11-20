@@ -2,11 +2,9 @@
  * Basic driver for interacting with textscreen
  */
 
-#include <rtl/string.h>
-#include <rtl/types.h>
-
+#include <string.h>
 #include <sys/device.h>
-
+#include <sys/types.h>
 #include <sys/dev/textscreen.h>
 
 #define TEXTSCREEN_ADDR         0xC00B8000

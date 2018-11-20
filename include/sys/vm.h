@@ -1,8 +1,8 @@
 #ifndef SYS_MM_H
 #define SYS_MM_H
 
-#include <rtl/list.h>
-#include <rtl/types.h>
+#include <ds/list.h>
+#include <sys/types.h>
 
 #define PROT_KERN   0x08
 #define PROT_READ   0x04

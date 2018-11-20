@@ -3,15 +3,12 @@
  * Responsible for managing virtual memory on i686 compatible devices
  */
 
-#include <rtl/list.h>
-#include <rtl/malloc.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ds/list.h>
+#include <sys/types.h>
 #include <sys/vm.h>
 #include <sys/i686/vm.h>
-
-// remove me
-#include <rtl/printf.h>
 
 #define PHYSICAL_START_ADDR 0x8000000
 

@@ -1,8 +1,8 @@
 #ifndef SYS_WAIT_H
 #define SYS_WAIT_H
 
-#include <rtl/list.h>
-#include <rtl/types.h>
+#include <ds/list.h>
+#include <sys/types.h>
 
 struct wait_queue {
     struct list waiting_threads;

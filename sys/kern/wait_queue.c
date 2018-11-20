@@ -1,8 +1,6 @@
-#include <rtl/list.h>
+#include <ds/list.h>
 #include <sys/proc.h>
 #include <sys/wait.h>
-
-#include <rtl/printf.h>
 
 void
 wq_pulse(struct wait_queue *queue)

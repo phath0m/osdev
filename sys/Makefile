@@ -51,13 +51,14 @@ KERNEL_OBJECTS += kern/vfs_syscalls.o
 KERNEL_OBJECTS += kern/wait_queue.o
 
 # Kernel runtime library
-KERNEL_OBJECTS += rtl/dict.o
-KERNEL_OBJECTS += rtl/list.o
-KERNEL_OBJECTS += rtl/malloc.o
-KERNEL_OBJECTS += rtl/mutex.o
-KERNEL_OBJECTS += rtl/printf.o
+KERNEL_OBJECTS += libk/dict.o
+KERNEL_OBJECTS += libk/list.o
+KERNEL_OBJECTS += libk/malloc.o
+KERNEL_OBJECTS += libk/mutex.o
+KERNEL_OBJECTS += libk/printf.o
 KERNEL_OBJECTS += rtl/string.o
 
+# end CRT
 KERNEL_OBJECTS += i686/rtl/crtend.o
 KERNEL_OBJECTS += i686/rtl/crtn.o
 

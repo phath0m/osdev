@@ -1,6 +1,6 @@
-#include <rtl/list.h>
-#include <rtl/types.h>
+#include <ds/list.h>
 #include <sys/device.h>
+#include <sys/types.h>
 
 struct list device_list;
 

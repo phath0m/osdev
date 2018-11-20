@@ -1,6 +1,6 @@
 #include <stdarg.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <string.h>
+#include <sys/types.h>
 
 #define MAX(X, Y) ((X > Y) ? X : Y)
 #define MIN(X, Y) ((X < Y) ? X : Y)

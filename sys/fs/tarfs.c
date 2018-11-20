@@ -1,13 +1,12 @@
-#include <rtl/dict.h>
-// reminder: remove this header when done debugging
-#include <rtl/printf.h>
-#include <rtl/list.h>
-#include <rtl/malloc.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ds/dict.h>
+#include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
+#include <sys/types.h>
 #include <sys/vfs.h>
 
 #define TAR_REG     '0'

@@ -1,10 +1,8 @@
-#include <rtl/malloc.h>
+#include <stdlib.h>
 #include <sys/proc.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
 
-// remove
-#include <rtl/printf.h>
 static int next_pid;
 
 void

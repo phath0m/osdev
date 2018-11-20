@@ -1,7 +1,7 @@
-#ifndef RTL_MALLOC_H
-#define RTL_MALLOC_H
+#ifndef STDLIB_H
+#define STDLIB_H
 
-#include <rtl/types.h>
+#include <sys/types.h>
 
 static inline size_t
 align_addr(size_t size, uint32_t align)

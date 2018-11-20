@@ -1,7 +1,7 @@
 #ifndef SYS_SYSCALL_H
 #define SYS_SYSCALL_H
 
-#include <rtl/types.h>
+#include <sys/types.h>
 #include <sys/proc.h>
 
 #define SYS_READ        0x00

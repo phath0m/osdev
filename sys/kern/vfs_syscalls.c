@@ -1,10 +1,10 @@
-#include <rtl/types.h>
 #include <sys/errno.h>
 #include <sys/proc.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <sys/vfs.h>
 // remove me
-#include <rtl/printf.h>
+#include <stdio.h>
 
 /*
  * File descriptor table manipulation

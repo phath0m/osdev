@@ -1,7 +1,7 @@
 #ifndef SYS_I686_INTERRUPT_H
 #define SYS_I686_INTERRUPT_H
 
-#include <rtl/types.h>
+#include <sys/types.h>
 
 struct regs {
     uint32_t    ds;

@@ -1,12 +1,12 @@
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <string.h>
 #include <sys/errno.h>
 #include <sys/proc.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
 // remove me
-#include <rtl/printf.h>
+#include <stdio.h>
 
 static inline int
 can_execute_file(const char *path)

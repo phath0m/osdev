@@ -1,7 +1,7 @@
-#include <rtl/list.h>
-#include <rtl/malloc.h>
-#include <rtl/mutex.h>
-#include <rtl/types.h>
+#include <stdlib.h>
+#include <ds/list.h>
+#include <sys/mutex.h>
+#include <sys/types.h>
 
 void
 list_append(struct list *listp, void *ptr)

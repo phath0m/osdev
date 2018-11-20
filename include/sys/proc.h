@@ -1,8 +1,8 @@
 #ifndef SYS_PROC_H
 #define SYS_PROC_H
 
-#include <rtl/list.h>
-#include <rtl/types.h>
+#include <ds/list.h>
+#include <sys/types.h>
 #include <sys/proc.h>
 #include <sys/vm.h>
 #include <sys/wait.h>

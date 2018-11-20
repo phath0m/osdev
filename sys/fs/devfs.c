@@ -1,13 +1,10 @@
-#include <rtl/list.h>
-#include <rtl/malloc.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ds/list.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
+#include <sys/types.h>
 #include <sys/vfs.h>
-
-// plz remove me. kthnks 
-#include <rtl/printf.h>
 
 static int devfs_close(struct vfs_node *node);
 static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);

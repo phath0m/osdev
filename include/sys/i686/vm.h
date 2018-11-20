@@ -1,7 +1,7 @@
 #ifndef SYS_I686_MM_H
 #define SYS_I686_MM_H
 
-#include <rtl/types.h>
+#include <sys/types.h>
 #include <sys/vm.h>
 
 #define KERNEL_VIRTUAL_BASE 0xC0000000

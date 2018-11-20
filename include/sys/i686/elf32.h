@@ -1,8 +1,8 @@
 #ifndef SYS_I686_ELF32_H
 #define SYS_I686_ELF32_H
 
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <string.h>
+#include <sys/types.h>
 
 #define ELF_NIDENT                      16
 #define ELFMAG0                         0x7F

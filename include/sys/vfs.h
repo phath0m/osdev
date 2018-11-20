@@ -1,8 +1,8 @@
 #ifndef SYS_VFS_H
 #define SYS_VFS_H
 
-#include <rtl/dict.h>
-#include <rtl/types.h>
+#include <ds/dict.h>
+#include <sys/types.h>
 #include <sys/device.h>
 #include <sys/limits.h>
 

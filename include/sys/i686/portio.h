@@ -1,7 +1,7 @@
 #ifndef SYS_PORTIO_H
 #define SYS_PORTIO_H
 
-#include <rtl/types.h>
+#include <sys/types.h>
 
 static inline uint8_t
 io_read_byte(uint16_t port)

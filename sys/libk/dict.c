@@ -1,12 +1,10 @@
-#include <rtl/dict.h>
-#include <rtl/list.h>
-#include <rtl/malloc.h>
-#include <rtl/mutex.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ds/dict.h>
+#include <ds/list.h>
+#include <sys/mutex.h>
+#include <sys/types.h>
 
-// reminder... remove this
-#include <rtl/printf.h>
 
 struct key_value_pair {
     char            key[128];

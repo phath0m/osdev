@@ -1,5 +1,5 @@
 #include <stdarg.h>
-#include <rtl/printf.h>
+#include <stdio.h>
 #include <sys/kernel.h>
 
 void

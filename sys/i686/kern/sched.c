@@ -2,18 +2,15 @@
  * sys/i686/kern/sched.c
  * Scheduler implementation for i686 compatible devices
  */
-#include <rtl/list.h>
-#include <rtl/malloc.h>
-#include <rtl/string.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ds/list.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/vm.h>
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
 #include <sys/i686/vm.h>
-
-// remove me
-#include <rtl/printf.h>
 
 // list of processes to run
 struct list         run_queue;

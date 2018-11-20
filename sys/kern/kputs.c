@@ -1,4 +1,4 @@
-#include <rtl/string.h>
+#include <string.h>
 #include <sys/device.h>
 
 static struct device *output_device;

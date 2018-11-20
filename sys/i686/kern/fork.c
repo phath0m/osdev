@@ -1,7 +1,7 @@
-#include <rtl/malloc.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/proc.h>
+#include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
 #include <sys/i686/interrupt.h>

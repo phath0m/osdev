@@ -1,6 +1,6 @@
 #include <stdarg.h>
-#include <rtl/printf.h>
-#include <rtl/string.h>
+#include <stdio.h>
+#include <string.h>
 
 extern void kputs(const char *str);
 

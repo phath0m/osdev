@@ -1,9 +1,9 @@
 #ifndef RTL_DICT_H
 #define RTL_DICT_H
 
-#include <rtl/list.h>
-#include <rtl/mutex.h>
-#include <rtl/types.h>
+#include <ds/list.h>
+#include <sys/mutex.h>
+#include <sys/types.h>
 
 #define DICT_HASH_SIZE   101
 

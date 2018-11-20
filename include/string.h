@@ -1,8 +1,8 @@
-#ifndef RTL_STRING_H
-#define RTL_STRING_H
+#ifndef STRING_H
+#define STRING_H
 
 #include <stdarg.h>
-#include <rtl/types.h>
+#include <sys/types.h>
 
 int atoi(const char *str, int base);
 

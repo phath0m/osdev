@@ -1,13 +1,12 @@
-#include <rtl/list.h>
-#include <rtl/malloc.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ds/list.h>
+#include <sys/types.h>
 #include <sys/proc.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
 #include <sys/i686/elf32.h>
-// remove
-#include <rtl/printf.h>
 
 static const char **
 copy_strings(const char **strs, size_t *sizep, int *countp)

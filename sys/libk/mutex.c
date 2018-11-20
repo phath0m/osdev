@@ -1,4 +1,4 @@
-#include <rtl/mutex.h>
+#include <sys/mutex.h>
 
 void
 spinlock_lock(spinlock_t volatile *lock)

@@ -1,7 +1,7 @@
 #ifndef SYS_DEVICE_H
 #define SYS_DEVICE_H
 
-#include <rtl/types.h>
+#include <sys/types.h>
 
 struct device;
 

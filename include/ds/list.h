@@ -1,8 +1,8 @@
 #ifndef RTL_LIST_H
 #define RTL_LIST_H
 
-#include <rtl/mutex.h>
-#include <rtl/types.h>
+#include <sys/mutex.h>
+#include <sys/types.h>
 
 #define LIST_FIRST(list) ((list)->head ? (list)->head->data : NULL)
 #define LIST_LAST(list)  ((list)->tail ? (list)->tail->data : NULL)

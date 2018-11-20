@@ -1,4 +1,4 @@
-#include <rtl/printf.h>
+#include <stdio.h>
 #include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/i686/interrupt.h>

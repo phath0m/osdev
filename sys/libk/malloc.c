@@ -3,13 +3,11 @@
  * Cross platform malloc implementation
  */
 
-#include <rtl/malloc.h>
-#include <rtl/mutex.h>
-#include <rtl/string.h>
-#include <rtl/types.h>
-
-// remove
-#include <rtl/printf.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mutex.h>
+#include <sys/types.h>
 
 #define MALLOC_ALIGNMENT 256
 

@@ -1,6 +1,6 @@
-#include <rtl/malloc.h>
-#include <rtl/mutex.h>
-#include <rtl/string.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mutex.h>
 #include <sys/i686/vm.h>
 
 /*

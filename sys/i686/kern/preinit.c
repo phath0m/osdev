@@ -1,13 +1,12 @@
-#include <rtl/malloc.h>
-#include <rtl/printf.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/device.h>
 #include <sys/kernel.h>
 #include <sys/dev/textscreen.h>
 #include <sys/i686/multiboot.h>
 
 // remove
-#include <rtl/list.h>
-#include <rtl/string.h>
+#include <ds/list.h>
 #include <sys/vm.h>
 #include <sys/proc.h>
 

@@ -1,13 +1,13 @@
-#include <rtl/malloc.h>
-#include <rtl/list.h>
-#include <rtl/string.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/vfs.h>
 
 // reminder: remove this
-#include <rtl/printf.h>
+#include <stdio.h>
 
 struct list fs_list;
 
