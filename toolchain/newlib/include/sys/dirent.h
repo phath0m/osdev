@@ -8,7 +8,7 @@
 #define DT_BLK      0x08
 #define DT_CHR      0x02
 #define DT_DIR      0x04
-
+#define DT_LNK      0x05
 
 struct dirent {
     uint32_t    d_ino;
