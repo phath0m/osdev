@@ -26,7 +26,6 @@ ls_pretty_print(struct ls_dirent **contents, int nentries)
     }
 
     int cols = 80 / (longest + 2);
-    int rows = entries / cols;
     int padding = longest + 2;
 
     int row = 0;
@@ -47,9 +46,11 @@ ls_pretty_print(struct ls_dirent **contents, int nentries)
             case DT_DIR:
                 printf("\033[1;34m");
                 break;
+            /*
             case DT_LNK:
                 printf("\033[0;36m");
                 break;
+            */
         }
 
         printf("%s\033[0m", entry->dirent.d_name);
@@ -138,8 +139,6 @@ list_dir(const char *path)
 int
 main(int argc, const char *argv[])
 {
-    DIR *dirp;
-
     if (argc > 1) {
         return list_dir(argv[1]);
     } else {
