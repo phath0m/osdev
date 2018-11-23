@@ -2,6 +2,7 @@
 #include <string.h>
 #include <ds/dict.h>
 #include <sys/kernel.h>
+#include <sys/mount.h>
 #include <sys/proc.h>
 #include <sys/vm.h>
 #include <sys/vfs.h>
@@ -49,6 +50,8 @@ kmain()
     };
 
     extern int proc_chdir(const char *path);
+
+    printf("kernel: invoke /sbin/doit\n");
 
     proc_execve("/sbin/doit", argv, envp);
 

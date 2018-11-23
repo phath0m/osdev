@@ -3,7 +3,9 @@
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
+#include <sys/fcntl.h>
 #include <sys/limits.h>
+#include <sys/mount.h>
 #include <sys/vfs.h>
 
 // reminder: remove this
