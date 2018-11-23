@@ -149,11 +149,6 @@ vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **resu
             return 0;
         }
     }
-    
-    if (*path == '.' && path[1] == '\0') {
-        *result = cwd;
-        return 0;
-    }
 
     do {
         nextdir = strrchr(path, '/');
@@ -164,6 +159,7 @@ vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **resu
         } else {
             strcpy(dir, path);
         }
+
         int res = vfs_lookup(parent, &child, dir);
 
         if (res != 0) {
@@ -232,7 +228,10 @@ vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name)
 
     int res = ENOENT;
 
-    if (dict_get(&parent->children, name, (void**)&node)) {
+    if (!strcmp(".", name)) {
+        node = parent;
+        res = 0;
+    } else if (dict_get(&parent->children, name, (void**)&node)) {
         res = 0;
     } else if (parent->ops->lookup(parent, &node, name) == 0) {
         dict_set(&parent->children, name, node);

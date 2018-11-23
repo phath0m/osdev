@@ -3,8 +3,6 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
-// remove me
-#include <stdio.h>
 
 /*
  * File descriptor table manipulation
@@ -197,7 +195,7 @@ sys_stat(syscall_args_t argv)
 
     int res = 0;
 
-    if (vfs_open(current_proc->root, &file, path, O_RDONLY) == 0) {
+    if (vfs_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY) == 0) {
         res = vfs_stat(file, buf);
 
         vfs_close(file);
