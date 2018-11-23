@@ -1,11 +1,54 @@
 #include <dirent.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 struct ls_dirent {
-    struct dirent dirent;
+    struct dirent   dirent;
+    struct stat     stat;
 };
+
+struct ls_options {
+    bool    show_all;
+    bool    long_listing;
+    char *  path;
+};
+
+static void
+get_date_string(int st_time, char *buf)
+{
+    char *lut[] = {
+        "Jan", "Feb", "Mar", "Apr",
+        "May", "Jun", "Jul", "Aug",
+        "Sep", "Oct", "Nov", "Dec", "Unk"
+    };
+
+    time_t time = (time_t)st_time;
+
+    struct tm *tm = gmtime(&time);
+    
+    sprintf(buf, "%s %2d %2d:%d", lut[tm->tm_mon], tm->tm_mday, tm->tm_hour, tm->tm_min);
+}
+
+static void
+get_mode_string(int st_mode, char *buf)
+{
+    *(buf++) = (S_ISDIR(st_mode)) ? 'd' : '-';
+    *(buf++) = (st_mode & S_IRUSR) ? 'r' : '-';
+    *(buf++) = (st_mode & S_IWUSR) ? 'w' : '-';
+    *(buf++) = (st_mode & S_IXUSR) ? 'x' : '-';
+    *(buf++) = (st_mode & S_IRGRP) ? 'r' : '-';
+    *(buf++) = (st_mode & S_IWGRP) ? 'w' : '-';
+    *(buf++) = (st_mode & S_IXGRP) ? 'x' : '-';
+    *(buf++) = (st_mode & S_IROTH) ? 'r' : '-';
+    *(buf++) = (st_mode & S_IWOTH) ? 'w' : '-';
+    *(buf++) = (st_mode & S_IXOTH) ? 'x' : '-';
+    *(buf++) = 0;
+}
 
 static void
 ls_pretty_print(struct ls_dirent **contents, int nentries)
@@ -78,6 +121,27 @@ ls_pretty_print(struct ls_dirent **contents, int nentries)
 }
 
 static void
+ls_long_print(struct ls_dirent **entries, int nentries)
+{
+    for (int i = 0; i < nentries; i++) {
+        struct ls_dirent *entry = entries[i];
+        char mode_str[11];
+        char date_str[15];
+
+        get_date_string(entry->stat.st_mtime, date_str);
+        get_mode_string(entry->stat.st_mode, mode_str);
+
+        printf("%s ", mode_str);
+        printf("%-4d ", entry->stat.st_uid);
+        printf("%-4d ", entry->stat.st_gid);
+        printf("%8d ", (int)entry->stat.st_size);
+        printf("%s ", date_str);
+        printf("%s\n", entry->dirent.d_name);
+
+    }
+}
+
+static void
 sort_dirents_alphabetical(struct ls_dirent **entries, int nentries)
 {
     for (int i = 0; i < nentries; i++) {
@@ -94,54 +158,93 @@ sort_dirents_alphabetical(struct ls_dirent **entries, int nentries)
 }
 
 static int
-read_dirents(DIR *dirp, struct ls_dirent **entries, int nentries)
+read_dirents(struct ls_options *options, struct ls_dirent **entries, int nentries)
 {
+    DIR *dirp = opendir(options->path);
+
+    if (!dirp) {
+        return -1;
+    }
+
     struct dirent *dirent;
 
     int results = 0;
 
     for (int n = 0; n < nentries && (dirent = readdir(dirp)); n++) {
-
-        if (dirent->d_name[0] != '.') {
+        if (dirent->d_name[0] != '.' || options->show_all) {
             struct ls_dirent *entry = (struct ls_dirent*)calloc(1, sizeof(struct ls_dirent));
 
             memcpy(&entry->dirent, dirent, sizeof(struct dirent));
 
             entries[results++] = entry;
+
+            char buf[512];
+
+            snprintf(buf, 512, "%s/%s", options->path, entry->dirent.d_name);
+
+            if (stat(buf, &entry->stat)) {
+                printf("call to stat() failed for file %s\n", buf);
+            }
         }
     }
+
+    closedir(dirp);
 
     return results;
 }
 
 static int
-list_dir(const char *path)
+parse_arguments(struct ls_options *options, int argc, char *argv[])
 {
-    DIR *dirp = opendir(path);
+    int c;
 
-    if (dirp) {
-        struct ls_dirent *entries[512];
+    while (optind < argc) {
+        if ((c = getopt(argc, argv, "al")) != -1) {
+            switch (c) {
+                case 'l':
+                    options->long_listing = true;
+                    break;
+                case 'a':
+                    options->show_all = true;
+                    break;
+                case '?':
+                    return -1;
+            }
+        } else {
+            char *path = argv[optind++];
 
-        int count = read_dirents(dirp, entries, 512);
-
-        sort_dirents_alphabetical(entries, count);
-
-        ls_pretty_print(entries, count);
-
-        closedir(dirp);
-
-        return 0;
+            options->path = path;
+        }
+    }
+    
+    if (options->path == NULL) {
+        options->path = ".";
     }
 
-    return -1;
+    return 0;
 }
 
 int
-main(int argc, const char *argv[])
+main(int argc, char *argv[])
 {
-    if (argc > 1) {
-        return list_dir(argv[1]);
-    } else {
-        return list_dir(".");
+    struct ls_options options;
+
+    memset(&options, 0, sizeof(struct ls_options));
+
+    if (parse_arguments(&options, argc, argv)) {
+        return -1;
     }
+
+    struct ls_dirent *entries[512];
+
+    int count = read_dirents(&options, entries, 512);
+
+    sort_dirents_alphabetical(entries, count);
+
+    if (options.long_listing) {
+        ls_long_print(entries, count);
+    } else {
+        ls_pretty_print(entries, count);
+    }
+
 }
