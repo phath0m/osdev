@@ -2,6 +2,9 @@
 #include <sys/proc.h>
 #include <sys/wait.h>
 
+// remove me
+#include <stdio.h>
+
 void
 wq_pulse(struct wait_queue *queue)
 {
@@ -26,20 +29,22 @@ wq_pulse(struct wait_queue *queue)
     while (queue->wait_count) {
         sched_yield();
     }
+
+    queue->signaled = false;
 }
 
 void
 wq_wait(struct wait_queue *queue)
 {
-    queue->wait_count++;
-    
-    list_append(&queue->waiting_threads, current_proc->thread);
+    __sync_add_and_fetch(&queue->wait_count, 1);
 
-    schedule_thread(SSLEEP, current_proc->thread);
+    if (!queue->signaled) {
+        list_append(&queue->waiting_threads, current_proc->thread);
 
-    while (!queue->signaled) {
+        schedule_thread(SSLEEP, current_proc->thread);
 
+        while (!queue->signaled) {
+        }
     }
-
-    queue->wait_count--;
+    __sync_add_and_fetch(&queue->wait_count, -1);
 }

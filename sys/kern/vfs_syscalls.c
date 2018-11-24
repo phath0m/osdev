@@ -1,9 +1,13 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
 #include <sys/proc.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
+
+// remove
+#include <stdio.h>
 
 /*
  * File descriptor table manipulation
@@ -22,6 +26,19 @@ proc_getfildes()
 {
     for (int i = 0; i < 4096; i++) {
         if (!current_proc->files[i]) {
+            return i;
+        }
+    }
+
+    return -EMFILE;
+}
+
+int
+proc_newfildes(struct file *file)
+{
+    for (int i = 0; i < 4096; i++) {
+        if (!current_proc->files[i]) {
+            current_proc->files[i] = file;
             return i;
         }
     }
@@ -90,6 +107,19 @@ proc_open(const char *path, int mode)
 }
 
 int
+proc_pipe(int pipefd[2])
+{
+    struct file *files[2];
+
+    create_pipe(files);
+
+    pipefd[0] = proc_newfildes(files[0]);
+    pipefd[1] = proc_newfildes(files[1]);
+
+    return 0;
+}
+
+int
 proc_read(int fildes, char *buf, size_t nbyte)
 {
     struct file *file = proc_getfile(fildes);
@@ -149,19 +179,26 @@ sys_fstat(syscall_args_t argv)
 static int
 sys_open(syscall_args_t argv)
 {
-    const char *file    = DECLARE_SYSCALL_PARAM(const char*, 0, argv);
-    int mode            = DECLARE_SYSCALL_PARAM(int, 1, argv);
-
+    DEFINE_SYSCALL_PARAM(const char *, file, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
 
     return proc_open(file, mode);
 }
 
 static int
+sys_pipe(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int *, pipefd, 0, argv);
+
+    return proc_pipe(pipefd);
+}
+
+static int
 sys_read(syscall_args_t argv)
 {
-    int fildes  = DECLARE_SYSCALL_PARAM(int, 0, argv);
-    char *buf   = DECLARE_SYSCALL_PARAM(char*, 1, argv);
-    size_t len  = DECLARE_SYSCALL_PARAM(size_t, 2, argv);
+    DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
+    DEFINE_SYSCALL_PARAM(char*, buf, 1, argv);
+    DEFINE_SYSCALL_PARAM(size_t, len, 2, argv);
 
     asm volatile("sti");
 
@@ -212,6 +249,8 @@ sys_write(syscall_args_t argv)
     const char *buf = DECLARE_SYSCALL_PARAM(const char *, 1, argv);
     size_t len      = DECLARE_SYSCALL_PARAM(size_t, 2, argv);
 
+    asm volatile("sti");
+
     return proc_write(fildes, buf, len);
 }
 
@@ -222,6 +261,7 @@ _init_syscalls()
     register_syscall(SYS_FSTAT, 2, sys_fstat);
     register_syscall(SYS_LSEEK, 3, sys_lseek);
     register_syscall(SYS_OPEN, 2, sys_open);
+    register_syscall(SYS_PIPE, 1, sys_pipe);
     register_syscall(SYS_READ, 3, sys_read);
     register_syscall(SYS_READDIR, 2, sys_readdir);
     register_syscall(SYS_STAT, 2, sys_stat);
