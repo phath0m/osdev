@@ -12,6 +12,7 @@ static int devfs_mount(struct device *dev, struct vfs_node **root);
 static int devfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 static int devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence);
+static int devfs_stat(struct vfs_node *node, struct stat *stat);
 static int devfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops devfs_file_ops = {
@@ -20,13 +21,13 @@ struct file_ops devfs_file_ops = {
     .read       = devfs_read,
     .readdirent = devfs_readdirent,
     .seek       = devfs_seek,
+    .stat       = devfs_stat,
     .write      = devfs_write
 };
 
 struct fs_ops devfs_ops = {
     .mount      = devfs_mount,
 };
-
 
 /*
  * defined in kern/device.c
@@ -132,6 +133,23 @@ devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
     }
 
     return ESPIPE;
+}
+
+static int
+devfs_stat(struct vfs_node *node, struct stat *stat)
+{
+    if (node->inode == 0) {
+        stat->st_mode = 0751;
+        return 0;
+    }
+
+    struct device *dev = (struct device*)node->state;
+
+    if (dev) {
+
+    }
+
+    return 0;
 }
 
 static int
