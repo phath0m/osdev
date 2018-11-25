@@ -14,6 +14,7 @@ CRTEND_OBJECT   := $(shell $(CC) $(CFLAGS) -print-file-name=crtend.o)
 
 KERNEL_OBJECTS += i686/rtl/crti.o
 KERNEL_OBJECTS += i686/rtl/crtbegin.o
+
 KERNEL_OBJECTS += i686/rtl/malloc.o
 KERNEL_OBJECTS += i686/dev/serial_tty.o
 KERNEL_OBJECTS += i686/kern/context_switch.o
@@ -45,6 +46,7 @@ KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/kputs.o
 KERNEL_OBJECTS += kern/panic.o
+KERNEL_OBJECTS += kern/pipe.o
 KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
 KERNEL_OBJECTS += kern/vfs_syscalls.o
@@ -56,7 +58,7 @@ KERNEL_OBJECTS += libk/list.o
 KERNEL_OBJECTS += libk/malloc.o
 KERNEL_OBJECTS += libk/mutex.o
 KERNEL_OBJECTS += libk/printf.o
-KERNEL_OBJECTS += rtl/string.o
+KERNEL_OBJECTS += libk/string.o
 
 # end CRT
 KERNEL_OBJECTS += i686/rtl/crtend.o
