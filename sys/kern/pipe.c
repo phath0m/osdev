@@ -19,10 +19,12 @@ struct pipe {
     size_t              len;
 };
 
+static int pipe_close(struct vfs_node *node);
 static int pipe_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int pipe_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops pipe_ops = {
+    .close = pipe_close,
     .read = pipe_read,
     .write = pipe_write
 };
@@ -53,6 +55,17 @@ create_pipe(struct file **pipes)
 
     pipes[0] = read_end;
     pipes[1] = write_end;
+}
+
+static int
+pipe_close(struct vfs_node *node)
+{
+    struct pipe *pipe = (struct pipe*)node->state;
+
+    free(pipe->buf);
+    free(pipe);
+
+    return 0;
 }
 
 static int
@@ -105,7 +118,9 @@ pipe_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
 
     spinlock_unlock(&pipe->lock);
 
-    wq_pulse(&pipe->write_queue);
+    // Note: wait queue is broken, however, this should eventually use the wait queue
+    // to put the thread to sleep while waiting for the pipe to fill/drain
+    //wq_pulse(&pipe->write_queue);
 
     return nbyte;
 }
