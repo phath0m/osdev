@@ -151,7 +151,7 @@ parse_tar_archive(const void *archive)
         node->gid = atoi(header->gid, 8);
         node->mode = atoi(header->mode, 8);
         node->uid = atoi(header->uid, 8);
-        printf("parse header with mode of %s, mode %d\n", header->mode, node->mode);
+
         int size = atoi(header->size, 8);
 
         node->size = size;
