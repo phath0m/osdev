@@ -3,6 +3,7 @@
 #include <ds/list.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 

@@ -6,6 +6,7 @@
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 
@@ -45,6 +46,7 @@ struct ramfs_node {
     gid_t               gid;
     uint8_t             mode;
     uint8_t             type;
+    uint64_t            mtime;
 };
 
 struct ramfs_state {
@@ -151,7 +153,7 @@ parse_tar_archive(const void *archive)
         node->gid = atoi(header->gid, 8);
         node->mode = atoi(header->mode, 8);
         node->uid = atoi(header->uid, 8);
-
+        node->mtime = atoi(header->mtime, 8);
         int size = atoi(header->size, 8);
 
         node->size = size;
@@ -330,7 +332,7 @@ ramfs_stat(struct vfs_node *node, struct stat *stat)
     stat->st_size = file->size;
     stat->st_uid = file->uid;
     stat->st_ino = (ino_t)file;
-
+    stat->st_mtime = file->mtime;
     return 0;
 }
 
