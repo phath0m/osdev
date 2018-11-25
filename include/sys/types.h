@@ -15,9 +15,9 @@ typedef signed int int32_t;
 
 typedef short dev_t;
 typedef int mode_t;
-typedef int nlink_t;
-typedef int uid_t;
-typedef int gid_t;
+typedef unsigned short nlink_t;
+typedef unsigned short uid_t;
+typedef unsigned short gid_t;
 typedef int pid_t;
 
 typedef unsigned int ino_t;
