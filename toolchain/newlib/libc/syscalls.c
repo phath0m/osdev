@@ -116,6 +116,16 @@ open(const char *name, int flags, ...)
 }
 
 int
+pipe(int pipefd[2])
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_PIPE), "b"(pipefd));
+
+    return ret;
+}
+
+int
 read(int file, char *ptr, int len)
 {
     int ret;

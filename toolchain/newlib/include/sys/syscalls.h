@@ -21,4 +21,6 @@
 #define SYS_WAIT        0x11
 #define SYS_READDIR     0x12
 #define SYS_CHDIR       0x13
+#define SYS_PIPE        0x14
+
 #endif
