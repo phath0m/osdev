@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
@@ -22,6 +23,11 @@ chdir(const char *path)
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHDIR), "b"(path));
 
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
     return ret;
 }
 
@@ -31,6 +37,11 @@ close(int file)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CLOSE), "b"(file));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
@@ -48,6 +59,11 @@ execve(char *name, char **argv, char **env)
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_EXECVE), "b"(name), "c"(argv), "d"(env));
 
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
     return ret;
 }
 
@@ -58,6 +74,11 @@ fork()
     
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FORK));
 
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
     return ret;
 }
 
@@ -67,6 +88,11 @@ fstat(int file, struct stat *st)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FSTAT), "b"(file), "c"(st));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
@@ -102,6 +128,11 @@ lseek(int file, int ptr, int dir)
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_LSEEK), "b"(file), "c"(ptr), "d"(dir));
 
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
     return ret;
 }
 
@@ -111,6 +142,11 @@ open(const char *name, int flags, ...)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_OPEN), "b"(name), "c"(flags));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
@@ -122,6 +158,11 @@ pipe(int pipefd[2])
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_PIPE), "b"(pipefd));
 
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
     return ret;
 }
 
@@ -131,6 +172,11 @@ read(int file, char *ptr, int len)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_READ), "b"(file), "c"(ptr), "d"(len));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
@@ -151,6 +197,11 @@ stat(const char *file, struct stat *st)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_STAT), "b"(file), "c"(st));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
@@ -174,6 +225,12 @@ wait(int *status)
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WAIT), "b"(status));
 
+    if (ret < 0) {
+        errno = -ret;
+
+        return -1;
+    }
+
     return ret;
 }
 
@@ -184,6 +241,12 @@ waitpid(pid_t pid, int *status)
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WAITPID), "b"(pid), "c"(status));
 
+    if (ret < 0) {
+        errno = -ret;
+
+        return -1;
+    }
+
     return ret;
 }
 
@@ -193,6 +256,12 @@ write(int file, char *ptr, int len)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WRITE), "b"(file), "c"(ptr), "d"(len));
+
+    if (ret < 0) {
+        errno = -ret;
+
+        return -1;
+    }
 
     return ret;
 }
