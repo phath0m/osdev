@@ -35,9 +35,22 @@ get_date_string(int st_time, char *buf)
 }
 
 static void
-get_mode_string(int st_mode, char *buf)
+get_mode_string(struct ls_dirent *ent, char *buf)
 {
-    *(buf++) = (S_ISDIR(st_mode)) ? 'd' : '-';
+    int st_mode = ent->stat.st_mode;
+
+    switch (ent->dirent.d_type) {
+        case DT_DIR:
+            *(buf++) = 'd';
+            break;
+        case DT_CHR:
+            *(buf++) = 'c';
+            break;
+        default:
+            *(buf++) = '-';
+            break;
+    }
+
     *(buf++) = (st_mode & S_IRUSR) ? 'r' : '-';
     *(buf++) = (st_mode & S_IWUSR) ? 'w' : '-';
     *(buf++) = (st_mode & S_IXUSR) ? 'x' : '-';
@@ -129,7 +142,7 @@ ls_long_print(struct ls_dirent **entries, int nentries)
         char date_str[15];
 
         get_date_string(entry->stat.st_mtime, date_str);
-        get_mode_string(entry->stat.st_mode, mode_str);
+        get_mode_string(entry, mode_str);
 
         printf("%s ", mode_str);
         printf("%-4d ", entry->stat.st_uid);
