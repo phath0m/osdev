@@ -146,7 +146,7 @@ devfs_stat(struct vfs_node *node, struct stat *stat)
     struct device *dev = (struct device*)node->state;
 
     if (dev) {
-
+        stat->st_mode = dev->mode;
     }
 
     return 0;

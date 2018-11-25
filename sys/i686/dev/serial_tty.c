@@ -41,6 +41,7 @@ struct serial_state serial3_state = {
 
 struct device serial0_device = {
     .name   =   "ttyS0",
+    .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
     .open   =   serial_open,
@@ -51,6 +52,7 @@ struct device serial0_device = {
 
 struct device serial1_device = {
     .name   =   "ttyS1",
+    .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
     .open   =   serial_open,
@@ -61,6 +63,7 @@ struct device serial1_device = {
 
 struct device serial2_device = {
     .name   =   "ttyS2",
+    .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
     .open   =   serial_open,
@@ -71,6 +74,7 @@ struct device serial2_device = {
 
 struct device serial3_device = {
     .name   =   "ttyS3",
+    .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
     .open   =   serial_open,

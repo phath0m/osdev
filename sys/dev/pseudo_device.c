@@ -10,6 +10,7 @@ static int zero_write(struct device *dev, const char *buf, size_t nbyte, uint64_
 
 struct device full_device = {
     .name   =   "full",
+    .mode   =   0666,
     .close  =   pseudo_close,
     .ioctl  =   NULL,
     .open   =   pseudo_open,
@@ -19,6 +20,7 @@ struct device full_device = {
 
 struct device null_device = {
     .name   =   "null",
+    .mode   =   0666,
     .close  =   pseudo_close,
     .ioctl  =   NULL,
     .open   =   pseudo_open,
@@ -28,6 +30,7 @@ struct device null_device = {
 
 struct device zero_device = {
     .name   =   "zero",
+    .mode   =   0666,
     .close  =   pseudo_close,
     .ioctl  =   NULL,
     .open   =   pseudo_open,
