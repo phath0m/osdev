@@ -7,6 +7,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+typedef enum {
+    SORT_ALPHA,
+    SORT_MTIME
+} sort_mode_t;
+
 struct ls_dirent {
     struct dirent   dirent;
     struct stat     stat;
@@ -15,6 +20,8 @@ struct ls_dirent {
 struct ls_options {
     bool    show_all;
     bool    long_listing;
+    bool    reverse;
+    sort_mode_t sort_mode;
     char *  path;
 };
 
@@ -31,7 +38,7 @@ get_date_string(int st_time, char *buf)
 
     struct tm *tm = gmtime(&time);
     
-    sprintf(buf, "%s %2d %2d:%d", lut[tm->tm_mon], tm->tm_mday, tm->tm_hour, tm->tm_min);
+    sprintf(buf, "%s %2d %2d:%2d", lut[tm->tm_mon], tm->tm_mday, tm->tm_hour, tm->tm_min);
 }
 
 static void
@@ -64,6 +71,34 @@ get_mode_string(struct ls_dirent *ent, char *buf)
 }
 
 static void
+ls_print_color(struct ls_dirent *entry)
+{
+    switch (entry->dirent.d_type) {
+        case DT_BLK:
+            printf("\033[0;33m");
+            return;
+        case DT_CHR:
+            printf("\033[0;33m");
+            return;
+        case DT_DIR:
+            printf("\033[1;34m");
+            return;
+        /*
+        case DT_LNK:
+            printf("\033[0;36m");
+            return;
+        */
+    }
+
+    if ((entry->stat.st_mode & S_IXOTH) ||
+        (entry->stat.st_mode & S_IXGRP) ||
+        (entry->stat.st_mode & S_IXUSR))
+    {
+        printf("\033[0;32m");
+    }
+}
+
+static void
 ls_pretty_print(struct ls_dirent **contents, int nentries)
 {
     int entries = 0;
@@ -92,22 +127,7 @@ ls_pretty_print(struct ls_dirent **contents, int nentries)
 
         int len = strlen(entry->dirent.d_name);
 
-        switch (entry->dirent.d_type) {
-            case DT_BLK:
-                printf("\033[0;33m");
-                break;
-            case DT_CHR:
-                printf("\033[0;33m");
-                break;
-            case DT_DIR:
-                printf("\033[1;34m");
-                break;
-            /*
-            case DT_LNK:
-                printf("\033[0;36m");
-                break;
-            */
-        }
+        ls_print_color(entry);
 
         printf("%s\033[0m", entry->dirent.d_name);
 
@@ -149,7 +169,8 @@ ls_long_print(struct ls_dirent **entries, int nentries)
         printf("%-4d ", entry->stat.st_gid);
         printf("%8d ", (int)entry->stat.st_size);
         printf("%s ", date_str);
-        printf("%s\n", entry->dirent.d_name);
+        ls_print_color(entry);
+        printf("%s\033[0m\n", entry->dirent.d_name);
 
     }
 }
@@ -167,6 +188,34 @@ sort_dirents_alphabetical(struct ls_dirent **entries, int nentries)
                 entries[j] = entry1;
             }
         }
+    }
+}
+
+static void
+sort_dirents_modified_time(struct ls_dirent **entries, int nentries)
+{
+    for (int i = 0; i < nentries; i++) {
+        for (int j = i + 1; j < nentries; j++) {
+            struct ls_dirent *entry1 = entries[i];
+            struct ls_dirent *entry2 = entries[j];
+
+            if (entry1->stat.st_mtime > entry2->stat.st_mtime) {
+                entries[i] = entry2;
+                entries[j] = entry1;
+            }
+        }
+    }
+}
+
+static void
+reverse_dirents(struct ls_dirent **entries, int nentries)
+{
+    for (int i = 1; i <= nentries; i++) {
+        struct ls_dirent *entry1 = entries[nentries - i];
+        struct ls_dirent *entry2 = entries[i - 1];
+
+        entries[nentries - i] = entry2;
+        entries[i - 1] = entry1;
     }
 }
 
@@ -212,13 +261,19 @@ parse_arguments(struct ls_options *options, int argc, char *argv[])
     int c;
 
     while (optind < argc) {
-        if ((c = getopt(argc, argv, "al")) != -1) {
+        if ((c = getopt(argc, argv, "alrt")) != -1) {
             switch (c) {
                 case 'l':
                     options->long_listing = true;
                     break;
                 case 'a':
                     options->show_all = true;
+                    break;
+                case 'r':
+                    options->reverse = true;
+                    break;
+                case 't':
+                    options->sort_mode = SORT_MTIME;
                     break;
                 case '?':
                     return -1;
@@ -252,8 +307,19 @@ main(int argc, char *argv[])
 
     int count = read_dirents(&options, entries, 512);
 
-    sort_dirents_alphabetical(entries, count);
+    switch (options.sort_mode) {
+        case SORT_ALPHA:
+            sort_dirents_alphabetical(entries, count);
+            break;
+        case SORT_MTIME:
+            sort_dirents_modified_time(entries, count);
+            break;
+    }
 
+    if (options.reverse) {
+        reverse_dirents(entries, count);
+    }
+    
     if (options.long_listing) {
         ls_long_print(entries, count);
     } else {
