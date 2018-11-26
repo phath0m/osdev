@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ds/list.h>
+#include <sys/dirent.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/stat.h>
@@ -133,7 +134,7 @@ devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
         return 0;
     }
 
-    return ESPIPE;
+    return -(ESPIPE);
 }
 
 static int

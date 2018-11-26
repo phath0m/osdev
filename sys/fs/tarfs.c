@@ -218,7 +218,7 @@ ramfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
         return 0;
     }
 
-    return ENOENT;
+    return -(ENOENT);
 }
 
 static int
@@ -309,11 +309,11 @@ ramfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
     }
 
     if (new_pos > file->size) {
-        return ESPIPE;
+        return -(ESPIPE);
     }
 
     if (new_pos < 0) {
-        return ESPIPE;
+        return -(ESPIPE);
     }
 
     *cur_pos = new_pos;

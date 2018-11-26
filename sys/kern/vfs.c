@@ -132,7 +132,7 @@ int
 vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **result, const char *path)
 {
     if (*path == 0) {
-        return ENOENT;
+        return -(ENOENT);
     }
 
     char dir[PATH_MAX];
@@ -178,7 +178,7 @@ vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **resu
         return 0;
     }
 
-    return ENOENT;
+    return -(ENOENT);
 }
 
 int
@@ -197,7 +197,7 @@ vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, co
         //bool will_read = (flags == O_RDWR || flags == O_RDONLY);
 
         if ((child->mount_flags & MS_RDONLY) && will_write) {
-            return EROFS;
+            return -(EROFS);
         }
 
         struct file *file = file_new(child);
@@ -209,7 +209,7 @@ vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, co
         return 0;
     }
 
-    return ENOENT;
+    return -(ENOENT);
 }
 
 void
@@ -326,7 +326,7 @@ vfs_seek(struct file *file, off_t off, int whence)
         return ops->seek(node, &file->position, off, whence);
     }
 
-    return ESPIPE;
+    return -(ESPIPE);
 }
 
 int
