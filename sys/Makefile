@@ -45,12 +45,15 @@ KERNEL_OBJECTS += kern/interrupt.o
 KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/kputs.o
+KERNEL_OBJECTS += kern/net.o
 KERNEL_OBJECTS += kern/panic.o
 KERNEL_OBJECTS += kern/pipe.o
 KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
 KERNEL_OBJECTS += kern/vfs_syscalls.o
 KERNEL_OBJECTS += kern/wait_queue.o
+
+KERNEL_OBJECTS += net/klink.o
 
 # Kernel runtime library
 KERNEL_OBJECTS += libk/dict.o

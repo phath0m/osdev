@@ -2,46 +2,15 @@
 #define SYS_VFS_H
 
 #include <ds/dict.h>
+#include <sys/dirent.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/device.h>
 #include <sys/limits.h>
 
-#define DT_REG      0x01
-/* There are no block devices */
-#define DT_CHR      0x02
-#define DT_DIR      0x04
-
-#define F_DUPFD     0x00
-#define F_GETFD     0x01
-#define F_SETFD     0x02
-
-#define MS_RDONLY   0x01
-#define MS_NOEXEC   0x08
-
-#define O_RDONLY    0x00
-#define O_WRONLY    0x01
-#define O_RDWR      0x02
-
-#define O_CLOEXEC   0x80000
-
 #define SEEK_SET    0x00
 #define SEEK_CUR    0x01
 #define SEEK_END    0x02
-
-#define	S_IRWXU     0000700
-#define	S_IRUSR     0000400
-#define	S_IWUSR     0000200
-#define	S_IXUSR     0000100
-
-
-#define	S_IRWXG     0000070
-#define	S_IRGRP     0000040
-#define	S_IWGRP     0000020
-#define	S_IXGRP     0000010
-#define	S_IRWXO     0000007
-#define	S_IROTH     0000004
-#define	S_IWOTH     0000002
-#define	S_IXOTH     0000001
 
 #define INC_NODE_REF(p) __sync_fetch_and_add(&(p)->refs, 1)
 #define DEC_NODE_REF(p) if (__sync_fetch_and_sub(&(p)->refs, 1) == 1) vfs_node_destroy(p);
@@ -64,12 +33,6 @@ typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_
 typedef int (*fs_seek_t)(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 typedef int (*fs_stat_t)(struct vfs_node *node, struct stat *stat);
 typedef int (*fs_write_t)(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
-
-struct dirent {
-    ino_t   inode;
-    uint8_t type;
-    char    name[PATH_MAX];
-};
 
 struct file {
     struct vfs_node *   node;

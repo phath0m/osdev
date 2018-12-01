@@ -26,7 +26,12 @@ struct stat {
     uid_t           st_uid;
     gid_t           st_gid;
     dev_t           st_rdev;
-    off_t           st_size;
+    uint32_t        st_size;
+    time_t          st_atime;
+    uint64_t        st_spare1;
+    time_t          st_mtime;
+    uint64_t        st_spare2;
+    time_t          st_ctime;
 };
 
 #endif

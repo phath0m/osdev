@@ -8,10 +8,11 @@
 #define ENODEV      19
 #define ENOTDIR     20
 #define EISDIR      21
+#define EINVAL      22
 #define ENFILE      23
 #define EMFILE      24
 #define ENOSPC      28
 #define ESPIPE      29
 #define EROFS       30
-
+#define ENOTSUP     129
 #endif

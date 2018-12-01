@@ -25,6 +25,7 @@
 #define SYS_READDIR     0x12
 #define SYS_CHDIR       0x13
 #define SYS_PIPE        0x14
+#define SYS_SOCKET      0x15
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

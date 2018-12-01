@@ -1,6 +1,7 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/kernel.h>
+#include <sys/net.h>
 #include <sys/proc.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -144,6 +145,22 @@ proc_readdir(int fildes, struct dirent *dirent)
 }
 
 int
+proc_socket(int domain, int type, int protocol)
+{
+    struct socket *sock;
+
+    int ret = sock_new(&sock, domain, type, protocol);
+
+    if (ret != 0) {
+        return ret;
+    }
+
+    struct file *file = sock_to_file(sock);
+
+    return proc_newfildes(file);
+}
+
+int
 proc_write(int fildes, const char *buf, size_t nbyte)
 {
     struct file *file = proc_getfile(fildes);
@@ -243,6 +260,16 @@ sys_stat(syscall_args_t argv)
 }
 
 static int
+sys_socket(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, domain, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, type, 1, argv);
+    DEFINE_SYSCALL_PARAM(int, protocol, 2, argv);
+
+    return proc_socket(domain, type, protocol);
+}
+
+static int
 sys_write(syscall_args_t argv)
 {
     int fildes      = DECLARE_SYSCALL_PARAM(int, 0, argv);
@@ -264,6 +291,7 @@ _init_syscalls()
     register_syscall(SYS_PIPE, 1, sys_pipe);
     register_syscall(SYS_READ, 3, sys_read);
     register_syscall(SYS_READDIR, 2, sys_readdir);
+    register_syscall(SYS_SOCKET, 3, sys_socket);
     register_syscall(SYS_STAT, 2, sys_stat);
     register_syscall(SYS_WRITE, 3, sys_write);
 }

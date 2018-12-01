@@ -13,6 +13,7 @@ typedef int (*dev_write_t)(struct device *dev, const char *buf, size_t nbyte, ui
 
 struct device {
     char *      name;
+    int         mode;
     dev_close_t close;
     dev_ioctl_t ioctl;
     dev_open_t  open;
