@@ -84,7 +84,6 @@ sock_close(struct socket *sock)
         ret = prot->ops->close(sock);
     }
 
-    printf("close socket\n");
     free(sock);
 
     return ret;

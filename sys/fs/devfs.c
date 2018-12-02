@@ -57,6 +57,7 @@ devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
     while (iter_move_next(&iter, (void**)&dev)) {
         if (strcmp(name, dev->name) == 0) {
             struct vfs_node *node = vfs_node_new(parent->device, &devfs_file_ops);
+            node->device = dev;
             node->inode = (ino_t)dev;
             node->group = 0;
             node->owner = 0;

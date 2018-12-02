@@ -27,6 +27,7 @@ struct device {
 int device_close(struct device *dev);
 int device_destroy(struct device *dev);
 int device_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
+int device_isatty(struct device *dev);
 int device_open(struct device *dev);
 int device_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 int device_register(struct device *dev);

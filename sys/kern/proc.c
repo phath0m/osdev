@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <ds/list.h>
+#include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/proc.h>
 #include <sys/vfs.h>
@@ -54,6 +55,20 @@ proc_getfildes()
     }
     
     return -EMFILE;
+}
+
+char *
+proc_getctty(struct proc *proc)
+{
+    if (proc->files[0]) {
+        struct file *file = proc->files[0];
+
+        if (device_isatty(file->node->device)) {
+            return file->node->device->name;
+        }
+    }
+
+    return NULL;
 }
 
 struct proc *

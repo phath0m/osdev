@@ -79,7 +79,6 @@ klink_send_proclist(struct klink_session *session)
         info->pid = proc->pid;
         info->uid = proc->creds.uid;
         info->gid = proc->creds.gid;
-
         strcpy(info->name, proc->name);
     }
 

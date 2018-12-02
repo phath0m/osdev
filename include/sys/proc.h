@@ -76,6 +76,12 @@ int proc_execve(const char *path, const char **argv, const char **envp);
 int proc_fork(struct regs *regs);
 
 /*
+ * proc_getctty
+ * Gets the controlling terminal name for a given process
+ */
+char *proc_getctty(struct proc *proc);
+
+/*
  * proc_destroy
  * Frees a proc struct, killing any running threads and freeing all memory
  */
