@@ -1,9 +1,15 @@
 #include <stdlib.h>
+#include <ds/list.h>
 #include <sys/proc.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
 
 static int next_pid;
+
+/*
+ * List of all processes running
+ */
+struct list process_list;
 
 void
 proc_destroy(struct proc *proc)
@@ -23,6 +29,8 @@ proc_destroy(struct proc *proc)
 
     vm_space_destroy(thread->address_space);
 
+    list_remove(&process_list, proc);
+
     free(proc);
 }
 
@@ -31,5 +39,8 @@ proc_new()
 {
     struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
     proc->pid = ++next_pid;
+
+    list_append(&process_list, proc);
+
     return proc;
 }

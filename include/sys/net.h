@@ -21,6 +21,11 @@ struct protocol {
     struct socket_ops * ops;
 };
 
+struct sockaddr {
+    uint16_t            sa_family;
+    uint8_t             sa_data[14];
+};
+
 struct socket {
     struct protocol *   protocol;
     int                 type;
@@ -36,8 +41,11 @@ struct socket_ops {
 };
 
 void register_protocol(struct protocol *protocol);
+int sock_connect(struct socket *sock, void *address, size_t address_size);
 int sock_new(struct socket **result, int domain, int type, int protocol);
 size_t sock_recv(struct socket *sock, void *buf, size_t nbyte);
 size_t sock_send(struct socket *sock, const void *buf, size_t nbyte);
 struct file *sock_to_file(struct socket *sock);
+struct socket *file_to_sock(struct file *file);
+
 #endif

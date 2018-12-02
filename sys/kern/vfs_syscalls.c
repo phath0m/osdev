@@ -63,6 +63,20 @@ proc_close(int fd)
 }
 
 int
+proc_connect(int fd, void *address, size_t address_len)
+{
+    struct file *fp = proc_getfile(fd);
+    
+    if (fp) {
+        struct socket *sock = file_to_sock(fp);
+
+        return sock_connect(sock, address, address_len);
+    }
+    
+    return -(EBADF);
+}
+
+int
 proc_fstat(int fd, struct stat *buf)
 {
     struct file *file = proc_getfile(fd);
@@ -185,6 +199,16 @@ sys_close(syscall_args_t argv)
 }
 
 static int
+sys_connect(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
+    DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
+
+    return proc_connect(fd, address, address_len);
+}
+
+static int
 sys_fstat(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
@@ -285,6 +309,7 @@ __attribute__((constructor)) static void
 _init_syscalls()
 {
     register_syscall(SYS_CLOSE, 1, sys_close);
+    register_syscall(SYS_CONNECT, 3, sys_connect);
     register_syscall(SYS_FSTAT, 2, sys_fstat);
     register_syscall(SYS_LSEEK, 3, sys_lseek);
     register_syscall(SYS_OPEN, 2, sys_open);

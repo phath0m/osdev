@@ -229,6 +229,8 @@ proc_execve(const char *path, const char **argv, const char **envp)
             }
         }
 
+        strncpy(proc->name, argv[0], 256);
+
         asm volatile("sti");
 
         /* defined in sys/i686/kern/usermode.asm */

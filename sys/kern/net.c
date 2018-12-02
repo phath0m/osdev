@@ -1,9 +1,12 @@
 #include <stdlib.h>
 #include <ds/list.h>
 #include <sys/errno.h>
+#include <sys/fcntl.h>
 #include <sys/net.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
+// remove
+#include <stdio.h>
 
 static struct list protocol_list;
 
@@ -57,6 +60,22 @@ void
 register_protocol(struct protocol *protocol)
 {
     list_append(&protocol_list, protocol);
+}
+
+int
+sock_connect(struct socket *sock, void *address, size_t address_size)
+{
+    if (!sock) {
+        return -(EINVAL);
+    }
+
+    struct protocol *prot = sock->protocol;
+
+    if (!prot->ops || !prot->ops->connect) {
+        return -(ENOTSUP);
+    }
+
+    return prot->ops->connect(sock, address, address_size);
 }
 
 int
@@ -122,5 +141,19 @@ sock_to_file(struct socket *sock)
     
     node->state = sock;
 
-    return file_new(node);
+    struct file *ret = file_new(node);
+
+    ret->flags = O_RDWR;
+
+    return ret;
+}
+
+struct socket *
+file_to_sock(struct file *file)
+{
+    struct vfs_node *node = file->node;
+
+    struct socket *sock = (struct socket*)node->state;
+
+    return sock;
 }

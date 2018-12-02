@@ -4,6 +4,7 @@
 #include <sys/fcntl.h>
 #include <sys/times.h>
 #include <sys/errno.h>
+#include <sys/socket.h>
 #include <sys/syscalls.h>
 #include <sys/time.h>
 #include <stdio.h>
@@ -42,6 +43,16 @@ close(int file)
         errno = -ret;
         return -1;
     }
+
+    return ret;
+}
+
+int
+connect(int fd, const struct sockaddr *address, socklen_t address_size)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_CONNECT), "b"(fd), "c"(address), "d"(address_size));
 
     return ret;
 }
@@ -187,6 +198,16 @@ sbrk(int incr)
     caddr_t ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SBRK), "b"(incr));
+
+    return ret;
+}
+
+int
+socket(int domain, int type, int protocol)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_SOCKET), "b"(domain), "c"(type), "d"(protocol));
 
     return ret;
 }

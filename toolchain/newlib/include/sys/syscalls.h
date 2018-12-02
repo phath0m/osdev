@@ -22,5 +22,7 @@
 #define SYS_READDIR     0x12
 #define SYS_CHDIR       0x13
 #define SYS_PIPE        0x14
+#define SYS_SOCKET      0x15
+#define SYS_CONNECT     0x16
 
 #endif
