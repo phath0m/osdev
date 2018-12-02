@@ -46,6 +46,7 @@ KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/kputs.o
 KERNEL_OBJECTS += kern/net.o
+KERNEL_OBJECTS += kern/net_syscalls.o
 KERNEL_OBJECTS += kern/panic.o
 KERNEL_OBJECTS += kern/pipe.o
 KERNEL_OBJECTS += kern/proc.o

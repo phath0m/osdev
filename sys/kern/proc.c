@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <ds/list.h>
+#include <sys/errno.h>
 #include <sys/proc.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
@@ -34,6 +35,27 @@ proc_destroy(struct proc *proc)
     free(proc);
 }
 
+struct file *
+proc_getfile(int fildes)
+{   
+    if (fildes >= 4096) {
+        return NULL;
+    }
+    return current_proc->files[fildes];
+}
+
+int
+proc_getfildes()
+{   
+    for (int i = 0; i < 4096; i++) { 
+        if (!current_proc->files[i]) {
+            return i;
+        }
+    }
+    
+    return -EMFILE;
+}
+
 struct proc *
 proc_new()
 {
@@ -44,3 +66,17 @@ proc_new()
 
     return proc;
 }
+
+int
+proc_newfildes(struct file *file)
+{
+    for (int i = 0; i < 4096; i++) {
+        if (!current_proc->files[i]) {
+            current_proc->files[i] = file;
+            return i;
+        }
+    }
+
+    return -EMFILE;
+}
+

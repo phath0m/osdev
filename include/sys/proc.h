@@ -82,10 +82,28 @@ int proc_fork(struct regs *regs);
 void proc_destroy(struct proc *);
 
 /*
+ * proc_getfile
+ * Obtains a struct file pointer from a given file descriptor
+ */
+struct file * proc_getfile(int fildes);
+
+/*
+ * proc_getfildes
+ * Returns a free file descriptor
+ */
+int proc_getfildes();
+
+/*
  * proc_new
  * Creates a new proc struct
  */
 struct proc *proc_new();
+
+/*
+ * proc_newfildes
+ * Creates a new file descriptor from a given file
+ */
+int proc_newfildes(struct file *file);
 
 uintptr_t sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg);
 
