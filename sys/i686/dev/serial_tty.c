@@ -19,6 +19,7 @@ struct serial_state {
 
 static int serial_close(struct device *dev);
 static int serial_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
+static int serial_isatty(struct device *dev);
 static int serial_open(struct device *dev);
 static int serial_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 static int serial_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
@@ -44,6 +45,7 @@ struct device serial0_device = {
     .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
+    .isatty =   serial_isatty,
     .open   =   serial_open,
     .read   =   serial_read,
     .write  =   serial_write,
@@ -55,6 +57,7 @@ struct device serial1_device = {
     .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
+    .isatty =   serial_isatty,
     .open   =   serial_open,
     .read   =   serial_read,
     .write  =   serial_write,
@@ -66,6 +69,7 @@ struct device serial2_device = {
     .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
+    .isatty =   serial_isatty,
     .open   =   serial_open,
     .read   =   serial_read,
     .write  =   serial_write,
@@ -77,6 +81,7 @@ struct device serial3_device = {
     .mode   =   0600,
     .close  =   serial_close,
     .ioctl  =   serial_ioctl,
+    .isatty =   serial_isatty,
     .open   =   serial_open,
     .read   =   serial_read,
     .write  =   serial_write,
@@ -134,6 +139,12 @@ static int
 serial_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 {
     return 0;
+}
+
+static int
+serial_isatty(struct device *dev)
+{
+    return 1;
 }
 
 static int
