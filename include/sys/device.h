@@ -7,19 +7,21 @@ struct device;
 
 typedef int (*dev_close_t)(struct device *dev);
 typedef int (*dev_ioctl_t)(struct device *dev, uint64_t request, uintptr_t argp);
+typedef int (*dev_isatty_t)(struct device *dev);
 typedef int (*dev_open_t)(struct device *dev);
 typedef int (*dev_read_t)(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 typedef int (*dev_write_t)(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct device {
-    char *      name;
-    int         mode;
-    dev_close_t close;
-    dev_ioctl_t ioctl;
-    dev_open_t  open;
-    dev_read_t  read;
-    dev_write_t write;
-    void *      state;
+    char *          name;
+    int             mode;
+    dev_close_t     close;
+    dev_ioctl_t     ioctl;
+    dev_isatty_t    isatty;
+    dev_open_t      open;
+    dev_read_t      read;
+    dev_write_t     write;
+    void *          state;
 };
 
 int device_close(struct device *dev);
