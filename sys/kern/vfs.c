@@ -52,6 +52,13 @@ vfs_close(struct file *file)
 {
     DEC_NODE_REF(file->node);
 
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+    if (ops->close) {
+        ops->close(node);
+    }
+
     free(file);
 
     return 0;

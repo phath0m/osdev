@@ -11,6 +11,7 @@ struct socket;
 struct socket_ops;
 
 typedef int (*sock_accept_t)(struct socket *socket, struct socket **result, void *address, size_t address_len);
+typedef int (*sock_close_t)(struct socket *socket);
 typedef int (*sock_connect_t)(struct socket *socket, void *address, size_t address_len);
 typedef int (*sock_init_t)(struct socket *socket, int type, int protocol);
 typedef size_t (*sock_recv_t)(struct socket *socket, void *buf, size_t size);
@@ -34,6 +35,7 @@ struct socket {
 
 struct socket_ops {
     sock_accept_t   accept;
+    sock_close_t    close;
     sock_connect_t  connect;
     sock_init_t     init;
     sock_recv_t     recv;
@@ -41,6 +43,7 @@ struct socket_ops {
 };
 
 void register_protocol(struct protocol *protocol);
+int sock_close(struct socket *sock);
 int sock_connect(struct socket *sock, void *address, size_t address_size);
 int sock_new(struct socket **result, int domain, int type, int protocol);
 size_t sock_recv(struct socket *sock, void *buf, size_t nbyte);

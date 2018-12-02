@@ -14,6 +14,14 @@ static struct list protocol_list;
  * Wrapper functions to connect socket API to underlying virtual system
  */
 static int
+sock_file_close(struct vfs_node *node)
+{
+    struct socket *sock = (struct socket*)node->state;
+
+    return sock_close(sock);
+}
+
+static int
 sock_file_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
 {
     struct socket *sock = (struct socket*)node->state;
@@ -30,6 +38,7 @@ sock_file_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t p
 }
 
 struct file_ops sock_file_ops = {
+    .close  = sock_file_close,
     .read   = sock_file_read,
     .write  = sock_file_write,
 };
@@ -60,6 +69,25 @@ void
 register_protocol(struct protocol *protocol)
 {
     list_append(&protocol_list, protocol);
+}
+
+int
+sock_close(struct socket *sock)
+{
+    struct protocol *prot = sock->protocol;
+
+    int ret;
+
+    if (!prot->ops || !prot->ops->close) {
+        ret = 0;
+    } else {
+        ret = prot->ops->close(sock);
+    }
+
+    printf("close socket\n");
+    free(sock);
+
+    return ret;
 }
 
 int
