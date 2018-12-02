@@ -37,5 +37,5 @@ struct sockaddr {
 int accept(int, struct sockaddr *, socklen_t *);
 int bind(int, const struct sockaddr *, socklen_t);
 int connect(int, const struct sockaddr *, socklen_t);
-
+int socket(int, int, int);
 #endif
