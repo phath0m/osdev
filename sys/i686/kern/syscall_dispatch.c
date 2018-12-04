@@ -57,8 +57,9 @@ syscall_handler(int inum, struct regs *regs)
     return -1;
 }
 
-__attribute__((constructor)) static void
-_init_syscall()
+__attribute__((constructor))
+void
+_init_syscall_handler()
 {
     register_intr_handler(0x80, syscall_handler);
 }

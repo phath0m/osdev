@@ -336,8 +336,9 @@ ramfs_stat(struct vfs_node *node, struct stat *stat)
     return 0;
 }
 
-__attribute__((constructor)) static void
-ramfs_init()
+__attribute__((constructor))
+void
+_init_ramfs()
 {
     register_filesystem("initramfs", &ramfs_ops);
 }

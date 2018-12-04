@@ -217,8 +217,9 @@ sys_write_handler(syscall_args_t argv)
     return sys_write(fildes, buf, len);
 }
 
-__attribute__((constructor)) static void
-_init_syscalls()
+__attribute__((constructor))
+void
+_init_vfs_syscalls()
 {
     register_syscall(SYS_CLOSE, 1, sys_close_handler);
     register_syscall(SYS_FSTAT, 2, sys_fstat_handler);

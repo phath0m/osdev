@@ -167,8 +167,9 @@ devfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
     return 0;
 }
 
-__attribute__((constructor)) static void
-devfs_init()
+__attribute__((constructor))
+void
+_init_devfs()
 {
     register_filesystem("devfs", &devfs_ops);
 }

@@ -39,14 +39,6 @@ struct device zero_device = {
     .state  =   NULL
 };
 
-__attribute__((constructor)) static void
-pseudo_device_init()
-{
-    device_register(&full_device);
-    device_register(&null_device);
-    device_register(&zero_device);
-}
-
 static int
 full_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
@@ -87,3 +79,11 @@ zero_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
     return nbyte;
 }
 
+__attribute__((constructor))
+void
+_init_pseudo_devices()
+{
+    device_register(&full_device);
+    device_register(&null_device);
+    device_register(&zero_device);
+}

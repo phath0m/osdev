@@ -119,7 +119,8 @@ set_task_segment(uint32_t num, uint16_t ss0, uint32_t esp0)
     task_state_segment.ss = 0x13;
 }
 
-__attribute__((constructor)) static void
+__attribute__((constructor))
+void
 _init_idt()
 {
     struct dt_ptr gdt_ptr;

@@ -310,7 +310,8 @@ vm_space_new()
     return vm_space;
 }
 
-__attribute__((constructor)) void
+__attribute__((constructor))
+void
 _init_vm()
 {
     /* defined in sys/rtl/malloc.c */

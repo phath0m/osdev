@@ -227,7 +227,7 @@ klink_send(struct socket *sock, const void *buf, size_t size)
 
 __attribute__((constructor))
 void
-init_klink()
+_init_klink()
 {
     register_protocol(&klink_domain);
 }

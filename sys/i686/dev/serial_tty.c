@@ -185,8 +185,9 @@ serial_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
     return nbyte;
 }
 
-__attribute__((constructor)) static void
-serial_register()
+__attribute__((constructor))
+void
+_init_serial_tty()
 {
     init_serial_device(PORT0);
     init_serial_device(PORT1);

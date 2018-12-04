@@ -57,8 +57,9 @@ sys_socket_handler(syscall_args_t argv)
     return sys_socket(domain, type, protocol);
 }
 
-__attribute__((constructor)) static void
-_init_syscalls()
+__attribute__((constructor))
+void
+_init_net_syscalls()
 {
     register_syscall(SYS_CONNECT, 3, sys_connect_handler);
     register_syscall(SYS_SOCKET, 3, sys_socket_handler);

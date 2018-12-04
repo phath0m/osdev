@@ -36,12 +36,6 @@ struct device textscreen_device = {
     .state  =   &state
 };
 
-__attribute__((constructor)) static void
-textscreen_register()
-{
-    device_register(&textscreen_device);
-}
-
 static int
 textscreen_close(struct device *dev)
 {
@@ -120,4 +114,11 @@ textscreen_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos
     }
 
     return nbyte;
+}
+
+__attribute__((constructor))
+void
+_init_vga()
+{
+    device_register(&textscreen_device);
 }

@@ -258,8 +258,9 @@ sys_waitpid(syscall_args_t argv)
     return proc_waitpid(pid, status);
 }
 
-__attribute__((constructor)) static void
-_init_syscalls()
+__attribute__((constructor))
+void
+_init_proc_syscalls()
 {
     register_syscall(SYS_CHDIR, 1, sys_chdir);
     register_syscall(SYS_CHROOT, 1, sys_chroot);

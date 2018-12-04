@@ -164,7 +164,8 @@ schedule_thread(int state, struct thread *thread)
     }
 }
 
-__attribute__((constructor)) static void
+__attribute__((constructor))
+void
 _init_pit_timer()
 {
     init_pit(1000);
