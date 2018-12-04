@@ -88,6 +88,12 @@ char *proc_getctty(struct proc *proc);
 void proc_destroy(struct proc *);
 
 /*
+ * proc_getbypid
+ * Gets a proc pointer from a specified PID
+ */
+struct proc *proc_getbypid(int pid);
+
+/*
  * proc_getfile
  * Obtains a struct file pointer from a given file descriptor
  */

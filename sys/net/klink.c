@@ -8,10 +8,13 @@
 
 #define AF_KLINK    40
 
+#define KERROR_NOENT    0x01
+
 #define KLINK_QUERY     0x01
 #define KWHAT_PROCLIST  0x02
-#define KWHAT_PROC_ARGV 0x03
+#define KWHAT_PROCSTAT  0x03
 #define KWHAT_ENVIRON   0x04
+#define KWHAT_ERROR     0x05
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
@@ -29,10 +32,15 @@ struct klink_dgram {
 
 struct klink_proc_info {
     uint16_t    pid;
+    uint16_t    ppid;
     uint16_t    uid;
     uint16_t    gid;
-    char        name[256];
-};
+} __attribute__((packed));
+
+struct klink_proc_stat {
+    char        cmd[256];
+    char        tty[32];
+} __attribute__((packed));
 
 static int klink_close(struct socket *sock);
 static int klink_connect(struct socket *socket, void *address, size_t address_len);
@@ -79,7 +87,6 @@ klink_send_proclist(struct klink_session *session)
         info->pid = proc->pid;
         info->uid = proc->creds.uid;
         info->gid = proc->creds.gid;
-        strcpy(info->name, proc->name);
     }
 
     resp->size = LIST_SIZE(&process_list) * sizeof(struct klink_proc_info);
@@ -92,13 +99,61 @@ klink_send_proclist(struct klink_session *session)
 }
 
 static int
+klink_send_procstat(struct klink_session *session, int target)
+{
+    /*
+     * defined in sys/kern/proc.c
+     */
+    extern struct list process_list;
+    
+    list_iter_t iter;
+    
+    list_get_iter(&process_list, &iter);
+
+    struct klink_dgram *resp = NULL;
+    struct proc *proc;
+    
+    while (iter_move_next(&iter, (void**)&proc)) {
+        if (proc->pid == target) {
+            size_t resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_proc_stat);
+
+            resp = (struct klink_dgram*)(calloc(0, resp_sz));
+
+            struct klink_proc_stat *stat = (struct klink_proc_stat*)(resp + 1);
+            char *tty = proc_getctty(proc);
+
+            strncpy(stat->cmd, proc->name, 255);
+            strncpy(stat->tty, tty, 31);
+
+            break;
+        }
+    }
+
+    iter_close(&iter);
+
+    if (resp) {
+        resp->what = KWHAT_PROCSTAT;
+        resp->size = sizeof(struct klink_proc_stat);
+    } else {
+        resp->what = KWHAT_ERROR;
+        resp->item = KERROR_NOENT;
+        resp->size = 0;
+    }
+
+    list_append(&session->resp_queue, resp);
+
+    return 0;
+}
+
+static int
 klink_query(struct klink_session *session, struct klink_dgram *req)
 {
     switch (req->what) {
         case KWHAT_PROCLIST:
             klink_send_proclist(session);
             break;
-        case KWHAT_PROC_ARGV:
+        case KWHAT_PROCSTAT:
+            klink_send_procstat(session, req->item);
             break;
     }
     return 0;

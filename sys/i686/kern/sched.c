@@ -11,6 +11,8 @@
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
 #include <sys/i686/vm.h>
+// remove
+#include <stdio.h>
 
 // list of processes to run
 struct list         run_queue;
@@ -170,6 +172,9 @@ _init_pit_timer()
     sched_curr_address_space = vm_space_new();
 
     memset(&run_queue, 0, sizeof(struct list));
+
+    printf("do it now! %p\n", sched_curr_address_space);
+    printf("physical   %p\n", sched_curr_address_space->state_physical);
 
     asm volatile("mov %0, %%cr3" :: "r"((uint32_t)sched_curr_address_space->state_physical));
     asm volatile("mov %cr3, %eax; mov %eax, %cr3;");

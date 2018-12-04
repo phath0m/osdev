@@ -8,6 +8,7 @@
 typedef unsigned char bool;
 
 typedef unsigned int size_t;
+typedef int ssize_t;
 
 typedef signed char int8_t;
 typedef signed short int16_t;

@@ -26,13 +26,13 @@ run_kernel(void *state)
 
     sched_curr_thread->proc = init;
     current_proc = init;
-
+    
     if (kmain() != 0) {
         printf("Unable to boot kernel!\n");
     }
 
     printf("You may now shutdown your computer");
-
+    
     asm volatile("cli");
     asm volatile("hlt");
 
@@ -57,6 +57,10 @@ _preinit(multiboot_info_t *multiboot_hdr)
     //device_ioctl(&textscreen_device, TEXTSCREEN_SETFG, 0x0F);
 
     kset_output(&serial0_device);
+
+    printf("base   = 0x%p\n", KERNEL_BASE);
+    printf("initrd = 0x%p\n", initrd);
+    printf("heap   = 0x%p\n", heap);
     
     _init();
 
@@ -66,10 +70,6 @@ _preinit(multiboot_info_t *multiboot_hdr)
 
         struct multiboot_mmap_entry * entry = (struct multiboot_mmap_entry*)(KERNEL_BASE + multiboot_hdr->mmap_addr + i);
 
-        uint32_t start = entry->addr;
-        uint32_t end = entry->addr + entry->len;
-        printf("memory region %p-%p\n", start, end);
-        
         if (entry->type == 1) {
             usable_memory += entry->len;
         }
