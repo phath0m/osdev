@@ -104,6 +104,21 @@ sprintf(char *str, const char *fmt, ...)
 }
 
 char *
+strchr(const char *str, char ch)
+{
+    int len = strlen(str);
+    char *ret = NULL;
+
+    for (int i = 0; i < len; i++) {
+        if (str[i] == ch) {
+            ret = (char*)(str + i);
+        }
+    }
+
+    return ret;
+}
+
+char *
 strcpy(char *dest, const char *src)
 {
     size_t len = strlen(src);

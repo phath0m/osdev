@@ -14,7 +14,7 @@ void *memcpy(void *dest, const void *src, size_t nbyte);
 void *memset(void *ptr, int value, size_t nbyte);
 
 void sprintf(char *str, const char *fmt, ...);
-
+char *strchr(const char *str, char ch);
 char *strcpy(char *dest, const char *src);
 int strlen(const char *str);
 int strcmp(const char *str1, const char *str2);
