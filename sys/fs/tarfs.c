@@ -77,50 +77,47 @@ discard_trailing_slash(char *path)
     }
 }
 
-static inline int
-get_file_depth(const char *path)
+static struct ramfs_node *
+ramfs_get_node(struct ramfs_node *root, const char *path)
 {
-    int dirs = 0;
+    struct ramfs_node *parent = root;
+    struct ramfs_node *child = NULL;
 
-    while (*path) {
-        if (*path == '/' && path[1]) {
-            dirs++;
-        }
+    char dir[PATH_MAX];
+    char *nextdir = NULL;
+
+    if (*path == 0 || !strcmp(path, "/")) {
+        return root;
+    }
+
+    if (*path == '/') {
         path++;
     }
 
-    return dirs;
-}
-
-static const char *
-get_tar_basename(const char *path)
-{
-    const char *last = path;
-
-    while (*path) {
-
-        if (*path == '/' && path[1]) {
-            last = path + 1;
+    do {
+        nextdir = strrchr(path, '/');
+        
+        if (nextdir) {
+            strncpy(dir, path, (nextdir - path) + 1);
+            path = nextdir + 1;
+        } else {
+            strcpy(dir, path);
         }
 
-        path++;
-    }
+        if (!dict_get(&parent->children, dir, (void**)&child)) {
+            return NULL;
+        }
 
-    return last;
+        parent = child;
+    } while (nextdir && *path);
+
+    return child;
 }
 
 struct ramfs_node *
 parse_tar_archive(const void *archive)
 {
     struct ramfs_node *root = ramfs_node_new();
-
-    struct list stack;
-
-    memset(&stack, 0, sizeof(struct list));
-
-    int prev_depth = 0;
-
-    list_append(&stack, root);
 
     for (int i = 0; ;i++) {
         struct tar_header *header = (struct tar_header*)archive;
@@ -130,21 +127,10 @@ parse_tar_archive(const void *archive)
         }
 
         char name[100];
-        strcpy(name, header->name);
+
+        strcpy(name, header->name + 1);
 
         discard_trailing_slash(name);
-
-        int depth = get_file_depth(name);
-
-        if (prev_depth >= depth && i != 0) {
-            int delta = (prev_depth - depth) + 1;
-
-            for (int i = 0; i < delta; i++) {
-                struct ramfs_node *node;
-
-                list_remove_back(&stack, (void**)&node);
-            }
-        }
 
         struct ramfs_node *node = ramfs_node_new();
         
@@ -154,6 +140,7 @@ parse_tar_archive(const void *archive)
         node->mode = atoi(header->mode, 8);
         node->uid = atoi(header->uid, 8);
         node->mtime = atoi(header->mtime, 8);
+
         int size = atoi(header->size, 8);
 
         node->size = size;
@@ -165,11 +152,13 @@ parse_tar_archive(const void *archive)
         }
 
         if (i > 0) {
-            const char *basename = get_tar_basename(name);
- 
-            struct ramfs_node *prev = (struct ramfs_node*)LIST_LAST(&stack);
+            const char *basename = strchr(name, '/') + 1;
+        
+            *strchr(name, '/') = '\0';
 
-            dict_set(&prev->children, basename, node); 
+            struct ramfs_node *parent = (struct ramfs_node*)ramfs_get_node(root, name);
+
+            dict_set(&parent->children, basename, node); 
             
             switch (header->typeflag) {
                 case TAR_REG:
@@ -180,14 +169,7 @@ parse_tar_archive(const void *archive)
                     break;
             }
         }
-
-        if (header->typeflag == TAR_DIR && i != 0) {
-            list_append(&stack, node);
-            prev_depth = depth;
-        }
     }
-
-    list_destroy(&stack, false);
 
     return root;
 }
