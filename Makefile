@@ -11,6 +11,13 @@ all: $(KERNEL) $(ISO)
 clean:
 	rm -f $(ISO_IMAGE) $(KERNEL)
 
+userland:
+	mkdir -p ./initrd/bin
+	mkdir -p ./initrd/sbin
+	make -C bin
+	make -C sbin
+	cp -rp etc ./initrd
+
 kernel: $(KERNEL)
 
 iso: $(KERNEL) $(ISO_IMAGE)
