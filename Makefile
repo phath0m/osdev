@@ -14,6 +14,7 @@ clean:
 userland:
 	mkdir -p ./initrd/bin
 	mkdir -p ./initrd/sbin
+	mkdir -p ./initrd/dev
 	make -C bin
 	make -C sbin
 	cp -rp etc ./initrd
