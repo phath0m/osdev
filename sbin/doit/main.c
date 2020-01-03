@@ -61,8 +61,7 @@ main(int argc, const char *argv[])
         }
 
         printf("doit: Welcome!\n");
-        start_script("/bin/sh");
-        //do_directory("/etc/doit.d");
+        do_directory("/etc/doit.d");
     }
 
     return 0;

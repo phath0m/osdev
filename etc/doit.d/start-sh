@@ -1,5 +1,3 @@
 #!/bin/sh
 
-source /etc/doit.rc
-
 /bin/sh

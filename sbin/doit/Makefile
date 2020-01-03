@@ -1,5 +1,5 @@
-CC=i686-pc-elysium-gcc
-LD=i686-pc-elysium-gcc
+CC=i686-elysium-gcc
+LD=i686-elysium-gcc
 #CC=gcc
 #LD=gcc
 
