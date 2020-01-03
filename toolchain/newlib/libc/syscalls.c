@@ -58,6 +58,26 @@ connect(int fd, const struct sockaddr *address, socklen_t address_size)
 }
 
 int
+dup(int oldfd)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_DUP), "b"(oldfd));
+
+    return ret;
+}
+
+int
+dup2(int oldfd, int newfd)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_DUP2), "b"(oldfd), "c"(newfd));
+
+    return ret;
+}
+
+int
 execv(char *name, char **argv)
 {
     return execve(name, argv, environ);
