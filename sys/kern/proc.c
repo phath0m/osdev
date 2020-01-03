@@ -36,6 +36,36 @@ proc_destroy(struct proc *proc)
     free(proc);
 }
 
+int
+proc_dup(int oldfd)
+{
+    int newfd = proc_getfildes();
+
+    return proc_dup2(oldfd, newfd);
+}
+
+int
+proc_dup2(int oldfd, int newfd)
+{
+    if (oldfd >= 4096 || newfd >= 4096) {
+        return -1;
+    }
+
+    struct file *existing_fp = current_proc->files[newfd];
+
+    if (existing_fp) {
+        vfs_close(existing_fp);   
+    }
+
+    struct file *fp = current_proc->files[oldfd];
+    
+    current_proc->files[newfd] = fp;
+
+    INC_FILE_REF(fp);
+    
+    return newfd;
+}
+
 struct file *
 proc_getfile(int fildes)
 {   

@@ -43,13 +43,17 @@ file_new(struct vfs_node *node)
     INC_NODE_REF(node);
 
     file->node = node;
-
+    file->refs = 1;
     return file;
 }
 
 int
 vfs_close(struct file *file)
 {
+    if ((--file->refs) > 0) {
+        return 0;
+    }
+
     DEC_NODE_REF(file->node);
 
     struct vfs_node *node = file->node;

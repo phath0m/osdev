@@ -258,6 +258,23 @@ sys_waitpid(syscall_args_t argv)
     return proc_waitpid(pid, status);
 }
 
+static int
+sys_dup(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, oldfd, 0, argv);
+
+    return proc_dup(oldfd);
+}
+
+static int
+sys_dup2(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, oldfd, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, newfd, 1, argv);
+
+    return proc_dup2(oldfd, newfd);
+}
+
 __attribute__((constructor))
 void
 _init_proc_syscalls()
@@ -270,4 +287,6 @@ _init_proc_syscalls()
     register_syscall(SYS_SBRK, 1, sys_sbrk);
     register_syscall(SYS_WAIT, 1, sys_wait);
     register_syscall(SYS_WAITPID, 2, sys_waitpid);
+    register_syscall(SYS_DUP, 1, sys_dup);
+    register_syscall(SYS_DUP2, 2, sys_dup2);
 }

@@ -14,6 +14,7 @@
 
 #define INC_NODE_REF(p) __sync_fetch_and_add(&(p)->refs, 1)
 #define DEC_NODE_REF(p) if (__sync_fetch_and_sub(&(p)->refs, 1) == 1) vfs_node_destroy(p);
+#define INC_FILE_REF(p) __sync_fetch_and_add(&(p)->refs, 1)
 
 struct dirent;
 struct file;
@@ -38,6 +39,7 @@ struct file {
     struct vfs_node *   node;
     char                name[PATH_MAX];
     int                 flags;
+    int                 refs;
     uint64_t            position;
 };
 

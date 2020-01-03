@@ -117,6 +117,18 @@ struct proc *proc_new();
  */
 int proc_newfildes(struct file *file);
 
+/*
+ * proc_dup
+ * Duplicates a file descriptor
+ */
+int proc_dup(int oldfd);
+
+/*
+ * proc_dup2
+ * Duplicates a file descriptor
+ */
+int proc_dup2(int oldfd, int newfd);
+
 uintptr_t sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg);
 
 void sched_run_kthread(kthread_entry_t entrypoint, struct vm_space *space, void *arg);

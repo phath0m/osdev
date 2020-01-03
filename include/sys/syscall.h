@@ -27,6 +27,8 @@
 #define SYS_PIPE        0x14
 #define SYS_SOCKET      0x15
 #define SYS_CONNECT     0x16
+#define SYS_DUP         0x17
+#define SYS_DUP2        0x18
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
