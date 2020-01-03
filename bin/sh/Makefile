@@ -1,7 +1,5 @@
-CC=i686-pc-elysium-gcc
-LD=i686-pc-elysium-gcc
-#CC=gcc
-#LD=gcc
+CC=i686-elysium-gcc
+LD=i686-elysium-gcc
 
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =

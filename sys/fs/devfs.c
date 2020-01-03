@@ -8,6 +8,9 @@
 #include <sys/types.h>
 #include <sys/vfs.h>
 
+// delete me
+#include <stdio.h>
+
 static int devfs_close(struct vfs_node *node);
 static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
 static int devfs_mount(struct device *dev, struct vfs_node **root);

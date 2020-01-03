@@ -1,5 +1,5 @@
-CC=i686-elf-gcc
-LD=i686-elf-gcc
+CC=i686-elysium-gcc
+LD=i686-elysium-gcc
 
 CFLAGS = -c -std=gnu11 -Werror -I ./include
 
@@ -28,4 +28,4 @@ $(KERNEL):
 $(ISO_IMAGE):
 	tar --owner=root -C ./initrd -cvf ./iso/boot/initrd.img .
 	cp -p $(KERNEL) ./iso/boot
-	grub-mkrescue -o $(ISO_IMAGE) iso
+	grub2-mkrescue -o $(ISO_IMAGE) iso

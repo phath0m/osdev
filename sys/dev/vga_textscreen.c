@@ -31,6 +31,7 @@ struct device textscreen_device = {
     .close  =   textscreen_close,
     .ioctl  =   textscreen_ioctl,
     .open   =   textscreen_open,
+    .isatty =   NULL,
     .read   =   NULL,
     .write  =   textscreen_write,
     .state  =   &state
@@ -121,4 +122,7 @@ void
 _init_vga()
 {
     device_register(&textscreen_device);
+    state.position = 0;
+    state.foreground_color = 15;
+    state.background_color = 0;
 }

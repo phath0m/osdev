@@ -17,7 +17,7 @@ $(GCC): $(GCC_SRC)
 	cp ./elysium.h "$(GCC)/gcc/config/elysium.h"
 	cd "$(GCC)/libstdc++-v3" && autoconf
 	mkdir -p build
-	cd build && ../$(GCC)/configure --target=i686-pc-elysium --prefix="$(PREFIX)" --with-sysroot="$(SYSROOT)" --disable-nls --enable-languages=c,c++ --disable-libssp --disable-werror --enable-languages=c,c++
+	cd build && ../$(GCC)/configure --target=i686-elysium --prefix="$(PREFIX)" --with-sysroot="$(SYSROOT)" --with-native-system-header-dir=/usr/include -disable-nls --disable-libssp --disable-werror --enable-languages=c,c++
 	cd build && make all-gcc all-target-libgcc
 $(GCC_SRC):
 	wget $(GCC_URL)

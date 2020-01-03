@@ -1,7 +1,8 @@
 AS=nasm
-CC=i686-pc-elysium-gcc
-LD=i686-pc-elysium-gcc
-
+#CC=i686-pc-elysium-gcc
+#LD=i686-pc-elysium-gcc
+CC=i686-elysium-gcc
+LD=i686-elysium-gcc
 AFLAGS= -f elf32
 CFLAGS = -c -std=gnu99 --freestanding -Wall -Werror -nostartfiles -nodefaultlibs -I ../include
 LDFLAGS = -T i686/linker.ld --freestanding -O2 -nostdlib

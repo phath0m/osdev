@@ -66,6 +66,7 @@ sys_open(const char *path, int mode)
 
         return fd;
     }
+    
     return -(succ);
 }
 

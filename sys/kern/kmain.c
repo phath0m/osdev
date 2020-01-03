@@ -53,7 +53,7 @@ kmain()
 
     printf("kernel: invoke /sbin/doit\n");
 
-    proc_execve("/sbin/doit", argv, envp);
+    proc_execve(argv[0], argv, envp);
 
     /*
      * There isn't much we can do right now :P

@@ -270,7 +270,8 @@ shell_repl()
     for (;;) {
         char buffer[512];
         memset(buffer, 0, 512);
-        printf("$ ");
+
+        fputs("# ", stdout);
 
         fflush(stdout);
 
