@@ -5,7 +5,7 @@
 void
 list_append(struct list *listp, void *ptr)
 {
-    struct list_elem *elem = (struct list_elem*)calloc(0, sizeof(struct list_elem));
+    struct list_elem *elem = (struct list_elem*)calloc(1, sizeof(struct list_elem));
 
     elem->data = ptr;
     elem->next_elem = NULL;
@@ -188,7 +188,18 @@ iter_peek(list_iter_t *iterp, void **item)
         return false;
     }
 
-    *item = iterp->current_item->data;
+    if (iterp->iteration == 0) {
+        *item = iterp->current_item->data;
+        return true;
+    }
+
+    struct list_elem *next = iterp->current_item->next_elem;
+
+    if (!next) {
+        return false;
+    }
+
+    *item = next->data;
 
     return true;
 }

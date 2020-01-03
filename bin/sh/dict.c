@@ -76,7 +76,7 @@ dict_set(struct dict *dict, const char *key, void *value)
     struct dict_entry *entry = dict->entries[hash];
 
     if (!entry) {
-        entry = (struct dict_entry*)calloc(0, sizeof(struct dict_entry));
+        entry = (struct dict_entry*)calloc(1, sizeof(struct dict_entry));
         dict->entries[hash] = entry;
     }
 

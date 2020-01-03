@@ -31,7 +31,7 @@ read_char(struct tokenizer *scanner)
 }
 
 struct token *
-token_new(const char *value, int size)
+token_new(token_kind_t kind, const char *value, int size)
 {
     struct token *tok = (struct token*)calloc(1, (sizeof(struct token) + size + 1));
     
@@ -40,6 +40,7 @@ token_new(const char *value, int size)
     strncpy(buf, value, size);
 
     tok->value = buf;
+    tok->kind = kind;
 
     return tok;
 }
@@ -62,7 +63,7 @@ scan_symbol(struct tokenizer *scanner)
 
     int size = scanner->position - start;
 
-    return token_new(value, size);
+    return token_new(TOKEN_SYMBOL, value, size);
 }
 
 static struct token *
@@ -72,7 +73,17 @@ scan_token(struct tokenizer *scanner)
         read_char(scanner);
     }
 
-    if (is_symbol_character(peek_char(scanner))) {
+    int ch = peek_char(scanner);
+
+    switch (ch) {
+        case '|':
+            read_char(scanner);
+            return token_new(TOKEN_PIPE, "|", 1);
+        default:
+            break;
+    }
+
+    if (is_symbol_character(ch)) {
         return scan_symbol(scanner);
     }
 

@@ -17,6 +17,8 @@
 
 typedef int (*command_handler_t)(const char *name, int argc, const char *argv[]);
 
+static void eval_ast_node(struct ast_node *node);
+
 struct dict builtin_commands;
 
 ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
@@ -172,6 +174,59 @@ exec_command(struct ast_node *root)
     return exec_binary(argv[0], i, (const char**)argv);
 }
 
+static int
+handle_pipe(struct ast_node *root)
+{
+    list_iter_t iter;
+
+    list_get_iter(&root->children, &iter);
+
+    struct ast_node *left;
+    struct ast_node *right;
+    
+    iter_move_next(&iter, (void**)&left);
+    iter_move_next(&iter, (void**)&right);
+
+    int fds[2];
+
+    pipe(fds);
+
+    pid_t child = fork();
+
+    if (child != 0) {
+        int tmp = dup(STDIN_FILENO);
+        dup2(fds[0], STDIN_FILENO);
+        close(fds[1]);
+        eval_ast_node(right);
+        close(STDIN_FILENO);
+        wait(NULL);
+        dup2(tmp, STDIN_FILENO);
+
+    } else {
+        dup2(fds[1], STDOUT_FILENO);
+        close(fds[0]);
+        eval_ast_node(left);
+        close(STDOUT_FILENO);
+        exit(0);
+    }
+    return 0;
+}
+
+static void
+eval_ast_node(struct ast_node *node)
+{
+    switch (node->node_class) {
+        case AST_COMMAND:
+            exec_command(node);
+            break;
+        case AST_PIPE:
+            handle_pipe(node);
+            break;
+        default:
+            break;
+    }
+}
+
 static void
 eval_command(const char *cmd)
 {
@@ -192,7 +247,7 @@ eval_command(const char *cmd)
 
     struct ast_node *root = parser_parse(&parser);
     
-    exec_command(root);
+    eval_ast_node(root);
 
     ast_node_destroy(root);
     

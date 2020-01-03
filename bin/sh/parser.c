@@ -31,6 +31,14 @@ read_token(struct parser *parser)
     return NULL;
 }
 
+static bool
+match_token_kind(struct parser *parser, token_kind_t kind)
+{
+    struct token *token = peek_token(parser);
+
+    return token && token->kind == kind;
+}
+
 void
 ast_node_destroy(struct ast_node *node)
 {
@@ -66,15 +74,15 @@ parser_init(struct parser *parser, struct list *tokens)
     list_get_iter(tokens, &parser->iter);
 }
 
-struct ast_node *
-parser_parse(struct parser *parser)
+static struct ast_node *
+parse_command(struct parser *parser)
 {
     struct token *command = read_token(parser);
     struct ast_node *root = ast_node_new(AST_COMMAND, (void*)command->value);
     
-    while (peek_token(parser)) {
+    while (match_token_kind(parser, TOKEN_SYMBOL)) {
         struct token *token = read_token(parser);
-        
+
         if (token) {
             struct ast_node *arg = ast_node_new(AST_ARGUMENT, (void*)token->value);
             list_append(&root->children, arg);
@@ -82,4 +90,30 @@ parser_parse(struct parser *parser)
     }
 
     return root;
+}
+
+static struct ast_node *
+parse_pipe(struct parser *parser)
+{
+    struct ast_node *left = parse_command(parser);
+
+    if (match_token_kind(parser, TOKEN_PIPE)) {
+        read_token(parser);
+        
+        struct ast_node *right = parse_command(parser);
+        struct ast_node *pipe = ast_node_new(AST_PIPE, NULL);
+        
+        list_append(&pipe->children, left);
+        list_append(&pipe->children, right);
+
+        return pipe;
+    }
+
+    return left;
+}
+
+struct ast_node *
+parser_parse(struct parser* parser)
+{
+    return parse_pipe(parser);   
 }
