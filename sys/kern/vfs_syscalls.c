@@ -128,6 +128,8 @@ sys_close_handler(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
 
+    TRACE_SYSCALL("close", "%d", fd);
+
     return sys_close(fd);
 }
 
@@ -136,6 +138,8 @@ sys_fstat_handler(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
+
+    TRACE_SYSCALL("fstat", "%d, %p", fd, buf);
 
     return sys_fstat(fd, buf);
 }
@@ -146,6 +150,8 @@ sys_open_handler(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, file, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
 
+    TRACE_SYSCALL("open", "\"%s\", %d", file, mode);
+
     return sys_open(file, mode);
 }
 
@@ -153,6 +159,8 @@ static int
 sys_pipe_handler(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, pipefd, 0, argv);
+
+    TRACE_SYSCALL("pipe", "%p", pipefd);
 
     return sys_pipe(pipefd);
 }
@@ -164,6 +172,8 @@ sys_read_handler(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(char*, buf, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, len, 2, argv);
 
+    TRACE_SYSCALL("read", "%d, %p, %d", fildes, buf, len);
+
     asm volatile("sti");
 
     return sys_read(fildes, buf, len);
@@ -172,8 +182,11 @@ sys_read_handler(syscall_args_t argv)
 static int
 sys_readdir_handler(syscall_args_t argv)
 {
-    int fildes              = DECLARE_SYSCALL_PARAM(int, 0, argv);
-    struct dirent *dirent   = DECLARE_SYSCALL_PARAM(struct dirent *, 1, argv);
+    DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
+    DEFINE_SYSCALL_PARAM(struct dirent *, dirent, 1, argv);
+
+    TRACE_SYSCALL("readdir", "%d, %p", fildes, dirent);
+
     return sys_readdir(fildes, dirent);
 }
 
@@ -184,6 +197,8 @@ sys_lseek_handler(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(off_t, offset, 1, argv);
     DEFINE_SYSCALL_PARAM(int, whence, 2, argv);
 
+    TRACE_SYSCALL("lseek", "%d, %d, %d", fd, offset, whence);
+
     return sys_lseek(fd, offset, whence);
 }
 
@@ -192,6 +207,8 @@ sys_stat_handler(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
+
+    TRACE_SYSCALL("stat", "\"%s\", %p", path, buf);
 
     struct file *file;
 
@@ -212,6 +229,8 @@ sys_write_handler(syscall_args_t argv)
     int fildes      = DECLARE_SYSCALL_PARAM(int, 0, argv);
     const char *buf = DECLARE_SYSCALL_PARAM(const char *, 1, argv);
     size_t len      = DECLARE_SYSCALL_PARAM(size_t, 2, argv);
+
+    TRACE_SYSCALL("write", "%d, %p, %d", fildes, buf, len);
 
     asm volatile("sti");
 

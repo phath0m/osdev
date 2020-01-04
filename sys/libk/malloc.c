@@ -149,7 +149,7 @@ sbrk(size_t increment)
     memset((void*)prev_brk, 0, increment);
 
     if (kernel_break >= kernel_heap_end) {
-        printf("full stop!\n");
+        printf("full stop! prev_brk=%p kernel_break=%p\n", prev_brk, kernel_break);
         asm volatile("cli");
         asm volatile("hlt");
     }

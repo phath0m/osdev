@@ -45,7 +45,7 @@ kmain()
 
 
     const char *envp[] = {
-        "CONSOLE=/dev/ttyS0",
+        "CONSOLE=/dev/ttyS1",
         NULL,
     };
 

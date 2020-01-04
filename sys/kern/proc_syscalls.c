@@ -144,6 +144,8 @@ sys_chdir(syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, dir, 0, args);
 
+    TRACE_SYSCALL("chdir", "%s", dir);
+
     return proc_chdir(dir);
 }
 
@@ -151,6 +153,8 @@ static int
 sys_chroot(syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
+
+    TRACE_SYSCALL("chroot", "%s", path);
 
     struct vfs_node *root;
     
@@ -169,6 +173,8 @@ sys_execve(syscall_args_t args)
     DEFINE_SYSCALL_PARAM(const char *, file, 0, args);
     DEFINE_SYSCALL_PARAM(const char **, argv, 1, args);
     DEFINE_SYSCALL_PARAM(const char **, envp, 2, args);
+
+    TRACE_SYSCALL("execve", "%s, %p, %p", file, argv, envp);
 
     struct file *fd;
 
@@ -209,8 +215,8 @@ sys_execve(syscall_args_t args)
             if (exec_err != 0) {
                 return exec_err;
             }
-
             return proc_execve(interpreter, (const char **)new_argv, envp);
+
         } else {
             vfs_close(fd);
         }
@@ -224,12 +230,16 @@ sys_exit(syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(int, status, 0, args);
 
+    TRACE_SYSCALL("exit", "%d", status);
+
     return proc_exit(status);
 }
 
 static int
 sys_fork(syscall_args_t argv)
 {
+    TRACE_SYSCALL("fork", "void");
+
     return proc_fork((struct regs*)argv->state);
 }
 
@@ -238,6 +248,8 @@ sys_sbrk(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(size_t, increment, 0, argv);
 
+    TRACE_SYSCALL("sbrk", "%d", increment);
+
     return proc_sbrk(increment);
 }
 
@@ -245,6 +257,8 @@ static int
 sys_wait(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, status, 0, argv);
+
+    TRACE_SYSCALL("wait", "%p", status);
 
     return proc_wait(status);
 }
@@ -255,13 +269,17 @@ sys_waitpid(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(int *, status, 1, argv);
 
-    return proc_waitpid(pid, status);
+    TRACE_SYSCALL("waitpid", "%d, %p", pid, status);
+
+    return proc_waitpid(pid, status);   
 }
 
 static int
 sys_dup(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, oldfd, 0, argv);
+
+    TRACE_SYSCALL("dup", "%d", oldfd);
 
     return proc_dup(oldfd);
 }
@@ -271,6 +289,8 @@ sys_dup2(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, oldfd, 0, argv);
     DEFINE_SYSCALL_PARAM(int, newfd, 1, argv);
+
+    TRACE_SYSCALL("dup2", "%d, %d", oldfd, newfd);
 
     return proc_dup2(oldfd, newfd);
 }
