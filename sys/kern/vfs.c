@@ -56,16 +56,9 @@ vfs_close(struct file *file)
 
     DEC_NODE_REF(file->node);
 
-    struct vfs_node *node = file->node;
-    struct file_ops *ops = node->ops;
-
-    if (ops->close) {
-        ops->close(node);
-    }
-
     free(file);
 
-    return 0;
+    return 0; 
 }
 
 struct file *
@@ -120,6 +113,12 @@ vfs_mount_new(struct device *dev, struct filesystem *fs, uint64_t flags)
 void
 vfs_node_destroy(struct vfs_node *node)
 {
+    struct file_ops *ops = node->ops;
+
+    if (ops && ops->close) {
+        ops->close(node);
+    }    
+
     /*
      * Note: this should actually attempt to free each item in children
      * That being said, this will not get called as the reference counting
