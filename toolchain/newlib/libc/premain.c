@@ -15,7 +15,7 @@ _premain(int argc, const char **argv, int envc, const char **envp)
     
     environ = (char**)calloc(1, sizeof(char*) * 128);
 
-    for (int i = 0; i < envc; i++) {
+    for (i = 0; i < envc; i++) {
         environ[i] = envp[i];
     }
 

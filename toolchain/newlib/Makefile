@@ -24,7 +24,8 @@ $(NEWLIB): $(NEWLIB_SRC)
 	cd "$(NEWLIB)/newlib/libc/sys" && autoreconf && autoconf
 	cd "$(NEWLIB)/newlib/libc/sys/elysium" && autoreconf
 	mkdir -p build/i686-elysium/newlib/libc/sys/elysium
-	nasm -f elf32 crt/crt0.asm -o "build/i686-elysium/newlib/libc/sys/elysium/crt0.o"
+	nasm -f elf32 crt/crt0.asm -o "build/i686-elysium/newlib/libc/sys/crt0.o"
+	cp "build/i686-elysium/newlib/libc/sys/crt0.o" "build/i686-elysium/newlib/libc/sys/elysium/crt0.o"
 	cd build && ../$(NEWLIB)/configure --prefix="$(PREFIX)" --target=$(TARGET) && make all
 $(NEWLIB_SRC):
 	wget $(NEWLIB_URL)

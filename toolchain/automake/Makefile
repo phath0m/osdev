@@ -1,7 +1,7 @@
 AUTOMAKE=automake-1.12
 AUTOMAKE_SRC=$(AUTOMAKE).tar.gz
 AUTOMAKE_URL=https://ftp.gnu.org/gnu/automake/$(AUTOMAKE_SRC)
-PREFIX="/usr/local"
+PREFIX=$(shell realpath ../../sysroot)
 
 all: $(AUTOMAKE)
 

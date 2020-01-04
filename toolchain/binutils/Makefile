@@ -1,7 +1,7 @@
 BINUTILS=binutils-2.26
 BINUTILS_SRC=$(BINUTILS).tar.gz
 BINUTILS_URL=https://ftp.gnu.org/gnu/binutils/$(BINUTILS_SRC)
-PREFIX="/usr"
+PREFIX="/"
 SYSROOT=$(shell realpath ../../sysroot)
 
 all: $(BINUTILS)
