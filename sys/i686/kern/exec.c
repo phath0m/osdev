@@ -137,10 +137,12 @@ unload_userspace(struct vm_space *space)
 int
 proc_execve(const char *path, const char **argv, const char **envp)
 {
-    /* defined in sys/i686/sched.c */
-    extern struct thread *sched_curr_thread;
+    asm volatile("cli");
 
+    // /* defined in sys/i686/sched.c */
     struct proc *proc = current_proc;
+    struct thread *sched_curr_thread = proc->thread;
+
     struct vm_space *space = sched_curr_thread->address_space;
     struct vfs_node *root = proc->root;
 

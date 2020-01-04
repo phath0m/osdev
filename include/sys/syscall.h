@@ -33,6 +33,9 @@
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
 
+
+#define TRACE_SYSCALL(name, fmt, ...) printf("pid=%d   %s(" fmt ")\n", current_proc->pid, name, ## __VA_ARGS__);
+
 struct syscall_args {
     void *      state;
     uintptr_t * args;
@@ -49,5 +52,6 @@ struct syscall {
 };
 
 int register_syscall(int num, int argc, syscall_t handler);
+
 
 #endif

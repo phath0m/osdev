@@ -8,6 +8,8 @@
 
 struct fork_state {
     struct proc *   proc;
+    uintptr_t       u_stack_top;
+    uintptr_t       u_stack_bottom;
     struct regs     regs;
 };
 
@@ -61,6 +63,8 @@ init_child_proc(void *statep)
 
     proc->thread = sched_curr_thread;
     sched_curr_thread->proc = state->proc;
+    sched_curr_thread->u_stack_bottom = state->u_stack_bottom;
+    sched_curr_thread->u_stack_top = state->u_stack_top;
 
     current_proc = proc;
 
@@ -105,6 +109,8 @@ proc_fork(struct regs *regs)
     struct fork_state *state = (struct fork_state*)calloc(0, sizeof(struct fork_state));
 
     state->proc = new_proc;
+    state->u_stack_top = proc->thread->u_stack_top;
+    state->u_stack_bottom = proc->thread->u_stack_bottom;
 
     memcpy(&state->regs, regs, sizeof(struct regs));
 
