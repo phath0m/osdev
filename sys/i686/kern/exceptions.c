@@ -45,6 +45,12 @@ static const char *exceptions[] = {
     NULL
 };
 
+struct stackframe {
+    struct stackframe * prev;
+    uintptr_t           eip;
+};
+
+static void print_stack(struct regs *regs, int max_fames);
 static void print_regs(struct regs *regs);
 
 static int
@@ -85,6 +91,7 @@ handle_page_fault(int inum, struct regs *regs)
     
     printf("\n");
 
+    print_stack(regs, 4);
     print_regs(regs);
 
     if (!present) {
@@ -102,6 +109,19 @@ handle_page_fault(int inum, struct regs *regs)
     asm volatile("hlt");
     
     return 0;
+}
+
+static void
+print_stack(struct regs *regs, int max_fames)
+{
+    struct stackframe *frame = (struct stackframe*)regs->ebp;
+ 
+    printf("Trace:\n");
+
+    for (int i = 0; i < max_fames && frame; i++) {
+        printf("    [0x%p]\n", frame->eip);
+        frame = frame->prev;
+    }
 }
 
 static void
