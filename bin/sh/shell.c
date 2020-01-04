@@ -191,6 +191,7 @@ handle_pipe(struct ast_node *root)
 
     pipe(fds);
 
+    int status;
     pid_t child = fork();
 
     if (child != 0) {
@@ -199,10 +200,11 @@ handle_pipe(struct ast_node *root)
         close(fds[1]);
         eval_ast_node(right);
         close(STDIN_FILENO);
-        wait(NULL);
+        wait(&status);
         dup2(tmp, STDIN_FILENO);
 
     } else {
+        
         dup2(fds[1], STDOUT_FILENO);
         close(fds[0]);
         eval_ast_node(left);
