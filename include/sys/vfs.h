@@ -27,7 +27,7 @@ struct vfs_node;
 typedef int (*file_close_t)(struct file *file);
 
 typedef int (*fs_close_t)(struct vfs_node *node);
-typedef int (*fs_creat_t)(struct vfs_node *node, const char *name, mode_t mode);
+typedef int (*fs_creat_t)(struct vfs_node *node, struct vfs_node **result, const char *name, mode_t mode);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
 typedef int (*fs_mkdir_t)(struct vfs_node *parent, const char *name, mode_t mode); 
 typedef int (*fs_mount_t)(struct device *dev, struct vfs_node **root);
@@ -123,6 +123,12 @@ void register_filesystem(char *name, struct fs_ops *ops);
  * @param file  Pointer to the open file struct
  */
 int vfs_close(struct file *file);
+
+/*
+ * vfs_creat
+ * Creats a new file
+ */
+int vfs_creat(struct vfs_node *root, struct file **result, const char *path, mode_t mode);
 
 /*
  * vfs_lookup

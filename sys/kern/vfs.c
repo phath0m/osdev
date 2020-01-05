@@ -222,6 +222,54 @@ vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, co
     return -(ENOENT);
 }
 
+int
+vfs_creat(struct vfs_node *root, struct file **result, const char *path, mode_t mode)
+{
+    char parent_path[PATH_MAX+1];
+
+    strncpy(parent_path, path, PATH_MAX);
+
+    int last_slash = 0;
+
+    for (int i = 0; i < PATH_MAX && parent_path[i]; i++) {
+        if (parent_path[i] == '/') last_slash = i;
+    }
+
+    parent_path[last_slash] = 0;
+
+    char *filename = &parent_path[last_slash + 1];
+    struct vfs_node *parent;
+
+    if (vfs_get_node(root, NULL, &parent, parent_path) == 0) {
+        if ((parent->mount_flags & MS_RDONLY)) {
+            return -(EROFS);
+        }
+    } else {
+        return -(ENOENT);
+    }
+
+    struct file_ops *ops = parent->ops;
+    struct vfs_node *child;
+
+    if (!ops || !ops->creat) {
+        return -(ENOTSUP);
+    }
+    
+    int res = ops->creat(parent, &child, filename, mode);
+
+    if (res != 0) {
+        return res;
+    }    
+
+    struct file *file = file_new(child);
+
+    file->flags = O_WRONLY;
+
+    *result = file;
+
+    return 0;
+}
+
 void
 register_filesystem(char *name, struct fs_ops *ops)
 {
@@ -308,6 +356,8 @@ vfs_mkdir(struct vfs_node *root, const char *path, mode_t mode)
         if ((parent->mount_flags & MS_RDONLY)) {
             return -(EROFS);
         }
+    } else {
+        return -(ENOENT);
     }
 
     struct file_ops *ops = parent->ops;
@@ -381,6 +431,8 @@ vfs_rmdir(struct vfs_node *root, const char *path)
         if ((parent->mount_flags & MS_RDONLY)) {
             return -(EROFS);
         }
+    } else {
+        return -(ENOENT);
     }
 
     struct file_ops *ops = parent->ops;

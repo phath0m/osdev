@@ -53,12 +53,6 @@ kmain()
         NULL,
     };
 
-    extern int proc_chdir(const char *path);
-
-    vfs_mkdir(root, "/tmp/test", 0777);
-    vfs_mkdir(root, "/tmp/foo", 0700);
-    vfs_mkdir(root, "/tmp/bar", 0710);
-    vfs_rmdir(root, "/tmp/test");
     printf("kernel: invoke /sbin/doit\n");
 
     proc_execve(argv[0], argv, envp);
