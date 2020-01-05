@@ -1,0 +1,18 @@
+CC=i686-elysium-gcc
+LD=i686-elysium-gcc
+
+CFLAGS = -c -std=gnu99 -Wall -Werror
+LDFLAGS =
+
+MKDIR_OBJECTS += main.o
+
+MKDIR = ../../initrd/bin/mkdir
+
+all: $(MKDIR)
+
+$(MKDIR): $(MKDIR_OBJECTS)
+	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
+%.o: %.c
+	$(CC) $(CFLAGS) $^ -o $@
+clean:
+	rm -f $(MKDIR_OBJECTS)
