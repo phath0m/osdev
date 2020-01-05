@@ -223,7 +223,7 @@ vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, co
 }
 
 int
-vfs_creat(struct vfs_node *root, struct file **result, const char *path, mode_t mode)
+vfs_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode)
 {
     char parent_path[PATH_MAX+1];
 
@@ -240,7 +240,8 @@ vfs_creat(struct vfs_node *root, struct file **result, const char *path, mode_t 
     char *filename = &parent_path[last_slash + 1];
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, NULL, &parent, parent_path) == 0) {
+    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
+
         if ((parent->mount_flags & MS_RDONLY)) {
             return -(EROFS);
         }
@@ -335,7 +336,7 @@ vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const c
 }
 
 int
-vfs_mkdir(struct vfs_node *root, const char *path, mode_t mode)
+vfs_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode)
 {
     char parent_path[PATH_MAX+1];
 
@@ -352,7 +353,7 @@ vfs_mkdir(struct vfs_node *root, const char *path, mode_t mode)
     char *dirname = &parent_path[last_slash + 1];
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, NULL, &parent, parent_path) == 0) {
+    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
         if ((parent->mount_flags & MS_RDONLY)) {
             return -(EROFS);
         }
@@ -410,7 +411,7 @@ vfs_readdirent(struct file *file, struct dirent *dirent)
 }
 
 int
-vfs_rmdir(struct vfs_node *root, const char *path)
+vfs_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path)
 {
     char parent_path[PATH_MAX+1];
 
@@ -427,7 +428,7 @@ vfs_rmdir(struct vfs_node *root, const char *path)
     char *dirname = &parent_path[last_slash + 1];
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, NULL, &parent, parent_path) == 0) {
+    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
         if ((parent->mount_flags & MS_RDONLY)) {
             return -(EROFS);
         }

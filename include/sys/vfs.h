@@ -126,9 +126,9 @@ int vfs_close(struct file *file);
 
 /*
  * vfs_creat
- * Creats a new file
+ * Creates a new file
  */
-int vfs_creat(struct vfs_node *root, struct file **result, const char *path, mode_t mode);
+int vfs_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode);
 
 /*
  * vfs_lookup
@@ -153,11 +153,12 @@ int vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, con
 /*
  * vfs_mkdir
  * Creates a new directory
- * @param root Root filesystem
- * @param path Path to mount
- * @param mode Mode for newly created file
+ * @param root  Root filesystem
+ * @param cwd   Current working directory for relative paths
+ * @param path  Path to mount
+ * @param mode  Mode for newly created file
  */
-int vfs_mkdir(struct vfs_node *root, const char *path, mode_t mode);
+int vfs_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode);
 
 /*
  * vfs_read
@@ -180,9 +181,10 @@ int vfs_readdirent(struct file *file, struct dirent *dirent);
  * vfs_rmdir
  * Removes an empty directory
  * @param root  Pointer to the root filesystem
+ * @param cwd   Current working directory used for relative paths
  * @param path  Path of file to delete
  */
-int vfs_rmdir(struct vfs_node *root, const char *path);
+int vfs_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path);
 
 /*
  * vfs_seek
