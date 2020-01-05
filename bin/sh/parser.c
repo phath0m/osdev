@@ -97,7 +97,7 @@ parse_pipe(struct parser *parser)
 {
     struct ast_node *left = parse_command(parser);
 
-    if (match_token_kind(parser, TOKEN_PIPE)) {
+    while (match_token_kind(parser, TOKEN_PIPE)) {
         read_token(parser);
         
         struct ast_node *right = parse_command(parser);
@@ -106,7 +106,7 @@ parse_pipe(struct parser *parser)
         list_append(&pipe->children, left);
         list_append(&pipe->children, right);
 
-        return pipe;
+        left = pipe;
     }
 
     return left;
