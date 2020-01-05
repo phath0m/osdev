@@ -19,8 +19,10 @@ struct dict {
 
 
 void dict_clear(struct dict *dict);
+int dict_count(struct dict *dict);
 bool dict_get(struct dict *dict, const char *key, void **result);
 void dict_get_keys(struct dict *dict, list_iter_t *iter);
+bool dict_remove(struct dict *dict, const char *key);
 void dict_set(struct dict *dict, const char *key, void *value);
 
 #endif

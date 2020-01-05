@@ -37,6 +37,12 @@ dict_clear(struct dict *dict)
     /* TODO: implement... */
 }
 
+int
+dict_count(struct dict *dict)
+{
+    return LIST_SIZE(&dict->keys);
+}
+
 bool
 dict_get(struct dict *dict, const char *key, void **result)
 {
@@ -77,6 +83,45 @@ void
 dict_get_keys(struct dict *dict, list_iter_t *iter)
 {
     list_get_iter(&dict->keys, iter);
+}
+
+bool
+dict_remove(struct dict *dict, const char *key)
+{
+    uint32_t hash = dict_hash(key);
+
+    struct dict_entry *entry = dict->entries[hash];
+
+    bool succ = false;
+
+    struct key_value_pair *kvp;
+
+    if (entry && LIST_SIZE(&entry->values) > 1) {
+        list_iter_t iter;
+
+        list_get_iter(&entry->values, &iter);
+
+        while (iter_move_next(&iter, (void**)&kvp)) {
+            if (strcmp(key, kvp->key) == 0) {
+                succ = true;
+                break;
+            }
+        }
+
+        iter_close(&iter);
+
+    } else if (entry) {
+        kvp = (struct key_value_pair*)LIST_FIRST(&entry->values);
+        succ = true;
+    }
+
+    if (succ) {
+        list_remove(&entry->values, kvp);
+        list_remove(&dict->keys, kvp->key);
+        free(kvp);
+    }
+    
+    return succ;
 }
 
 void

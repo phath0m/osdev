@@ -109,6 +109,7 @@ list_remove(struct list *listp, void *item)
     
     struct list_elem *iter = listp->head;
     struct list_elem *prev = NULL;
+
     while (iter) {
         struct list_elem *next = iter->next_elem;
 
@@ -116,12 +117,12 @@ list_remove(struct list *listp, void *item)
             if (prev) {
                 prev->next_elem = iter->next_elem;
             } else {
-                listp->head = next;
+                listp->head = iter->next_elem;
             }
 
-            if (next) {
+            if (iter->next_elem) {
                 next->prev_elem = prev;
-            } else if (prev) {
+            } else if (iter == listp->tail) {
                 listp->tail = prev;
             }
 
@@ -131,7 +132,7 @@ list_remove(struct list *listp, void *item)
         }
 
         prev = iter;
-        iter = next;
+        iter = iter->next_elem;
     }
 
     spinlock_unlock(&listp->lock);

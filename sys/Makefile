@@ -40,6 +40,7 @@ KERNEL_OBJECTS += dev/vga_textscreen.o
 
 KERNEL_OBJECTS += fs/devfs.o
 KERNEL_OBJECTS += fs/tarfs.o
+KERNEL_OBJECTS += fs/tmpfs.o
 
 KERNEL_OBJECTS += kern/device.o
 KERNEL_OBJECTS += kern/interrupt.o

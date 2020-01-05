@@ -27,10 +27,13 @@ struct vfs_node;
 typedef int (*file_close_t)(struct file *file);
 
 typedef int (*fs_close_t)(struct vfs_node *node);
+typedef int (*fs_creat_t)(struct vfs_node *node, const char *name, mode_t mode);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
+typedef int (*fs_mkdir_t)(struct vfs_node *parent, const char *name, mode_t mode); 
 typedef int (*fs_mount_t)(struct device *dev, struct vfs_node **root);
 typedef int (*fs_readdirent_t)(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
+typedef int (*fs_rmdir_t)(struct vfs_node *node, const char *path);
 typedef int (*fs_seek_t)(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 typedef int (*fs_stat_t)(struct vfs_node *node, struct stat *stat);
 typedef int (*fs_write_t)(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
@@ -45,9 +48,12 @@ struct file {
 
 struct file_ops {
     fs_close_t      close;
+    fs_creat_t      creat;
     fs_lookup_t     lookup;
     fs_read_t       read;
     fs_readdirent_t readdirent;
+    fs_rmdir_t      rmdir;
+    fs_mkdir_t      mkdir;
     fs_seek_t       seek;
     fs_stat_t       stat;
     fs_write_t      write;
@@ -60,10 +66,13 @@ struct filesystem {
 
 struct fs_ops {
     fs_close_t      close;
+    fs_creat_t      creat;
     fs_lookup_t     lookup;
     fs_mount_t      mount;
     fs_read_t       read;
     fs_readdirent_t readdirent;
+    fs_rmdir_t      rmdir;
+    fs_mkdir_t      mkdir;
     fs_write_t      write;
 };
 
@@ -136,6 +145,15 @@ int vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *na
 int vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const char *path, int flags);
 
 /*
+ * vfs_mkdir
+ * Creates a new directory
+ * @param root Root filesystem
+ * @param path Path to mount
+ * @param mode Mode for newly created file
+ */
+int vfs_mkdir(struct vfs_node *root, const char *path, mode_t mode);
+
+/*
  * vfs_read
  * Reads n bytes from an open file
  * @param file  Pointer to an open file struct
@@ -151,6 +169,14 @@ int vfs_read(struct file *file, char *buf, size_t nbyte);
  * @param dirent    Pointer to a dirent struct
  */
 int vfs_readdirent(struct file *file, struct dirent *dirent);
+
+/*
+ * vfs_rmdir
+ * Removes an empty directory
+ * @param root  Pointer to the root filesystem
+ * @param path  Path of file to delete
+ */
+int vfs_rmdir(struct vfs_node *root, const char *path);
 
 /*
  * vfs_seek

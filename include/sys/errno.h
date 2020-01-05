@@ -14,5 +14,6 @@
 #define ENOSPC      28
 #define ESPIPE      29
 #define EROFS       30
+#define ENOTEMPTY   39
 #define ENOTSUP     129
 #endif

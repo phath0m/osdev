@@ -191,6 +191,16 @@ sys_readdir_handler(syscall_args_t argv)
 }
 
 static int
+sys_rmdir_handler(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+
+    TRACE_SYSCALL("rmdir", "\"%s\"", path);
+
+    return vfs_rmdir(current_proc->root, path);
+}
+
+static int
 sys_lseek_handler(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
@@ -200,6 +210,17 @@ sys_lseek_handler(syscall_args_t argv)
     TRACE_SYSCALL("lseek", "%d, %d, %d", fd, offset, whence);
 
     return sys_lseek(fd, offset, whence);
+}
+
+static int
+sys_mkdir_handler(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(mode_t, mode, 0, argv);
+    
+    TRACE_SYSCALL("mkdir", "\"%s\", %d", path, mode);
+
+    return vfs_mkdir(current_proc->root, path, mode);
 }
 
 static int
@@ -248,6 +269,8 @@ _init_vfs_syscalls()
     register_syscall(SYS_PIPE, 1, sys_pipe_handler);
     register_syscall(SYS_READ, 3, sys_read_handler);
     register_syscall(SYS_READDIR, 2, sys_readdir_handler);
+    register_syscall(SYS_RMDIR, 1, sys_rmdir_handler);
+    register_syscall(SYS_MKDIR, 2, sys_mkdir_handler);
     register_syscall(SYS_STAT, 2, sys_stat_handler);
     register_syscall(SYS_WRITE, 3, sys_write_handler);
 }

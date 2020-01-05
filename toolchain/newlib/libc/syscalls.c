@@ -168,6 +168,21 @@ lseek(int file, int ptr, int dir)
 }
 
 int
+mkdir(const char *path, mode_t mode)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MKDIR), "b"(path), "c"(mode));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 open(const char *name, int flags, ...)
 {
     int ret;
@@ -203,6 +218,21 @@ read(int file, char *ptr, int len)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_READ), "b"(file), "c"(ptr), "d"(len));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+rmdir(const char *path)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_RMDIR), "b"(path));
 
     if (ret < 0) {
         errno = -ret;

@@ -8,6 +8,8 @@ SUBDIRS += echo
 SUBDIRS += ls
 SUBDIRS += sh
 SUBDIRS += ps
+SUBDIRS += mkdir
+SUBDIRS += rmdir
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)

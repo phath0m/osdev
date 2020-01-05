@@ -29,6 +29,8 @@
 #define SYS_CONNECT     0x16
 #define SYS_DUP         0x17
 #define SYS_DUP2        0x18
+#define SYS_MKDIR       0x19
+#define SYS_RMDIR       0x1A
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
