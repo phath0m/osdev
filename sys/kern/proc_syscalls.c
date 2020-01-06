@@ -60,6 +60,7 @@ int
 proc_exit(int code)
 {
     current_proc->status = code;
+    current_proc->exited = true;
     //current_proc->thread->state = SZOMB;
 
     wq_pulse(&current_proc->waiters);
@@ -96,7 +97,7 @@ proc_wait(int *status)
 
     if (child) {
 
-        if (child->thread->state != SDEAD) {
+        if (child->thread->state != SDEAD && !child->exited) {
             asm volatile("sti");
 
             wq_wait(&child->waiters);

@@ -45,6 +45,7 @@ struct proc {
     uintptr_t           brk;
     pid_t               pid;
     int                 status;
+    bool                exited;
 };
 
 struct thread {
