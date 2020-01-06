@@ -214,12 +214,47 @@ handle_pipe(struct ast_node *root)
     return 0;
 }
 
+static int
+handle_file_write(struct ast_node *root)
+{
+    list_iter_t iter;
+
+    list_get_iter(&root->children, &iter);
+
+    struct ast_node *left;
+    struct ast_node *right;
+
+    iter_move_next(&iter, (void**)&left);
+    iter_move_next(&iter, (void**)&right);
+
+    int file_fd = open((const char*)right->value, O_WRONLY | O_CREAT);
+
+    if (file_fd < 0) {
+        return -1;
+    }
+
+    int tmp = dup(STDOUT_FILENO);
+
+    dup2(file_fd, STDOUT_FILENO);
+
+    eval_ast_node(left);
+
+    close(file_fd);
+
+    dup2(tmp, STDOUT_FILENO);
+
+    return 0;
+}
+
 static void
 eval_ast_node(struct ast_node *node)
 {
     switch (node->node_class) {
         case AST_COMMAND:
             exec_command(node);
+            break;
+        case AST_FILE_WRITE:
+            handle_file_write(node);
             break;
         case AST_PIPE:
             handle_pipe(node);

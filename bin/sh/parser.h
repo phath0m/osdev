@@ -6,7 +6,8 @@
 typedef enum {
     AST_COMMAND,
     AST_ARGUMENT,
-    AST_PIPE
+    AST_PIPE,
+    AST_FILE_WRITE
 } ast_class_t;
 
 struct ast_node {

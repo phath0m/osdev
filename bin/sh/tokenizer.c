@@ -79,6 +79,9 @@ scan_token(struct tokenizer *scanner)
         case '|':
             read_char(scanner);
             return token_new(TOKEN_PIPE, "|", 1);
+        case '>':
+            read_char(scanner);
+            return token_new(TOKEN_FILE_WRITE, ">", 1);
         default:
             break;
     }

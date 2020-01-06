@@ -5,7 +5,8 @@
 
 typedef enum {
     TOKEN_SYMBOL = 0,
-    TOKEN_PIPE = 1
+    TOKEN_PIPE = 1,
+    TOKEN_FILE_WRITE = 2
 } token_kind_t;
 
 struct token {

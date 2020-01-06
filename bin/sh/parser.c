@@ -112,8 +112,29 @@ parse_pipe(struct parser *parser)
     return left;
 }
 
+static struct ast_node *
+parse_file_redirect(struct parser *parser)
+{
+    struct ast_node *left = parse_pipe(parser);
+
+    if (match_token_kind(parser, TOKEN_FILE_WRITE)) {
+        read_token(parser);
+        struct token *token = read_token(parser);
+
+        struct ast_node *right = ast_node_new(AST_ARGUMENT, (void*)token->value);;
+        struct ast_node *file_redirect = ast_node_new(AST_FILE_WRITE, NULL);
+
+        list_append(&file_redirect->children, left);
+        list_append(&file_redirect->children, right);
+
+        return file_redirect;
+    }
+
+    return left;
+}
+
 struct ast_node *
 parser_parse(struct parser* parser)
 {
-    return parse_pipe(parser);   
+    return parse_file_redirect(parser);   
 }
