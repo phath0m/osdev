@@ -65,6 +65,7 @@ KERNEL_OBJECTS += libk/malloc.o
 KERNEL_OBJECTS += libk/mutex.o
 KERNEL_OBJECTS += libk/printf.o
 KERNEL_OBJECTS += libk/string.o
+KERNEL_OBJECTS += libk/membuf.o
 
 # end CRT
 KERNEL_OBJECTS += i686/rtl/crtend.o

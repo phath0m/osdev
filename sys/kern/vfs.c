@@ -200,6 +200,10 @@ vfs_open(struct vfs_node *root, struct file **result, const char *path, int flag
 int
 vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags)
 {
+    if ((flags & O_CREAT)) {
+        return vfs_creat(root, cwd, result, path, 0700);
+    }
+
     struct vfs_node *child = NULL;
 
     if (vfs_get_node(root, cwd, &child, path) == 0) {
@@ -264,7 +268,7 @@ vfs_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, con
 
     struct file *file = file_new(child);
 
-    file->flags = O_WRONLY;
+    file->flags = O_WRONLY | O_CREAT;
 
     *result = file;
 

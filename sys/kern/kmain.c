@@ -9,6 +9,7 @@
 
 // remove
 #include <sys/i686/vm.h>
+#include <ds/membuf.h>
 
 typedef void (*test_t)();
 
@@ -54,7 +55,7 @@ kmain()
     };
 
     printf("kernel: invoke /sbin/doit\n");
-
+    
     proc_execve(argv[0], argv, envp);
 
     /*

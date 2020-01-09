@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ds/dict.h>
 #include <ds/list.h>
+#include <ds/membuf.h>
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
@@ -27,6 +28,7 @@ static int tmpfs_rmdir(struct vfs_node *parent, const char *dirname);
 static int tmpfs_mkdir(struct vfs_node *parent, const char *name, mode_t mode);
 static int tmpfs_seek(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 static int tmpfs_stat(struct vfs_node *node, struct stat *stat);
+static int tmpfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops tmpfs_file_ops = {
     .creat      = tmpfs_creat,
@@ -36,7 +38,8 @@ struct file_ops tmpfs_file_ops = {
     .rmdir      = tmpfs_rmdir,
     .mkdir      = tmpfs_mkdir,
     .seek       = tmpfs_seek,
-    .stat       = tmpfs_stat
+    .stat       = tmpfs_stat,
+    .write      = tmpfs_write
 };
 
 struct fs_ops tmpfs_ops = {
@@ -45,8 +48,7 @@ struct fs_ops tmpfs_ops = {
 
 struct tmpfs_node {
     struct dict         children;
-    void *              data;
-    size_t              size;
+    struct membuf *     content;
     uid_t               uid;
     gid_t               gid;
     uint16_t            mode;
@@ -67,7 +69,7 @@ tmpfs_creat(struct vfs_node *parent, struct vfs_node **child, const char *name, 
 {
     struct tmpfs_node *node = tmpfs_node_new();
 
-    node->data = NULL;
+    node->content = membuf_new();
     node->gid = 0;
     node->mode = mode;
     node->uid = 0;
@@ -91,7 +93,6 @@ tmpfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
     if (dict_get(&dir->children, name, (void**)&child)) {
         struct vfs_node *node = vfs_node_new(NULL, &tmpfs_file_ops);
         
-        node->size = child->size;
         node->state = child;
         
         *result = node;
@@ -126,17 +127,15 @@ tmpfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
         return -(EISDIR);
     }
 
-    if (start >= file->size) {
+    if (start >= MEMBUF_SIZE(file->content)) {
         return 0;
     }
 
-    if (end > file->size) {
+    if (end > MEMBUF_SIZE(file->content)) {
         nbyte = end - start;
     }
 
-    memcpy(buf, file->data + pos, nbyte);
-
-    return nbyte;
+    return membuf_read(file->content, buf, nbyte, pos);
 }
 
 static int
@@ -192,7 +191,6 @@ tmpfs_mkdir(struct vfs_node *parent, const char *name, mode_t mode)
 {
     struct tmpfs_node *node = tmpfs_node_new();
 
-    node->data = NULL;
     node->gid = 0;
     node->mode = mode;
     node->uid = 0;
@@ -218,14 +216,14 @@ tmpfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
             new_pos = *cur_pos + off;
             break;
         case SEEK_END:
-            new_pos = file->size - (off + 1);
+            new_pos = MEMBUF_SIZE(file->content) - (off + 1);
             break;
         case SEEK_SET:
             new_pos = off;
             break;
     }
 
-    if (new_pos > file->size) {
+    if (new_pos > MEMBUF_SIZE(file->content)) {
         return -(ESPIPE);
     }
 
@@ -246,11 +244,31 @@ tmpfs_stat(struct vfs_node *node, struct stat *stat)
     stat->st_dev = (dev_t)0;
     stat->st_gid = file->gid;
     stat->st_mode = file->mode;
-    stat->st_size = file->size;
+
+    if (file->content) {
+        stat->st_size = MEMBUF_SIZE(file->content);
+    } else {
+        stat->st_size = 0;
+    }
+
     stat->st_uid = file->uid;
     stat->st_ino = (ino_t)file;
     stat->st_mtime = file->mtime;
     return 0;
+}
+
+static int
+tmpfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
+{
+    struct tmpfs_node *file = (struct tmpfs_node*)node->state;
+
+    if (file->type != DT_REG) {
+        return -(EISDIR);
+    }
+
+    membuf_write(file->content, buf, nbyte, pos);
+
+    return nbyte;
 }
 
 __attribute__((constructor))
