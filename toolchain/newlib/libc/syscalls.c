@@ -48,6 +48,21 @@ close(int file)
 }
 
 int
+creat(const char *path, mode_t mode)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CREAT), "b"(path), "c"(mode));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 connect(int fd, const struct sockaddr *address, socklen_t address_size)
 {
     int ret;
@@ -284,9 +299,18 @@ times(struct tms *buf)
 }
 
 int
-unlink(char *name)
+unlink(char *path)
 {
-    return -1;
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_UNLINK), "b"(path));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 int

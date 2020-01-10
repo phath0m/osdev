@@ -28,5 +28,7 @@
 #define SYS_DUP2        0x18
 #define SYS_MKDIR       0x19
 #define SYS_RMDIR       0x1A
+#define SYS_CREAT       0x1B
+#define SYS_UNLINK      0x1C
 
 #endif
