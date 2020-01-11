@@ -55,7 +55,9 @@ kmain()
     };
 
     printf("kernel: invoke /sbin/doit\n");
-    
+
+    current_proc->umask = 0744;
+
     proc_execve(argv[0], argv, envp);
 
     /*

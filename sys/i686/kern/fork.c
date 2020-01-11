@@ -96,6 +96,7 @@ proc_fork(struct regs *regs)
     new_proc->cwd = proc->cwd;
     new_proc->parent = proc;
     new_proc->root = proc->root;
+    new_proc->umask = proc->umask;
 
     INC_NODE_REF(proc->root);
     INC_NODE_REF(proc->cwd);
