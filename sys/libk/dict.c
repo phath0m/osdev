@@ -43,6 +43,32 @@ dict_count(struct dict *dict)
     return LIST_SIZE(&dict->keys);
 }
 
+void
+dict_clear_f(struct dict *dict, dict_free_t free_func)
+{
+    for (int i = 0; i < DICT_HASH_SIZE; i++) {
+        struct dict_entry *entry = dict->entries[i];
+
+        if (!entry) {
+            continue;
+        }
+        
+        list_iter_t iter;
+        list_get_iter(&entry->values, &iter);
+
+        struct key_value_pair *kvp;
+
+        while (iter_move_next(&iter, (void**)&kvp)) {
+            free_func(kvp->value);           
+        }
+
+        iter_close(&iter);
+
+        list_destroy(&entry->values, true);
+        free(entry); 
+    }
+}
+
 bool
 dict_get(struct dict *dict, const char *key, void **result)
 {

@@ -482,6 +482,41 @@ vfs_tell(struct file *file)
 }
 
 int
+vfs_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path)
+{
+    char parent_path[PATH_MAX+1];
+
+    strncpy(parent_path, path, PATH_MAX);
+
+    int last_slash = 0;
+
+    for (int i = 0; i < PATH_MAX && parent_path[i]; i++) {
+        if (parent_path[i] == '/') last_slash = i;
+    }
+
+    parent_path[last_slash] = 0;
+
+    char *dirname = &parent_path[last_slash + 1];
+    struct vfs_node *parent;
+
+    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
+        if ((parent->mount_flags & MS_RDONLY)) {
+            return -(EROFS);
+        }
+    } else {
+        return -(ENOENT);
+    }
+
+    struct file_ops *ops = parent->ops;
+
+    if (ops && ops->unlink) {
+        return ops->unlink(parent, dirname);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
 vfs_write(struct file *file, const char *buf, size_t nbyte)
 {
     if (file->flags == O_RDONLY) {

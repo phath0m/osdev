@@ -42,11 +42,9 @@ list_destroy(struct list *listp, bool free_children)
             free(cur->data);
         }
 
-        if (cur->prev_elem) {
-            free(cur->prev_elem);
-        }
-
-        cur = cur->next_elem;
+        struct list_elem *next = cur->next_elem;
+        free(cur);
+        cur = next;
     }
 
     listp->count = 0;

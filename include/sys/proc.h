@@ -40,6 +40,7 @@ struct proc {
     struct vfs_node *   root;
     struct vm_space *   address_space;
     struct wait_queue   waiters;
+    mode_t              umask;
     char                name[256];
     uintptr_t           base;
     uintptr_t           brk;

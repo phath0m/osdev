@@ -17,8 +17,10 @@ struct dict {
     spinlock_t          lock;
 };
 
+typedef void (*dict_free_t)(void *v);
 
 void dict_clear(struct dict *dict);
+void dict_clear_f(struct dict *dict, dict_free_t free_func);
 int dict_count(struct dict *dict);
 bool dict_get(struct dict *dict, const char *key, void **result);
 void dict_get_keys(struct dict *dict, list_iter_t *iter);

@@ -26,6 +26,7 @@ struct vfs_node;
 
 typedef int (*file_close_t)(struct file *file);
 
+typedef int (*fs_chmod_t)(struct vfs_node *node, mode_t mode);
 typedef int (*fs_close_t)(struct vfs_node *node);
 typedef int (*fs_creat_t)(struct vfs_node *node, struct vfs_node **result, const char *name, mode_t mode);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
@@ -36,6 +37,7 @@ typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_
 typedef int (*fs_rmdir_t)(struct vfs_node *node, const char *path);
 typedef int (*fs_seek_t)(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 typedef int (*fs_stat_t)(struct vfs_node *node, struct stat *stat);
+typedef int (*fs_unlink_t)(struct vfs_node *parent, const char *name);
 typedef int (*fs_write_t)(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file {
@@ -56,6 +58,7 @@ struct file_ops {
     fs_mkdir_t      mkdir;
     fs_seek_t       seek;
     fs_stat_t       stat;
+    fs_unlink_t     unlink;
     fs_write_t      write;
 };
 
@@ -73,6 +76,7 @@ struct fs_ops {
     fs_readdirent_t readdirent;
     fs_rmdir_t      rmdir;
     fs_mkdir_t      mkdir;
+    fs_unlink_t     unlink;
     fs_write_t      write;
 };
 
@@ -116,6 +120,14 @@ int vfs_open(struct vfs_node *root, struct file **result, const char *path, int 
 int vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags);
 
 void register_filesystem(char *name, struct fs_ops *ops);
+
+
+/*
+ * vfs_fchmod
+ * @param file  The file
+ * @param mode  The mode
+ */
+int vfs_fchmod(struct file *file, mode_t mode);
 
 /*
  * vfs_close
@@ -209,6 +221,12 @@ int vfs_stat(struct file *file, struct stat *stat);
  * @param file  Pointer to the open file struct
  */
 uint64_t vfs_tell(struct file *file);
+
+/*
+ * vfs_unlink
+ * Deletes a file
+ */
+int vfs_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path);
 
 /*
  * vfs_write

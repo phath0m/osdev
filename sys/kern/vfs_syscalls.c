@@ -219,6 +219,16 @@ sys_stat_handler(syscall_args_t argv)
 }
 
 static int
+sys_unlink_handler(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+
+    TRACE_SYSCALL("unlink", "\"%s\"", path);
+
+    return vfs_unlink(current_proc->root, current_proc->cwd, path);
+}
+
+static int
 sys_write_handler(syscall_args_t argv)
 {
     int fildes      = DECLARE_SYSCALL_PARAM(int, 0, argv);
@@ -253,5 +263,6 @@ _init_vfs_syscalls()
     register_syscall(SYS_RMDIR, 1, sys_rmdir_handler);
     register_syscall(SYS_MKDIR, 2, sys_mkdir_handler);
     register_syscall(SYS_STAT, 2, sys_stat_handler);
+    register_syscall(SYS_UNLINK, 1, sys_unlink_handler);
     register_syscall(SYS_WRITE, 3, sys_write_handler);
 }

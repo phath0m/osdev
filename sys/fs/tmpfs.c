@@ -28,6 +28,7 @@ static int tmpfs_rmdir(struct vfs_node *parent, const char *dirname);
 static int tmpfs_mkdir(struct vfs_node *parent, const char *name, mode_t mode);
 static int tmpfs_seek(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 static int tmpfs_stat(struct vfs_node *node, struct stat *stat);
+static int tmpfs_unlink(struct vfs_node *parent, const char *dirname);
 static int tmpfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops tmpfs_file_ops = {
@@ -39,6 +40,7 @@ struct file_ops tmpfs_file_ops = {
     .mkdir      = tmpfs_mkdir,
     .seek       = tmpfs_seek,
     .stat       = tmpfs_stat,
+    .unlink     = tmpfs_unlink,
     .write      = tmpfs_write
 };
 
@@ -254,6 +256,29 @@ tmpfs_stat(struct vfs_node *node, struct stat *stat)
     stat->st_uid = file->uid;
     stat->st_ino = (ino_t)file;
     stat->st_mtime = file->mtime;
+    return 0;
+}
+
+static int
+tmpfs_unlink(struct vfs_node *parent, const char *dirname)
+{
+    struct tmpfs_node *parent_node = (struct tmpfs_node*)parent->state;
+    struct tmpfs_node *result;
+
+    if (!dict_get(&parent_node->children, dirname, (void**)&result)) {
+        return -(ENOENT);
+    }
+
+    if (dict_count(&result->children) != 0) {
+        return -(ENOTEMPTY);
+    }
+
+    dict_remove(&parent_node->children, dirname);
+
+    dict_clear(&result->children);
+    membuf_destroy(result->content);
+    free(result);
+
     return 0;
 }
 

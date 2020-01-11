@@ -32,6 +32,7 @@
 #define SYS_MKDIR       0x19
 #define SYS_RMDIR       0x1A
 #define SYS_CREAT       0x1B
+#define SYS_UNLINK      0x1C
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
