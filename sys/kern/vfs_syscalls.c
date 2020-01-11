@@ -191,9 +191,9 @@ static int
 sys_mkdir_handler(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
-    DEFINE_SYSCALL_PARAM(mode_t, mode, 0, argv);
+    DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
     
-    TRACE_SYSCALL("mkdir", "\"%s\", %d", path, mode);
+    TRACE_SYSCALL("mkdir", "\"%s\", %x", path, mode);
 
     mode &= current_proc->umask;
 
@@ -234,9 +234,9 @@ sys_unlink_handler(syscall_args_t argv)
 static int
 sys_write_handler(syscall_args_t argv)
 {
-    int fildes      = DECLARE_SYSCALL_PARAM(int, 0, argv);
-    const char *buf = DECLARE_SYSCALL_PARAM(const char *, 1, argv);
-    size_t nbyte      = DECLARE_SYSCALL_PARAM(size_t, 2, argv);
+    DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
+    DEFINE_SYSCALL_PARAM(const char *, buf, 1, argv);
+    DEFINE_SYSCALL_PARAM(size_t, nbyte, 2, argv);
 
     TRACE_SYSCALL("write", "%d, %p, %d", fildes, buf, nbyte);
 
