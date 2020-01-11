@@ -15,9 +15,11 @@ userland:
 	mkdir -p ./initrd/bin
 	mkdir -p ./initrd/sbin
 	mkdir -p ./initrd/dev
+	mkdir -p ./initrd/usr/bin
 	mkdir -p ./initrd/usr/games
 	make -C bin
 	make -C sbin
+	make -C usr.bin
 	make -C usr.games
 	cp -rp etc ./initrd
 

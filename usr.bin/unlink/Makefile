@@ -6,7 +6,7 @@ LDFLAGS =
 
 UNLINK_OBJECTS += main.o
 
-UNLINK = ../../initrd/bin/unlink
+UNLINK = ../../initrd/usr/bin/unlink
 
 all: $(UNLINK)
 

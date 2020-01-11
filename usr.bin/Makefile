@@ -3,13 +3,8 @@ export LD=i686-elysium-gcc
 
 MAKE = make
 
-SUBDIRS += cat
-SUBDIRS += echo
-SUBDIRS += ls
-SUBDIRS += sh
-SUBDIRS += ps
-SUBDIRS += mkdir
-SUBDIRS += rmdir
+SUBDIRS += kstat
+SUBDIRS += unlink
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
