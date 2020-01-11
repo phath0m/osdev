@@ -34,6 +34,8 @@
 #define SYS_CREAT       0x1B
 #define SYS_UNLINK      0x1C
 #define SYS_UMASK       0x1D
+#define SYS_FCHMOD      0x1E
+#define SYS_CHMOD       0x1F
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

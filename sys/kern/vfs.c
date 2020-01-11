@@ -294,6 +294,19 @@ vfs_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, con
     return 0;
 }
 
+int
+vfs_fchmod(struct file *file, mode_t mode)
+{
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+    if (ops->chmod) {
+        return ops->chmod(node, mode);
+    }
+
+    return -1;
+}
+
 void
 register_filesystem(char *name, struct fs_ops *ops)
 {

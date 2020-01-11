@@ -21,6 +21,7 @@ struct tar_header;
 static int tmpfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
 static int tmpfs_mount(struct device *dev, struct vfs_node **root);
 //static struct tmpfs_node *tmpfs_node_new();
+static int tmpfs_chmod(struct vfs_node *node, mode_t mode);
 static int tmpfs_creat(struct vfs_node *parent, struct vfs_node **child, const char *name, mode_t mode);
 static int tmpfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int tmpfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
@@ -32,6 +33,7 @@ static int tmpfs_unlink(struct vfs_node *parent, const char *dirname);
 static int tmpfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops tmpfs_file_ops = {
+    .chmod      = tmpfs_chmod,
     .creat      = tmpfs_creat,
     .lookup     = tmpfs_lookup,
     .read       = tmpfs_read,
@@ -64,6 +66,16 @@ tmpfs_node_new()
     struct tmpfs_node *node = (struct tmpfs_node*)calloc(0, sizeof(struct tmpfs_node));
 
     return node;
+}
+
+static
+int tmpfs_chmod(struct vfs_node *node, mode_t mode)
+{
+    struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
+
+    tmpfs_node->mode = mode;
+
+    return 0;
 }
 
 static int

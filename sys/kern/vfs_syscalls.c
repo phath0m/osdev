@@ -14,6 +14,7 @@
  * filesystem syscalls
  */
 
+
 static int
 sys_close_handler(syscall_args_t argv)
 {
@@ -59,6 +60,23 @@ sys_creat_handler(syscall_args_t argv)
     }
 
     return -(succ);
+}
+
+static int
+sys_fchmod_handler(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
+
+    TRACE_SYSCALL("fchmod", "%d, %d", fd, mode);
+
+    struct file *file = proc_getfile(fd);
+
+    if (file) {
+        return vfs_fchmod(file, mode);
+    }
+
+    return -(EBADF);
 }
 
 static int
@@ -257,6 +275,7 @@ _init_vfs_syscalls()
 {
     register_syscall(SYS_CLOSE, 1, sys_close_handler);
     register_syscall(SYS_CREAT, 2, sys_creat_handler);
+    register_syscall(SYS_FCHMOD, 2, sys_fchmod_handler);
     register_syscall(SYS_FSTAT, 2, sys_fstat_handler);
     register_syscall(SYS_LSEEK, 3, sys_lseek_handler);
     register_syscall(SYS_OPEN, 2, sys_open_handler);

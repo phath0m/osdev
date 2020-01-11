@@ -50,6 +50,7 @@ struct file {
 
 struct file_ops {
     fs_close_t      close;
+    fs_chmod_t      chmod;
     fs_creat_t      creat;
     fs_lookup_t     lookup;
     fs_read_t       read;
