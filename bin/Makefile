@@ -10,6 +10,7 @@ SUBDIRS += sh
 SUBDIRS += ps
 SUBDIRS += mkdir
 SUBDIRS += rmdir
+SUBDIRS += unlink
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
