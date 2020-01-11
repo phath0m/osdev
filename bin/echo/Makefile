@@ -6,7 +6,7 @@ LDFLAGS =
 
 ECHO_OBJECTS += main.o
 
-ECHO = ../../initrd/bin/echo
+ECHO = ../../build/initrd/bin/echo
 
 all: $(ECHO)
 

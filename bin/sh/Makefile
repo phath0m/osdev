@@ -10,7 +10,7 @@ SHELL_OBJECTS += parser.o
 SHELL_OBJECTS += shell.o
 SHELL_OBJECTS += tokenizer.o
 
-SH = ../../initrd/bin/sh
+SH = ../../build/initrd/bin/sh
 
 all: $(SH)
 

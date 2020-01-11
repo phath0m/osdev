@@ -6,7 +6,7 @@ LDFLAGS =
 
 RMDIR_OBJECTS += main.o
 
-RMDIR = ../../initrd/bin/rmdir
+RMDIR = ../../build/initrd/bin/rmdir
 
 all: $(RMDIR)
 

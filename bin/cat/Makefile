@@ -6,7 +6,7 @@ LDFLAGS =
 
 CAT_OBJECTS += main.o
 
-CAT = ../../initrd/bin/cat
+CAT = ../../build/initrd/bin/cat
 
 all: $(CAT)
 

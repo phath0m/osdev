@@ -6,7 +6,7 @@ LDFLAGS =
 
 COWSAY_OBJECTS += main.o
 
-COWSAY = ../../initrd/usr/games/cowsay
+COWSAY = ../../build/initrd/usr/games/cowsay
 
 all: $(COWSAY)
 

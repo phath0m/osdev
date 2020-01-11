@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu11 -Werror -I ./include
 
 KERNEL = ./sys/kernel.bin
-ISO_IMAGE = os.iso
+ISO_IMAGE = build/os.iso
 
 all: $(KERNEL) $(ISO)
 
@@ -12,16 +12,17 @@ clean:
 	rm -f $(ISO_IMAGE) $(KERNEL)
 
 userland:
-	mkdir -p ./initrd/bin
-	mkdir -p ./initrd/sbin
-	mkdir -p ./initrd/dev
-	mkdir -p ./initrd/usr/bin
-	mkdir -p ./initrd/usr/games
+	mkdir -p ./build/initrd/bin
+	mkdir -p ./build/initrd/sbin
+	mkdir -p ./build/initrd/dev
+	mkdir -p ./build/initrd/usr/bin
+	mkdir -p ./build/initrd/usr/games
+	mkdir -p ./build/initrd/tmp
 	make -C bin
 	make -C sbin
 	make -C usr.bin
 	make -C usr.games
-	cp -rp etc ./initrd
+	cp -rp etc ./build/initrd
 
 kernel: $(KERNEL)
 
@@ -31,6 +32,6 @@ $(KERNEL):
 	make -C sys
 
 $(ISO_IMAGE):
-	tar --owner=root -C ./initrd -cvf ./iso/boot/initrd.img .
-	cp -p $(KERNEL) ./iso/boot
-	grub2-mkrescue -o $(ISO_IMAGE) iso
+	tar --owner=root -C ./build/initrd -cvf ./build/iso/boot/initrd.img .
+	cp -p $(KERNEL) ./build/iso/boot
+	grub2-mkrescue -o $(ISO_IMAGE) build/iso

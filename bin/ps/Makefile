@@ -6,7 +6,7 @@ LDFLAGS =
 
 PS_OBJECTS += main.o
 
-PS = ../../initrd/bin/ps
+PS = ../../build/initrd/bin/ps
 
 all: $(PS)
 

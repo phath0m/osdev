@@ -6,7 +6,7 @@ LDFLAGS =
 
 MKDIR_OBJECTS += main.o
 
-MKDIR = ../../initrd/bin/mkdir
+MKDIR = ../../build/initrd/bin/mkdir
 
 all: $(MKDIR)
 

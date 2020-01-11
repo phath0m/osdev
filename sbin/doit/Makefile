@@ -8,7 +8,7 @@ LDFLAGS =
 
 DOIT_OBJECTS += main.o
 
-DOIT = ../../initrd/sbin/doit
+DOIT = ../../build/initrd/sbin/doit
 
 all: $(DOIT)
 

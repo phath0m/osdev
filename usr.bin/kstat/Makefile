@@ -6,7 +6,7 @@ LDFLAGS =
 
 KSTAT_OBJECTS += main.o
 
-KSTAT = ../../initrd/usr/bin/kstat
+KSTAT = ../../build/initrd/usr/bin/kstat
 
 all: $(KSTAT)
 

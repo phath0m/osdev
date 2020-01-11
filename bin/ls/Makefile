@@ -6,7 +6,7 @@ LDFLAGS =
 
 LS_OBJECTS += main.o
 
-LS = ../../initrd/bin/ls
+LS = ../../build/initrd/bin/ls
 
 all: $(LS)
 
