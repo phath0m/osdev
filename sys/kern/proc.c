@@ -8,6 +8,7 @@
 
 static int next_pid;
 
+int proc_count = 0;
 /*
  * List of all processes running
  */
@@ -32,6 +33,8 @@ proc_destroy(struct proc *proc)
     vm_space_destroy(thread->address_space);
 
     list_remove(&process_list, proc);
+
+    proc_count--;
 
     free(proc);
 }
@@ -105,9 +108,12 @@ struct proc *
 proc_new()
 {
     struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
+    
     proc->pid = ++next_pid;
 
     list_append(&process_list, proc);
+
+    proc_count++;
 
     return proc;
 }

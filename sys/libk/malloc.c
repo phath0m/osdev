@@ -19,7 +19,10 @@ struct malloc_block {
 
 
 intptr_t kernel_break;
+intptr_t kernel_heap_start;
 intptr_t kernel_heap_end;
+int      kernel_heap_allocated_blocks = 0;
+int      kernel_heap_free_blocks = 0;
 
 struct malloc_block *last_allocated = NULL;
 struct malloc_block *last_freed = NULL;
@@ -46,7 +49,7 @@ find_free_block(size_t size)
             } else {
                 last_freed = iter->prev;
             }
-
+            kernel_heap_free_blocks--;
             return iter;
         }
 
@@ -85,7 +88,10 @@ malloc(size_t size)
     free_block->prev = last_allocated;
     last_allocated = free_block;
 
+    kernel_heap_allocated_blocks++;
+
     spinlock_unlock(&malloc_lock);
+
     memset(free_block->ptr, 0, size);
 
     return free_block->ptr;
@@ -110,6 +116,8 @@ free(void *ptr)
 
             iter->prev = last_freed;
             last_freed = iter;
+            kernel_heap_allocated_blocks--;
+            kernel_heap_free_blocks++;
             break;
         }
 
@@ -130,8 +138,10 @@ brk(void *ptr)
     last_freed = NULL;
     
     kernel_heap_end = kernel_break + 0x1000000;
+    kernel_heap_start = kernel_break;
     
     spinlock_unlock(&malloc_lock);
+
     return 0; 
 }
 

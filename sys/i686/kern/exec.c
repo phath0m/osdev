@@ -233,12 +233,16 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
         strncpy(proc->name, argv[0], 256);
 
+        uintptr_t entrypoint = elf->e_entry;
+
+        free(elf);
+
         asm volatile("sti");
 
         /* defined in sys/i686/kern/usermode.asm */
         extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t ebp, uintptr_t eax);
     
-        return_to_usermode(elf->e_entry, stackp, stackp, 0);
+        return_to_usermode(entrypoint, stackp, stackp, 0);
     }
 
     return 0;

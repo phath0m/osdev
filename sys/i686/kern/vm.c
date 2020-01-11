@@ -113,6 +113,21 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
     asm volatile("invlpg (%0)" : : "b"(vaddr) : "memory");
 }
 
+static void
+page_directory_free(struct page_directory *directory)
+{
+    for (int i = 32; i < 1024; i++) {
+        struct page_directory_entry *entry = &directory->tables[i];
+
+        if (entry->present) {
+            struct page_table *table = (struct page_table*)((entry->address << 12) + KERNEL_VIRTUAL_BASE);
+
+            free(table);
+        }
+    }
+
+    free(directory);
+}
 
 struct vm_block *
 vm_find_block(struct vm_space *space, uintptr_t vaddr)
@@ -279,7 +294,7 @@ vm_space_destroy(struct vm_space *space)
 
     list_destroy(&to_remove, false);
 
-    free(space->state_virtual);
+    page_directory_free((struct page_directory*)space->state_virtual);
     free(space);
 }
 

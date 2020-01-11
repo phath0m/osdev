@@ -11,6 +11,9 @@
 // reminder: remove this
 #include <stdio.h>
 
+int vfs_node_count = 0;
+int vfs_file_count = 0;
+
 struct list fs_list;
 
 static struct filesystem *
@@ -44,6 +47,8 @@ file_new(struct vfs_node *node)
 
     file->node = node;
     file->refs = 1;
+    vfs_file_count++;
+
     return file;
 }
 
@@ -56,6 +61,7 @@ vfs_close(struct file *file)
 
     DEC_NODE_REF(file->node);
 
+    vfs_file_count--;
     free(file);
 
     return 0; 
@@ -73,6 +79,8 @@ vfs_duplicate_file(struct file *file)
     memcpy(new_file, file, sizeof(struct file));
 
     INC_NODE_REF(new_file->node);
+
+    vfs_file_count++;
 
     return new_file;
 }
@@ -110,6 +118,12 @@ vfs_mount_new(struct device *dev, struct filesystem *fs, uint64_t flags)
     return mount;
 }
 
+static void
+free_vfs_node_child(void *p)
+{
+    DEC_NODE_REF((struct vfs_node*)p);
+}
+
 void
 vfs_node_destroy(struct vfs_node *node)
 {
@@ -124,7 +138,12 @@ vfs_node_destroy(struct vfs_node *node)
      * That being said, this will not get called as the reference counting
      * is sort of broken atm
      */
-    dict_clear(&node->children);
+    //dict_clear(&node->children);
+    dict_clear_f(&node->children, free_vfs_node_child);
+    
+    vfs_node_count--;
+
+    free(node);
 }
 
 struct vfs_node *
@@ -134,7 +153,7 @@ vfs_node_new(struct device *dev, struct file_ops *ops)
     
     node->device = dev;
     node->ops = ops;
-
+    vfs_node_count++;
     return node;
 }
 

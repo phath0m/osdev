@@ -19,6 +19,8 @@ extern spinlock_t malloc_lock;
 extern uintptr_t kernel_break;
 extern struct malloc_block *last_allocated;
 extern struct malloc_block *last_freed;
+extern int kernel_heap_allocated_blocks;
+extern int kernel_heap_free_blocks;
 
 static struct malloc_block *
 find_free_pa_block(size_t size)
@@ -33,7 +35,7 @@ find_free_pa_block(size_t size)
             } else {
                 last_freed = iter->prev;
             }
-
+            kernel_heap_free_blocks--;
             return iter;
         }
         prev = iter;
@@ -60,6 +62,7 @@ malloc_pa(size_t size)
 
     free_block->prev = last_allocated;
     last_allocated = free_block;
+    kernel_heap_allocated_blocks++;
 
     spinlock_unlock(&malloc_lock);
 

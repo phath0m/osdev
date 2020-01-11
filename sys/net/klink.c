@@ -15,6 +15,7 @@
 #define KWHAT_PROCSTAT  0x03
 #define KWHAT_ENVIRON   0x04
 #define KWHAT_ERROR     0x05
+#define KWHAT_HEAPSTAT  0x06
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
@@ -42,6 +43,17 @@ struct klink_proc_stat {
     char        tty[32];
 } __attribute__((packed));
 
+struct klink_heap_stat {
+    uint32_t    heap_break;
+    uint32_t    heap_start;
+    uint32_t    heap_end;
+    uint32_t    blocks_allocated;
+    uint32_t    blocks_free;
+    uint32_t    node_count;
+    uint32_t    file_count;
+    uint32_t    proc_count;
+} __attribute__((packed));
+
 static int klink_close(struct socket *sock);
 static int klink_connect(struct socket *socket, void *address, size_t address_len);
 static int klink_init(struct socket *socket, int type, int protocol);
@@ -61,6 +73,44 @@ struct protocol klink_domain = {
     .address_family = AF_KLINK,
     .ops            = &klink_ops
 };
+
+static int
+klink_send_heapstat(struct klink_session *session)
+{
+    size_t resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_heap_stat);
+
+    struct klink_dgram *resp = (struct klink_dgram*)calloc(1, resp_sz);
+    struct klink_heap_stat *heapstat = (struct klink_heap_stat*)(resp + 1);
+
+    resp->what = KWHAT_HEAPSTAT;
+    resp->size = sizeof(struct klink_heap_stat);
+
+    /* defined in sys/libk/malloc.c */
+    extern intptr_t kernel_break;
+    extern intptr_t kernel_heap_end;
+    extern intptr_t kernel_heap_start;
+    extern int kernel_heap_allocated_blocks;
+    extern int kernel_heap_free_blocks;
+
+    /* defined in sys/kern/vfs.c */
+    extern int vfs_node_count;
+    extern int vfs_file_count;
+
+    /* defined in sys/kern/proc.c */
+    extern int proc_count;
+
+    heapstat->heap_start = kernel_heap_start;
+    heapstat->heap_break = kernel_break;
+    heapstat->heap_end = kernel_heap_end;
+    heapstat->blocks_allocated = kernel_heap_allocated_blocks;
+    heapstat->blocks_free = kernel_heap_free_blocks;
+    heapstat->node_count = vfs_node_count;
+    heapstat->file_count = vfs_file_count;
+    heapstat->proc_count = proc_count;
+    list_append(&session->resp_queue, resp);
+
+    return 0;
+}
 
 static int
 klink_send_proclist(struct klink_session *session)
@@ -154,6 +204,9 @@ klink_query(struct klink_session *session, struct klink_dgram *req)
             break;
         case KWHAT_PROCSTAT:
             klink_send_procstat(session, req->item);
+            break;
+        case KWHAT_HEAPSTAT:
+            klink_send_heapstat(session);
             break;
     }
     return 0;
