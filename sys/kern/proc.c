@@ -54,6 +54,10 @@ proc_dup2(int oldfd, int newfd)
         return -1;
     }
 
+    if (oldfd < 0 || newfd < 0) {
+        return -1;
+    }
+
     struct file *existing_fp = current_proc->files[newfd];
 
     if (existing_fp) {
@@ -61,7 +65,11 @@ proc_dup2(int oldfd, int newfd)
     }
 
     struct file *fp = current_proc->files[oldfd];
-    
+   
+    if (!fp) {
+        return -1;
+    }
+
     current_proc->files[newfd] = fp;
 
     INC_FILE_REF(fp);
