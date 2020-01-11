@@ -36,9 +36,13 @@ can_execute_file(const char *path)
     return -(ENOENT);
 }
 
-int
-proc_chdir(const char *path)
+static int
+sys_chdir(syscall_args_t args)
 {
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
+
+    TRACE_SYSCALL("chdir", "%s", path);
+
     struct file *file;
 
     int res = vfs_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY);
@@ -54,104 +58,6 @@ proc_chdir(const char *path)
     }
 
     return res;
-}
-
-int
-proc_exit(int code)
-{
-    current_proc->status = code;
-    current_proc->exited = true;
-    //current_proc->thread->state = SZOMB;
-
-    wq_pulse(&current_proc->waiters);
-
-    schedule_thread(SDEAD, current_proc->thread);
-
-    for (; ;) {
-        sched_yield();
-    }
-
-    return 0;
-}
-
-uintptr_t
-proc_sbrk(size_t increment)
-{
-    struct proc *proc = current_proc;
-
-    uintptr_t old_brk = proc->brk;
-
-    struct vm_space *space = proc->thread->address_space;
-
-    vm_map(space, (void*)proc->brk, increment, PROT_READ | PROT_WRITE);
-
-    proc->brk += increment;
-
-    return old_brk;
-}
-
-int
-proc_wait(int *status)
-{
-    struct proc *child = LIST_LAST(&current_proc->children);
-
-    if (child) {
-
-        if (/*child->thread->state != SDEAD && */!child->exited) {
-            asm volatile("sti");
-
-            wq_wait(&child->waiters);
-        }
-        if (status) {
-            *status = child->status;
-        }
-    }
-    return -1;
-}
-
-int
-proc_waitpid(pid_t pid, int *status)
-{
-    list_iter_t iter;
-
-    list_get_iter(&current_proc->children, &iter);
-
-    struct proc *proc;
-    struct proc *needle = NULL;
-
-    while (iter_move_next(&iter, (void**)&proc)) {
-        if (proc->pid == pid) {
-            needle = proc;
-        }
-    }
-
-    iter_close(&iter);
-
-    if (!needle) {
-        return -1;
-    }
-    
-    if (/*needle->thread->state != SDEAD && */!needle->exited) {
-        asm volatile("sti");
-
-        wq_wait(&needle->waiters);
-    }
-
-    if (status) {
-        *status = needle->status;
-    }
-
-    return 0;
-}
-
-static int
-sys_chdir(syscall_args_t args)
-{
-    DEFINE_SYSCALL_PARAM(const char *, dir, 0, args);
-
-    TRACE_SYSCALL("chdir", "%s", dir);
-
-    return proc_chdir(dir);
 }
 
 static int
@@ -237,7 +143,19 @@ sys_exit(syscall_args_t args)
 
     TRACE_SYSCALL("exit", "%d", status);
 
-    return proc_exit(status);
+    current_proc->status = status;
+    current_proc->exited = true;
+    //current_proc->thread->state = SZOMB;
+
+    wq_pulse(&current_proc->waiters);
+
+    schedule_thread(SDEAD, current_proc->thread);
+
+    for (; ;) {
+        sched_yield();
+    }
+
+    return 0;
 }
 
 static int
@@ -255,7 +173,17 @@ sys_sbrk(syscall_args_t argv)
 
     TRACE_SYSCALL("sbrk", "%d", increment);
 
-    return proc_sbrk(increment);
+    struct proc *proc = current_proc;
+
+    uintptr_t old_brk = proc->brk;
+
+    struct vm_space *space = proc->thread->address_space;
+
+    vm_map(space, (void*)proc->brk, increment, PROT_READ | PROT_WRITE);
+
+    proc->brk += increment;
+
+    return old_brk;
 }
 
 static int
@@ -265,7 +193,20 @@ sys_wait(syscall_args_t argv)
 
     TRACE_SYSCALL("wait", "%p", status);
 
-    return proc_wait(status);
+    struct proc *child = LIST_LAST(&current_proc->children);
+
+    if (child) {
+
+        if (/*child->thread->state != SDEAD && */!child->exited) {
+            asm volatile("sti");
+
+            wq_wait(&child->waiters);
+        }
+        if (status) {
+            *status = child->status;
+        }
+    }
+    return -1;
 }
 
 static int
@@ -276,7 +217,36 @@ sys_waitpid(syscall_args_t argv)
 
     TRACE_SYSCALL("waitpid", "%d, %p", pid, status);
 
-    return proc_waitpid(pid, status);   
+    list_iter_t iter;
+
+    list_get_iter(&current_proc->children, &iter);
+
+    struct proc *proc;
+    struct proc *needle = NULL;
+
+    while (iter_move_next(&iter, (void**)&proc)) {
+        if (proc->pid == pid) {
+            needle = proc;
+        }
+    }
+
+    iter_close(&iter);
+
+    if (!needle) {
+        return -1;
+    }
+
+    if (/*needle->thread->state != SDEAD && */!needle->exited) {
+        asm volatile("sti");
+
+        wq_wait(&needle->waiters);
+    }
+
+    if (status) {
+        *status = needle->status;
+    }
+
+    return 0;
 }
 
 static int
@@ -300,6 +270,20 @@ sys_dup2(syscall_args_t argv)
     return proc_dup2(oldfd, newfd);
 }
 
+static int
+sys_umask(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(mode_t, mask, 0, argv);
+
+    TRACE_SYSCALL("umask", "%d", mask);
+
+    mode_t oldmask = current_proc->umask;
+
+    current_proc->umask = ~mask;
+
+    return oldmask;
+}
+
 __attribute__((constructor))
 void
 _init_proc_syscalls()
@@ -314,4 +298,5 @@ _init_proc_syscalls()
     register_syscall(SYS_WAITPID, 2, sys_waitpid);
     register_syscall(SYS_DUP, 1, sys_dup);
     register_syscall(SYS_DUP2, 2, sys_dup2);
+    register_syscall(SYS_UMASK, 1, sys_umask);
 }

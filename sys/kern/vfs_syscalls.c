@@ -42,6 +42,7 @@ sys_creat_handler(syscall_args_t argv)
     TRACE_SYSCALL("creat", "\"%s\", %d", path, mode);
 
     struct file *file;
+    mode &= current_proc->umask;
 
     int succ = vfs_creat(current_proc->root, current_proc->cwd, &file, path, mode);
 
@@ -193,6 +194,8 @@ sys_mkdir_handler(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(mode_t, mode, 0, argv);
     
     TRACE_SYSCALL("mkdir", "\"%s\", %d", path, mode);
+
+    mode &= current_proc->umask;
 
     return vfs_mkdir(current_proc->root, current_proc->cwd, path, mode);
 }
