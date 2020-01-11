@@ -298,6 +298,16 @@ times(struct tms *buf)
 
 }
 
+mode_t
+umask(mode_t newmode)
+{
+    mode_t ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_UMASK), "b"(newmode));
+
+    return ret;
+}
+
 int
 unlink(char *path)
 {

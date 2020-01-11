@@ -30,5 +30,6 @@
 #define SYS_RMDIR       0x1A
 #define SYS_CREAT       0x1B
 #define SYS_UNLINK      0x1C
+#define SYS_UMASK       0x1D
 
 #endif
