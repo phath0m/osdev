@@ -97,7 +97,7 @@ proc_wait(int *status)
 
     if (child) {
 
-        if (child->thread->state != SDEAD && !child->exited) {
+        if (/*child->thread->state != SDEAD && */!child->exited) {
             asm volatile("sti");
 
             wq_wait(&child->waiters);
@@ -127,17 +127,21 @@ proc_waitpid(pid_t pid, int *status)
 
     iter_close(&iter);
 
-    if (needle) {
+    if (!needle) {
+        return -1;
+    }
+    
+    if (/*needle->thread->state != SDEAD && */!needle->exited) {
         asm volatile("sti");
 
         wq_wait(&needle->waiters);
-
-        if (status) {
-            *status = needle->status;
-        }
-        return 0;
     }
-    return -1;
+
+    if (status) {
+        *status = needle->status;
+    }
+
+    return 0;
 }
 
 static int
