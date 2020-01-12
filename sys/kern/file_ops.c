@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
@@ -13,6 +14,23 @@
 
 int vfs_file_count = 0;
 
+static bool
+split_path(char *path, char **directory, char **file)
+{
+    int last_slash = 0;
+
+    for (int i = 0; i < PATH_MAX && path[i]; i++) {
+        if (path[i] == '/') last_slash = i;
+    }
+
+    path[last_slash] = 0;
+
+    if (directory) *directory = path;
+    if (file) *file = &path[last_slash + 1];
+
+    return true;
+}
+
 struct file *
 file_new(struct vfs_node *node)
 {
@@ -25,6 +43,28 @@ file_new(struct vfs_node *node)
     vfs_file_count++;
 
     return file;
+}
+
+int
+fops_access(struct vfs_node *root, struct vfs_node *cwd, const char *path, int mode)
+{
+    bool will_write = mode & W_OK;
+    //bool will_read = mode & R_OK;
+
+    struct vfs_node *child = NULL;
+
+    if (vfs_get_node(root, cwd, &child, path) == 0) {
+
+        if ((child->mount_flags & MS_RDONLY) && will_write) {
+            return -(EROFS);
+        }
+    } else {
+        return -(ENOENT);
+    }
+
+    // TODO: implement actual checks here...
+
+    return 0;
 }
 
 int
@@ -102,15 +142,10 @@ fops_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, co
 
     strncpy(parent_path, path, PATH_MAX);
 
-    int last_slash = 0;
+    char *filename;
 
-    for (int i = 0; i < PATH_MAX && parent_path[i]; i++) {
-        if (parent_path[i] == '/') last_slash = i;
-    }
+    split_path(parent_path, NULL, &filename);
 
-    parent_path[last_slash] = 0;
-
-    char *filename = &parent_path[last_slash + 1];
     struct vfs_node *parent;
 
     if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
@@ -154,7 +189,7 @@ fops_fchmod(struct file *file, mode_t mode)
         return ops->chmod(node, mode);
     }
 
-    return -1;
+    return -(ENOTSUP);
 }
 
 int
@@ -164,15 +199,10 @@ fops_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t
 
     strncpy(parent_path, path, PATH_MAX);
     
-    int last_slash = 0;
-    
-    for (int i = 0; i < PATH_MAX && parent_path[i]; i++) {
-        if (parent_path[i] == '/') last_slash = i;
-    }
+    char *dirname;
 
-    parent_path[last_slash] = 0;
+    split_path(parent_path, NULL, &dirname);
 
-    char *dirname = &parent_path[last_slash + 1];
     struct vfs_node *parent;
 
     if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
@@ -239,15 +269,10 @@ fops_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path)
 
     strncpy(parent_path, path, PATH_MAX);
 
-    int last_slash = 0;
+    char *dirname;
 
-    for (int i = 0; i < PATH_MAX && parent_path[i]; i++) {
-        if (parent_path[i] == '/') last_slash = i;
-    }
+    split_path(parent_path, NULL, &dirname);
 
-    parent_path[last_slash] = 0;
-
-    char *dirname = &parent_path[last_slash + 1];
     struct vfs_node *parent;
 
     if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
@@ -306,15 +331,10 @@ fops_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path)
 
     strncpy(parent_path, path, PATH_MAX);
 
-    int last_slash = 0;
+    char *filename;
 
-    for (int i = 0; i < PATH_MAX && parent_path[i]; i++) {
-        if (parent_path[i] == '/') last_slash = i;
-    }
+    split_path(parent_path, NULL, &filename);
 
-    parent_path[last_slash] = 0;
-
-    char *dirname = &parent_path[last_slash + 1];
     struct vfs_node *parent;
 
     if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
@@ -328,7 +348,7 @@ fops_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path)
     struct file_ops *ops = parent->ops;
 
     if (ops && ops->unlink) {
-        return ops->unlink(parent, dirname);
+        return ops->unlink(parent, filename);
     }
 
     return -(ENOTSUP);
