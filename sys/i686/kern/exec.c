@@ -148,16 +148,16 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     struct file *exe;
 
-    if (vfs_open(root, &exe, path, O_RDONLY) == 0) {
-        vfs_seek(exe, 0, SEEK_END);
+    if (fops_open(root, &exe, path, O_RDONLY) == 0) {
+        fops_seek(exe, 0, SEEK_END);
 
-        size_t size = vfs_tell(exe);
+        size_t size = fops_tell(exe);
 
-        vfs_seek(exe, 0, SEEK_SET);
+        fops_seek(exe, 0, SEEK_SET);
 
         struct elf32_ehdr *elf = (struct elf32_ehdr*)malloc(size);
 
-        vfs_read(exe, (char*)elf, size);
+        fops_read(exe, (char*)elf, size);
 
         int argc;
         int envc;
@@ -174,7 +174,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
         elf_load_image(space, elf, &prog_low, &prog_high);
         elf_zero_sections(space, elf);
 
-        vfs_close(exe);
+        fops_close(exe);
 
         /* defined in sys/i686/kern/sched.c */
         extern struct thread *sched_curr_thread;
@@ -227,7 +227,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
             if (fp && (fp->flags & O_CLOEXEC)) {
                 printf("Closing descriptor %d\n", i);
                 proc->files[i] = NULL;
-                vfs_close(fp);
+                fops_close(fp);
             }
         }
 

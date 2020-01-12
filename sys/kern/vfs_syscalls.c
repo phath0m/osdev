@@ -27,7 +27,7 @@ sys_close_handler(syscall_args_t argv)
     if (fp) {
         current_proc->files[fd] = NULL;
 
-        vfs_close(fp);
+        fops_close(fp);
         return 0;
     }
 
@@ -45,13 +45,13 @@ sys_creat_handler(syscall_args_t argv)
     struct file *file;
     mode &= current_proc->umask;
 
-    int succ = vfs_creat(current_proc->root, current_proc->cwd, &file, path, mode);
+    int succ = fops_creat(current_proc->root, current_proc->cwd, &file, path, mode);
 
     if (succ == 0) {
         int fd = proc_getfildes();
 
         if (fd < 0) {
-            vfs_close(file);
+            fops_close(file);
         } else {
             current_proc->files[fd] = file;
         }
@@ -73,7 +73,7 @@ sys_fchmod_handler(syscall_args_t argv)
     struct file *file = proc_getfile(fd);
 
     if (file) {
-        return vfs_fchmod(file, mode);
+        return fops_fchmod(file, mode);
     }
 
     return -(EBADF);
@@ -90,7 +90,7 @@ sys_fstat_handler(syscall_args_t argv)
     struct file *file = proc_getfile(fd);
 
     if (file) {
-        return vfs_stat(file, buf);
+        return fops_stat(file, buf);
     }
 
     return -(EBADF);
@@ -106,13 +106,13 @@ sys_open_handler(syscall_args_t argv)
 
     struct file *file;
 
-    int succ = vfs_open_r(current_proc->root, current_proc->cwd, &file, path, mode);
+    int succ = fops_open_r(current_proc->root, current_proc->cwd, &file, path, mode);
 
     if (succ == 0) {
         int fd = proc_getfildes();
 
         if (fd < 0) {
-            vfs_close(file);
+            fops_close(file);
         } else {
             current_proc->files[fd] = file;
         }
@@ -154,7 +154,7 @@ sys_read_handler(syscall_args_t argv)
     struct file *file = proc_getfile(fildes);
 
     if (file) {
-        return vfs_read(file, buf, nbyte);
+        return fops_read(file, buf, nbyte);
     }
 
     return -(EBADF);
@@ -171,7 +171,7 @@ sys_readdir_handler(syscall_args_t argv)
     struct file *file = proc_getfile(fildes);
 
     if (file) {
-        return vfs_readdirent(file, dirent);
+        return fops_readdirent(file, dirent);
     }
 
     return -(EBADF);
@@ -184,7 +184,7 @@ sys_rmdir_handler(syscall_args_t argv)
 
     TRACE_SYSCALL("rmdir", "\"%s\"", path);
 
-    return vfs_rmdir(current_proc->root, current_proc->cwd, path);
+    return fops_rmdir(current_proc->root, current_proc->cwd, path);
 }
 
 static int
@@ -199,7 +199,7 @@ sys_lseek_handler(syscall_args_t argv)
     struct file *file = proc_getfile(fd);
 
     if (file) {
-        return vfs_seek(file, offset, whence);
+        return fops_seek(file, offset, whence);
     }
 
     return -(EBADF);
@@ -215,7 +215,7 @@ sys_mkdir_handler(syscall_args_t argv)
 
     mode &= current_proc->umask;
 
-    return vfs_mkdir(current_proc->root, current_proc->cwd, path, mode);
+    return fops_mkdir(current_proc->root, current_proc->cwd, path, mode);
 }
 
 static int
@@ -230,10 +230,10 @@ sys_stat_handler(syscall_args_t argv)
 
     int res = 0;
 
-    if (vfs_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY) == 0) {
-        res = vfs_stat(file, buf);
+    if (fops_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY) == 0) {
+        res = fops_stat(file, buf);
 
-        vfs_close(file);
+        fops_close(file);
     }
 
     return res;
@@ -246,7 +246,7 @@ sys_unlink_handler(syscall_args_t argv)
 
     TRACE_SYSCALL("unlink", "\"%s\"", path);
 
-    return vfs_unlink(current_proc->root, current_proc->cwd, path);
+    return fops_unlink(current_proc->root, current_proc->cwd, path);
 }
 
 static int
@@ -263,7 +263,7 @@ sys_write_handler(syscall_args_t argv)
     struct file *file = proc_getfile(fildes);
 
     if (file) {
-        return vfs_write(file, buf, nbyte);
+        return fops_write(file, buf, nbyte);
     }
 
     return -(EBADF);

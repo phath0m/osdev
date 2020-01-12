@@ -11,23 +11,23 @@
 // delete me
 #include <stdio.h>
 
-static int devfs_close(struct vfs_node *node);
+static int defops_close(struct vfs_node *node);
 static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
 static int devfs_mount(struct device *dev, struct vfs_node **root);
-static int devfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
-static int devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
-static int devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence);
-static int devfs_stat(struct vfs_node *node, struct stat *stat);
-static int devfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
+static int defops_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
+static int defops_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
+static int defops_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence);
+static int defops_stat(struct vfs_node *node, struct stat *stat);
+static int defops_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops devfs_file_ops = {
-    .close      = devfs_close,
+    .close      = defops_close,
     .lookup     = devfs_lookup,
-    .read       = devfs_read,
-    .readdirent = devfs_readdirent,
-    .seek       = devfs_seek,
-    .stat       = devfs_stat,
-    .write      = devfs_write
+    .read       = defops_read,
+    .readdirent = defops_readdirent,
+    .seek       = defops_seek,
+    .stat       = defops_stat,
+    .write      = defops_write
 };
 
 struct fs_ops devfs_ops = {
@@ -40,7 +40,7 @@ struct fs_ops devfs_ops = {
 extern struct list device_list;
 
 static int
-devfs_close(struct vfs_node *node)
+defops_close(struct vfs_node *node)
 {
     return 0;
 }
@@ -93,7 +93,7 @@ devfs_mount(struct device *dev, struct vfs_node **root)
 }
 
 static int
-devfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
+defops_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
 {
 
     struct device *dev = (struct device*)node->state;
@@ -106,7 +106,7 @@ devfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
+defops_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 {
     list_iter_t iter;
 
@@ -131,7 +131,7 @@ devfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 }
 
 static int
-devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
+defops_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
 {
     if (whence == SEEK_SET) {
         *cur_pos = off;
@@ -142,7 +142,7 @@ devfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
 }
 
 static int
-devfs_stat(struct vfs_node *node, struct stat *stat)
+defops_stat(struct vfs_node *node, struct stat *stat)
 {
     if (node->inode == 0) {
         stat->st_mode = 0751;
@@ -159,7 +159,7 @@ devfs_stat(struct vfs_node *node, struct stat *stat)
 }
 
 static int
-devfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
+defops_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
 {
     struct device *dev = (struct device*)node->state;
 

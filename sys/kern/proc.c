@@ -26,7 +26,7 @@ proc_destroy(struct proc *proc)
         struct file *fp = proc->files[i];
 
         if (fp) {
-            vfs_close(fp);
+            fops_close(fp);
         }
     }
 
@@ -61,7 +61,7 @@ proc_dup2(int oldfd, int newfd)
     struct file *existing_fp = current_proc->files[newfd];
 
     if (existing_fp) {
-        vfs_close(existing_fp);   
+        fops_close(existing_fp);   
     }
 
     struct file *fp = current_proc->files[oldfd];

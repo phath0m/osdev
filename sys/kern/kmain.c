@@ -18,7 +18,7 @@ kmain()
 {
     struct vfs_node *root;
 
-    if (vfs_openfs(NULL, &root, "initramfs", MS_RDONLY) == 0) {
+    if (fops_openfs(NULL, &root, "initramfs", MS_RDONLY) == 0) {
         printf("kernel: mounted initramfs to /\n");
 
         if (vfs_mount(root, NULL, "devfs", "/dev", 0) == 0) {

@@ -16,11 +16,11 @@ can_execute_file(const char *path)
 
     struct file *file;
 
-    if (vfs_open(current_proc->root, &file, path, O_RDONLY) == 0) {
+    if (fops_open(current_proc->root, &file, path, O_RDONLY) == 0) {
 
-        vfs_stat(file, &buf);
+        fops_stat(file, &buf);
 
-        vfs_close(file);
+        fops_close(file);
         
         if ((buf.st_mode & S_IXUSR) && buf.st_uid == current_proc->creds.euid) {
             return 0;
@@ -45,7 +45,7 @@ sys_chdir(syscall_args_t args)
 
     struct file *file;
 
-    int res = vfs_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY);
+    int res = fops_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY);
 
     if (res == 0) {
         if (current_proc->cwd) {
@@ -54,7 +54,7 @@ sys_chdir(syscall_args_t args)
 
         current_proc->cwd = file->node;
 
-        vfs_close(file);
+        fops_close(file);
     }
 
     return res;
@@ -95,13 +95,13 @@ sys_execve(syscall_args_t args)
         return exec_err;
     }
 
-    int status = vfs_open(current_proc->root, &fd, file, O_RDONLY);
+    int status = fops_open(current_proc->root, &fd, file, O_RDONLY);
 
     if (status == 0) {
         char interpreter[512];
 
-        if (vfs_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
-            vfs_read(fd, interpreter, 512);
+        if (fops_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
+            fops_read(fd, interpreter, 512);
         
             for (int i = 0; i < 512; i++) {
                 if (interpreter[i] == '\n') {
@@ -119,7 +119,7 @@ sys_execve(syscall_args_t args)
             new_argv[0] = interpreter;
             new_argv[1] = (char*)file;
 
-            vfs_close(fd);
+            fops_close(fd);
 
             exec_err = can_execute_file(file);
 
@@ -129,7 +129,7 @@ sys_execve(syscall_args_t args)
             return proc_execve(interpreter, (const char **)new_argv, envp);
 
         } else {
-            vfs_close(fd);
+            fops_close(fd);
         }
     }
 

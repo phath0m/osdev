@@ -104,11 +104,11 @@ struct vfs_node {
 
 struct file *file_new(struct vfs_node *node);
 
-int vfs_close(struct file *file);
+int fops_close(struct file *file);
 
 struct file *vfs_duplicate_file(struct file *file);
 
-int vfs_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int flags);
+int fops_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int flags);
 
 void vfs_node_destroy(struct vfs_node *node);
 
@@ -116,32 +116,32 @@ struct vfs_node *vfs_node_new(struct device *dev, struct file_ops *ops);
 
 int vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **result, const char *path);
 
-int vfs_open(struct vfs_node *root, struct file **result, const char *path, int flags);
+int fops_open(struct vfs_node *root, struct file **result, const char *path, int flags);
 
-int vfs_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags);
+int fops_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags);
 
 void register_filesystem(char *name, struct fs_ops *ops);
 
 
 /*
- * vfs_fchmod
+ * fops_fchmod
  * @param file  The file
  * @param mode  The mode
  */
-int vfs_fchmod(struct file *file, mode_t mode);
+int fops_fchmod(struct file *file, mode_t mode);
 
 /*
- * vfs_close
+ * fops_close
  * Releases a file struct and frees any associated resources
  * @param file  Pointer to the open file struct
  */
-int vfs_close(struct file *file);
+int fops_close(struct file *file);
 
 /*
- * vfs_creat
+ * fops_creat
  * Creates a new file
  */
-int vfs_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode);
+int fops_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode);
 
 /*
  * vfs_lookup
@@ -164,78 +164,78 @@ int vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *na
 int vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const char *path, int flags);
 
 /*
- * vfs_mkdir
+ * fops_mkdir
  * Creates a new directory
  * @param root  Root filesystem
  * @param cwd   Current working directory for relative paths
  * @param path  Path to mount
  * @param mode  Mode for newly created file
  */
-int vfs_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode);
+int fops_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode);
 
 /*
- * vfs_read
+ * fops_read
  * Reads n bytes from an open file
  * @param file  Pointer to an open file struct
  * @param buf   Buffer to read n bytes into
  * @param nbyte Amount of bytes to read
  */
-int vfs_read(struct file *file, char *buf, size_t nbyte);
+int fops_read(struct file *file, char *buf, size_t nbyte);
 
 /*
- * vfs_readdirent
+ * fops_readdirent
  * Reads a single directory entry
  * @param file      Pointer to an open file struct
  * @param dirent    Pointer to a dirent struct
  */
-int vfs_readdirent(struct file *file, struct dirent *dirent);
+int fops_readdirent(struct file *file, struct dirent *dirent);
 
 /*
- * vfs_rmdir
+ * fops_rmdir
  * Removes an empty directory
  * @param root  Pointer to the root filesystem
  * @param cwd   Current working directory used for relative paths
  * @param path  Path of file to delete
  */
-int vfs_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path);
+int fops_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path);
 
 /*
- * vfs_seek
+ * fops_seek
  * Moves the position nbytes relative to the supplied offset
  * @param file      Pointer to an open file struct
  * @param off       Offset to move
  * @param whence    specifies origin to use relative to the supplied offset
  */
-int vfs_seek(struct file *file, off_t off, int whence);
+int fops_seek(struct file *file, off_t off, int whence);
 
 /*
- * vfs_stat
+ * fops_stat
  * Obtains information about a file, writing the info into the provided stat struct
  * @param file  Pointer to an open file
  * @param stat  Pointer to a stat buf
  */
-int vfs_stat(struct file *file, struct stat *stat);
+int fops_stat(struct file *file, struct stat *stat);
 
 /*
- * vfs_tell
+ * fops_tell
  * Reports the current position in the supplied file
  * @param file  Pointer to the open file struct
  */
-uint64_t vfs_tell(struct file *file);
+uint64_t fops_tell(struct file *file);
 
 /*
- * vfs_unlink
+ * fops_unlink
  * Deletes a file
  */
-int vfs_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path);
+int fops_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path);
 
 /*
- * vfs_write
+ * fops_write
  * Writes n bytes to the supplied file
  * @param file      pointer to an open file
  * @param buf       pointer to the data to write
  * @param nbyte     how many bytes to write
  */
-int vfs_write(struct file *file, const char *buf, size_t nbyte);
+int fops_write(struct file *file, const char *buf, size_t nbyte);
 
 #endif
