@@ -54,6 +54,7 @@ KERNEL_OBJECTS += kern/panic.o
 KERNEL_OBJECTS += kern/pipe.o
 KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
+KERNEL_OBJECTS += kern/extract_tar.o
 KERNEL_OBJECTS += kern/vfs_syscalls.o
 KERNEL_OBJECTS += kern/wait_queue.o
 

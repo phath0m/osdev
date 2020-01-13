@@ -18,16 +18,22 @@ kmain()
 {
     struct vfs_node *root;
 
-    if (fops_openfs(NULL, &root, "initramfs", MS_RDONLY) == 0) {
+    if (fops_openfs(NULL, &root, "tmpfs", 0) == 0) {
         printf("kernel: mounted initramfs to /\n");
+
+        extern void *start_initramfs;
+        extern void tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive);
+        
+        tar_extract_archive(root, NULL, start_initramfs);
 
         if (vfs_mount(root, NULL, "devfs", "/dev", 0) == 0) {
             printf("kernel: mounted devfs to /dev\n");
         }
 
+        /*
         if (vfs_mount(root, NULL, "tmpfs", "/tmp", 0) == 0) {
             printf("kernel: mounted tmpfs to /tmp\n");
-        }
+        }*/
 
         current_proc->cwd = root;
         current_proc->root = root;

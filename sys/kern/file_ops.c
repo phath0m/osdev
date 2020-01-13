@@ -25,7 +25,13 @@ split_path(char *path, char **directory, char **file)
 
     path[last_slash] = 0;
 
-    if (directory) *directory = path;
+    if (directory) {
+        if (*path == 0) {
+            *directory = "/";
+        } else {
+            *directory = path;
+        }
+    }
     if (file) *file = &path[last_slash + 1];
 
     return true;
@@ -144,13 +150,14 @@ fops_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, c
 int
 fops_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode)
 {
-    char parent_path[PATH_MAX+1];
+    char path_buf[PATH_MAX+1];
 
-    strncpy(parent_path, path, PATH_MAX);
+    strncpy(path_buf, path, PATH_MAX);
 
     char *filename;
+    char *parent_path;
 
-    split_path(parent_path, NULL, &filename);
+    split_path(path_buf, &parent_path, &filename);
 
     struct vfs_node *parent;
 
@@ -201,13 +208,14 @@ fops_fchmod(struct file *file, mode_t mode)
 int
 fops_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode)
 {
-    char parent_path[PATH_MAX+1];
+    char path_buf[PATH_MAX+1];
 
-    strncpy(parent_path, path, PATH_MAX);
+    strncpy(path_buf, path, PATH_MAX);
     
     char *dirname;
+    char *parent_path;
 
-    split_path(parent_path, NULL, &dirname);
+    split_path(path_buf, &parent_path, &dirname);
 
     struct vfs_node *parent;
 
@@ -271,13 +279,14 @@ fops_readdirent(struct file *file, struct dirent *dirent)
 int
 fops_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path)
 {
-    char parent_path[PATH_MAX+1];
+    char path_buf[PATH_MAX+1];
 
-    strncpy(parent_path, path, PATH_MAX);
+    strncpy(path_buf, path, PATH_MAX);
 
     char *dirname;
+    char *parent_path;
 
-    split_path(parent_path, NULL, &dirname);
+    split_path(path_buf, &parent_path, &dirname);
 
     struct vfs_node *parent;
 
@@ -333,13 +342,14 @@ fops_tell(struct file *file)
 int
 fops_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path)
 {
-    char parent_path[PATH_MAX+1];
+    char path_buf[PATH_MAX+1];
 
-    strncpy(parent_path, path, PATH_MAX);
+    strncpy(path_buf, path, PATH_MAX);
 
     char *filename;
+    char *parent_path;
 
-    split_path(parent_path, NULL, &filename);
+    split_path(path_buf, &parent_path, &filename);
 
     struct vfs_node *parent;
 
