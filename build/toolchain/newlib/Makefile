@@ -2,7 +2,7 @@ NEWLIB=newlib-2.5.0
 NEWLIB_SRC=$(NEWLIB).tar.gz
 NEWLIB_URL=ftp://sourceware.org/pub/newlib/$(NEWLIB_SRC)
 PREFIX=/usr
-SYSROOT=$(shell realpath ../../sysroot)
+SYSROOT=$(shell realpath ../../../sysroot)
 TARGET=i686-elysium
 
 all: $(NEWLIB)
