@@ -76,6 +76,10 @@ dict_get(struct dict *dict, const char *key, void **result)
 
     struct dict_entry *entry = dict->entries[hash];
 
+    if (!entry) {
+        return false;
+    }
+
     bool succ = false;
 
     struct key_value_pair *kvp;
@@ -95,10 +99,13 @@ dict_get(struct dict *dict, const char *key, void **result)
 
         iter_close(&iter);
 
-    } else if (entry) {
-        kvp = (struct key_value_pair*)LIST_FIRST(&entry->values);
-        *result = kvp->value;
-        
+        return succ;
+    } 
+    
+    kvp = (struct key_value_pair*)LIST_FIRST(&entry->values);
+
+    if (strcmp(key, kvp->key) == 0) {
+        *result = kvp->value;       
         succ = true;
     }
 
@@ -138,7 +145,7 @@ dict_remove(struct dict *dict, const char *key)
 
     } else if (entry) {
         kvp = (struct key_value_pair*)LIST_FIRST(&entry->values);
-        succ = true;
+        succ = (strcmp(key, kvp->key) == 0);
     }
 
     if (succ) {
@@ -170,3 +177,4 @@ dict_set(struct dict *dict, const char *key, void *value)
     list_append(&entry->values, kvp);
     list_append(&dict->keys, kvp->key);
 }
+
