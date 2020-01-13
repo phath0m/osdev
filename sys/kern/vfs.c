@@ -81,8 +81,8 @@ vfs_node_destroy(struct vfs_node *node)
 {
     struct file_ops *ops = node->ops;
 
-    if (ops && ops->close) {
-        ops->close(node);
+    if (ops && ops->destroy) {
+        ops->destroy(node);
     }    
 
     /*

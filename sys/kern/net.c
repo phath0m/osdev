@@ -14,7 +14,7 @@ static struct list protocol_list;
  * Wrapper functions to connect socket API to underlying virtual system
  */
 static int
-sock_file_close(struct vfs_node *node)
+sock_file_destroy(struct vfs_node *node)
 {
     struct socket *sock = (struct socket*)node->state;
 
@@ -38,9 +38,9 @@ sock_file_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t p
 }
 
 struct file_ops sock_file_ops = {
-    .close  = sock_file_close,
-    .read   = sock_file_read,
-    .write  = sock_file_write,
+    .destroy    = sock_file_destroy,
+    .read       = sock_file_read,
+    .write      = sock_file_write,
 };
 
 static inline struct protocol *

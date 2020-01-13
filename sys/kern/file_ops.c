@@ -76,6 +76,12 @@ fops_close(struct file *file)
 
     DEC_NODE_REF(file->node);
 
+    struct file_ops *ops = file->node->ops;
+    
+    if (ops->close) {
+        ops->close(file->node);
+    }
+
     vfs_file_count--;
     free(file);
 

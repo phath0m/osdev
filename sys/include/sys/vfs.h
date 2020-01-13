@@ -27,6 +27,7 @@ struct vfs_node;
 typedef int (*file_close_t)(struct file *file);
 
 typedef int (*fs_chmod_t)(struct vfs_node *node, mode_t mode);
+typedef int (*fs_node_destroy_t)(struct vfs_node *node);
 typedef int (*fs_close_t)(struct vfs_node *node);
 typedef int (*fs_creat_t)(struct vfs_node *node, struct vfs_node **result, const char *name, mode_t mode);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
@@ -49,18 +50,19 @@ struct file {
 };
 
 struct file_ops {
-    fs_close_t      close;
-    fs_chmod_t      chmod;
-    fs_creat_t      creat;
-    fs_lookup_t     lookup;
-    fs_read_t       read;
-    fs_readdirent_t readdirent;
-    fs_rmdir_t      rmdir;
-    fs_mkdir_t      mkdir;
-    fs_seek_t       seek;
-    fs_stat_t       stat;
-    fs_unlink_t     unlink;
-    fs_write_t      write;
+    fs_node_destroy_t       destroy;
+    fs_chmod_t              chmod;
+    fs_close_t              close;
+    fs_creat_t              creat;
+    fs_lookup_t             lookup;
+    fs_read_t               read;
+    fs_readdirent_t         readdirent;
+    fs_rmdir_t              rmdir;
+    fs_mkdir_t              mkdir;
+    fs_seek_t               seek;
+    fs_stat_t               stat;
+    fs_unlink_t             unlink;
+    fs_write_t              write;
 };
 
 struct filesystem {
@@ -69,16 +71,16 @@ struct filesystem {
 };
 
 struct fs_ops {
-    fs_close_t      close;
-    fs_creat_t      creat;
-    fs_lookup_t     lookup;
-    fs_mount_t      mount;
-    fs_read_t       read;
-    fs_readdirent_t readdirent;
-    fs_rmdir_t      rmdir;
-    fs_mkdir_t      mkdir;
-    fs_unlink_t     unlink;
-    fs_write_t      write;
+    fs_node_destroy_t       destroy;
+    fs_creat_t              creat;
+    fs_lookup_t             lookup;
+    fs_mount_t              mount;
+    fs_read_t               read;
+    fs_readdirent_t         readdirent;
+    fs_rmdir_t              rmdir;
+    fs_mkdir_t              mkdir;
+    fs_unlink_t             unlink;
+    fs_write_t              write;
 };
 
 struct vfs_mount {

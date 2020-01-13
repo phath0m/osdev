@@ -11,7 +11,7 @@
 // delete me
 #include <stdio.h>
 
-static int defops_close(struct vfs_node *node);
+static int devfs_destroy(struct vfs_node *node);
 static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
 static int devfs_mount(struct device *dev, struct vfs_node **root);
 static int defops_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
@@ -21,7 +21,7 @@ static int defops_stat(struct vfs_node *node, struct stat *stat);
 static int defops_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops devfs_file_ops = {
-    .close      = defops_close,
+    .destroy    = devfs_destroy,
     .lookup     = devfs_lookup,
     .read       = defops_read,
     .readdirent = defops_readdirent,
@@ -40,7 +40,7 @@ struct fs_ops devfs_ops = {
 extern struct list device_list;
 
 static int
-defops_close(struct vfs_node *node)
+devfs_destroy(struct vfs_node *node)
 {
     return 0;
 }
