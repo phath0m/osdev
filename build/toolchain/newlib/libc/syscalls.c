@@ -150,6 +150,21 @@ getpid()
 }
 
 int
+ioctl(int fd, unsigned long request, void *arg)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_IOCTL), "b"(fd), "c"((uint32_t)request), "d"(arg));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 isatty(int file)
 {
     return 1;
