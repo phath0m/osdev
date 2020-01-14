@@ -30,6 +30,7 @@ typedef int (*fs_chmod_t)(struct vfs_node *node, mode_t mode);
 typedef int (*fs_node_destroy_t)(struct vfs_node *node);
 typedef int (*fs_close_t)(struct vfs_node *node);
 typedef int (*fs_creat_t)(struct vfs_node *node, struct vfs_node **result, const char *name, mode_t mode);
+typedef int (*fs_ioctl_t)(struct vfs_node *node, uint64_t request, void *arg);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
 typedef int (*fs_mkdir_t)(struct vfs_node *parent, const char *name, mode_t mode); 
 typedef int (*fs_mount_t)(struct device *dev, struct vfs_node **root);
@@ -54,6 +55,7 @@ struct file_ops {
     fs_chmod_t              chmod;
     fs_close_t              close;
     fs_creat_t              creat;
+    fs_ioctl_t              ioctl;
     fs_lookup_t             lookup;
     fs_read_t               read;
     fs_readdirent_t         readdirent;
@@ -144,6 +146,11 @@ int fops_close(struct file *file);
  * Creates a new file
  */
 int fops_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode);
+
+/*
+ * fops_ioctl
+ */
+int fops_ioctl(struct file *fp, uint64_t request, void *arg);
 
 /*
  * vfs_lookup

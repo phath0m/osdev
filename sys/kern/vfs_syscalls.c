@@ -80,6 +80,24 @@ sys_fchmod_handler(syscall_args_t argv)
 }
 
 static int
+sys_ioctl_handler(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(uint32_t, request, 1, argv);
+    DEFINE_SYSCALL_PARAM(void*, arg, 2, argv);
+
+    TRACE_SYSCALL("ioctl", "%d, %d, %p", fd, request, arg);
+
+    struct file *file = proc_getfile(fd);
+
+    if (file) {
+        return fops_ioctl(file, (uint64_t)request, arg);
+    }
+
+    return -(EBADF);
+}
+
+static int
 sys_fstat_handler(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
@@ -277,6 +295,7 @@ _init_vfs_syscalls()
     register_syscall(SYS_CREAT, 2, sys_creat_handler);
     register_syscall(SYS_FCHMOD, 2, sys_fchmod_handler);
     register_syscall(SYS_FSTAT, 2, sys_fstat_handler);
+    register_syscall(SYS_IOCTL, 3, sys_ioctl_handler);
     register_syscall(SYS_LSEEK, 3, sys_lseek_handler);
     register_syscall(SYS_OPEN, 2, sys_open_handler);
     register_syscall(SYS_PIPE, 1, sys_pipe_handler);

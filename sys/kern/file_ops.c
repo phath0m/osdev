@@ -206,6 +206,19 @@ fops_fchmod(struct file *file, mode_t mode)
 }
 
 int
+fops_ioctl(struct file *file, uint64_t request, void *arg)
+{
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+    if (ops->ioctl) {
+        return ops->ioctl(node, request, arg);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
 fops_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode)
 {
     char path_buf[PATH_MAX+1];
