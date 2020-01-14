@@ -95,7 +95,7 @@ pipe_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
 
     uint8_t *buf8 = (uint8_t*)buf;
 
-    while (pipe->pending < nbyte && !pipe->write_closed) {
+    while (pipe->pending == 0 && !pipe->write_closed) {
         sched_yield();
     }
 

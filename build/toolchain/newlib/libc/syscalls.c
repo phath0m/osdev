@@ -198,6 +198,21 @@ mkdir(const char *path, mode_t mode)
 }
 
 int
+mkpty()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MKPTY));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 open(const char *name, int flags, ...)
 {
     int ret;
