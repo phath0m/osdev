@@ -96,7 +96,7 @@ search_for_binary(const char *name, char *resolved)
         return true;
     }
 
-    const char *path[] = {"/bin", "/usr/bin", "/usr/games", NULL};
+    const char *path[] = {"/bin", "/sbin", "/usr/bin", "/usr/games", NULL};
 
     for (int i = 0; path[i]; i++) {
         bool succ = false;
