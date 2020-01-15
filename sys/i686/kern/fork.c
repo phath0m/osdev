@@ -91,6 +91,8 @@ proc_fork(struct regs *regs)
     struct proc *new_proc = proc_new();
     struct vm_space *new_space = vm_space_new();
 
+    strncpy(new_proc->name, proc->name, sizeof(new_proc->name));
+
     new_proc->base = proc->base;
     new_proc->brk = proc->brk;
     new_proc->cwd = proc->cwd;

@@ -19,9 +19,9 @@ copy_strings(const char **strs, size_t *sizep, int *countp)
         size += strlen(strs[count]) + 1;
     }
 
-    size_t ptrs_size = (count + 1) * 4;
+    size_t ptrs_size = (count + 1) * sizeof(char*);
 
-    void *buf = calloc(0, size + ptrs_size);
+    void *buf = calloc(1, size + ptrs_size);
 
     uintptr_t *str_ptrs = (uint32_t*)buf;
     
@@ -163,6 +163,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
         int envc;
         size_t argv_size;
         size_t envp_size;
+
         const char **cp_argv = copy_strings(argv, &argv_size, &argc);
         const char **cp_envp = copy_strings(envp, &envp_size, &envc);
 
@@ -216,6 +217,8 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
         stackp -= 20;
 
+        strncpy(proc->name, cp_argv[0], 256);
+
         free(cp_argv);
         free(cp_envp);
 
@@ -230,8 +233,6 @@ proc_execve(const char *path, const char **argv, const char **envp)
                 fops_close(fp);
             }
         }
-
-        strncpy(proc->name, argv[0], 256);
 
         uintptr_t entrypoint = elf->e_entry;
 

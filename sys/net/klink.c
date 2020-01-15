@@ -173,7 +173,12 @@ klink_send_procstat(struct klink_session *session, int target)
             char *tty = proc_getctty(proc);
 
             strncpy(stat->cmd, proc->name, 255);
-            strncpy(stat->tty, tty, 31);
+            
+            if (tty) {
+                strncpy(stat->tty, tty, 31);
+            } else {
+                tty[0] = '\x00';
+            }
 
             break;
         }

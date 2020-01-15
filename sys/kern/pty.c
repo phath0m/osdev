@@ -11,6 +11,7 @@ static int ptm_close(struct vfs_node *node);
 static int ptm_destroy(struct vfs_node *node);
 static int ptm_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int ptm_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
+static int pts_isatty(struct device *dev);
 static int pts_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 static int pts_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
@@ -42,6 +43,7 @@ mkpty_slave(struct pty *pty)
 
     pts_dev->mode = 0600;
     pts_dev->state = pty;
+    pts_dev->isatty = pts_isatty;
     pts_dev->read = pts_read;
     pts_dev->write = pts_write;
 
@@ -98,6 +100,12 @@ ptm_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
     struct pty *pty = (struct pty*)node->state;
 
     return fops_write(pty->input_pipe[1], buf, nbyte);
+}
+
+static int
+pts_isatty(struct device *dev)
+{
+        return 1;
 }
 
 static int

@@ -104,6 +104,10 @@ proc_getctty(struct proc *proc)
     if (proc->files[0]) {
         struct file *file = proc->files[0];
 
+        if (!file || !file->node || !file->node->device) {
+            return NULL;
+        }
+
         if (device_isatty(file->node->device)) {
             return file->node->device->name;
         }
