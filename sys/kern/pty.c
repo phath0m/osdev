@@ -2,6 +2,7 @@
 #include <string.h>
 #include <sys/device.h>
 #include <sys/errno.h>
+#include <sys/fcntl.h>
 #include <sys/kernel.h>
 #include <sys/vfs.h>
 
@@ -64,6 +65,8 @@ mkpty()
     node->state = pty;
 
     struct file *res = file_new(node);
+
+    res->flags = O_RDWR;
 
     return res;
 }
