@@ -45,20 +45,39 @@ load_service(const char *config_file)
     return 0;
 }
 
-/*
-static void
-start_script(char *script)
+static int
+shitty_arg_split(const char *cmd, char **argv, int max_args)
 {
-    int pid = fork();
-
-    if (pid == 0) {
-        char *argv[2];
-        argv[0] = script;
-        argv[1] = NULL;
-        execv(script, argv);
+    int len = strlen(cmd);
+    
+    if (len > 512) {
+        // sorry java... not today
+        return -1;
     }
+
+    char buf[512];
+    
+    strncpy(buf, cmd, sizeof(buf));
+
+    int i = 0;
+    int pos = 0;
+    char *cur = buf;
+
+    while (pos < len && buf[pos]) {
+        if (buf[pos] == ' ') {
+            buf[pos++] = '\x00';
+            argv[i++] = cur;
+            cur = &buf[pos];
+        } else {
+            pos++;
+        }
+    }
+
+    argv[i++] = cur;
+    argv[i++] = NULL;
+
+    return 0;
 }
-*/
 
 static int
 service_start(struct service *service)
@@ -72,11 +91,12 @@ service_start(struct service *service)
     pid_t pid = fork();
 
     if (pid == 0) {
-        char *argv[2];
-        argv[0] = service->exec_start;
-        argv[1] = NULL;
+        char *argv[24];
 
-        execv(service->exec_start, argv);
+        if (shitty_arg_split(service->exec_start, argv, 24) == 0) {
+            execv(argv[0], argv);
+        }
+
         exit(-1);
     }   
 
@@ -146,7 +166,6 @@ main(int argc, const char *argv[])
         do_directory("/etc/doit.d");
     }
 
-    printf("Starting all services\n");
     start_services();
 
     return 0;
