@@ -6,6 +6,7 @@
 #include <sys/device.h>
 #include <sys/types.h>
 #include <sys/dev/textscreen.h>
+#include <sys/i686/portio.h>
 
 #define TEXTSCREEN_ADDR         0xC00B8000
 #define TEXTSCREEN_HEIGHT       25
@@ -37,6 +38,30 @@ struct device textscreen_device = {
     .state  =   &state
 };
 
+static void
+update_cursor(uint16_t pos)
+{
+    io_write_byte(0x3D4, 0x0F);
+    io_write_byte(0x3D5, (uint8_t) (pos & 0xFF));
+    io_write_byte(0x3D4, 0x0E);
+    io_write_byte(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+}
+
+static void
+clear_screen(uint8_t attr)
+{
+    uint16_t *textscreen_buffer = (uint16_t*)TEXTSCREEN_ADDR;
+    uint16_t cell_value = ' ' | (attr << 8);
+
+    for (int y = 0; y < TEXTSCREEN_HEIGHT; y++) {
+        for (int x = 0; x < TEXTSCREEN_WIDTH; x++) {
+            int pos = y * TEXTSCREEN_WIDTH + x;
+            textscreen_buffer[pos] = cell_value;
+        }
+    }
+
+}
+
 static int
 textscreen_close(struct device *dev)
 {
@@ -50,6 +75,7 @@ textscreen_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 
     switch (request) {
     case TEXTSCREEN_CLEAR:
+        clear_screen((statep->background_color << 4) | statep->foreground_color);
         break;
     case TEXTSCREEN_SETBG:
         statep->background_color = (uint8_t)argp;
@@ -113,6 +139,8 @@ textscreen_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos
             statep->position = TEXTSCREEN_BUFFER_SIZE - TEXTSCREEN_WIDTH;
         }
     }
+
+    update_cursor(statep->position);
 
     return nbyte;
 }
