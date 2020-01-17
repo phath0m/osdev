@@ -52,6 +52,7 @@ struct klink_heap_stat {
     uint32_t    node_count;
     uint32_t    file_count;
     uint32_t    proc_count;
+    uint32_t    list_elem_count;
 } __attribute__((packed));
 
 static int klink_close(struct socket *sock);
@@ -99,6 +100,9 @@ klink_send_heapstat(struct klink_session *session)
     /* defined in sys/kern/proc.c */
     extern int proc_count;
 
+    /* defined in sys/libk/list.c */
+    extern int list_elem_count;
+
     heapstat->heap_start = kernel_heap_start;
     heapstat->heap_break = kernel_break;
     heapstat->heap_end = kernel_heap_end;
@@ -107,6 +111,7 @@ klink_send_heapstat(struct klink_session *session)
     heapstat->node_count = vfs_node_count;
     heapstat->file_count = vfs_file_count;
     heapstat->proc_count = proc_count;
+    heapstat->list_elem_count = list_elem_count;
     list_append(&session->resp_queue, resp);
 
     return 0;

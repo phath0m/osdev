@@ -60,6 +60,8 @@ print_heap_info()
     printf("vfs_nodes        : %d\n", heapinfo->node_count);
     printf("files            : %d\n", heapinfo->file_count);
     printf("procs            : %d\n", heapinfo->proc_count);
+    printf("list_elems       : %d\n", heapinfo->list_elem_count);
+
     free(resp);
 
     close(sfd);

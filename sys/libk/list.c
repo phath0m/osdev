@@ -3,6 +3,11 @@
 #include <sys/mutex.h>
 #include <sys/types.h>
 
+/*
+ * tracker for kernel heap
+ */
+int list_elem_count = 0;
+
 void
 list_append(struct list *listp, void *ptr)
 {
@@ -26,7 +31,9 @@ list_append(struct list *listp, void *ptr)
     listp->tail = elem;
     
     listp->count++; 
-    
+
+    list_elem_count++;
+
     spinlock_unlock(&listp->lock);
 }
 
@@ -45,6 +52,7 @@ list_destroy(struct list *listp, bool free_children)
         struct list_elem *next = cur->next_elem;
         free(cur);
         cur = next;
+        list_elem_count--;
     }
 
     listp->count = 0;
@@ -88,6 +96,7 @@ list_remove_front(struct list *listp, void **item)
 
         listp->count--;
 
+        list_elem_count--;
         free(head);
 
         res = true;
@@ -123,7 +132,8 @@ list_remove(struct list *listp, void *item)
             } else if (iter == listp->tail) {
                 listp->tail = prev;
             }
-
+            free(iter);
+            list_elem_count--;
             listp->count--;
             res = true;
             break;
@@ -163,7 +173,7 @@ list_remove_back(struct list *listp, void **item)
         }
 
         listp->count--;
-
+        list_elem_count--;
         free(tail);
 
         res = true;
