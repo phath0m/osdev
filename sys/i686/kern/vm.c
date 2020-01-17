@@ -292,7 +292,7 @@ vm_space_destroy(struct vm_space *space)
 
     iter_close(&iter);
 
-    list_destroy(&to_remove, false);
+    list_destroy(&to_remove, true);
 
     page_directory_free((struct page_directory*)space->state_virtual);
     free(space);

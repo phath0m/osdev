@@ -3,6 +3,9 @@
 #include <sys/mutex.h>
 #include <sys/i686/vm.h>
 
+// delete me
+#include <stdio.h>
+
 /*
  * redefined, original definition in sys/rtl/malloc.c
  */
@@ -71,15 +74,26 @@ malloc_pa(size_t size)
     return free_block->ptr;
 }
 
+
 void *
 sbrk_a(size_t increment)
 {
-    kernel_break += 0x1000;
-    kernel_break &= 0xFFFFF000;
+    while ((kernel_break & 0xFFF) != 0) {
+        struct malloc_block *free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block->ptr = sbrk(128);
+        free_block->size = 128;
+        free_block->prev = last_freed;
+        last_freed = free_block;
+        kernel_heap_free_blocks++;
+    }
 
-    intptr_t prev_brk = kernel_break;
+    uintptr_t prev_brk = kernel_break;
 
-    kernel_break += 0x1000 + increment;
+    if (increment & 0xFFF) {
+        increment += 0x1000;
+    }
+
+    kernel_break += increment;
     kernel_break &= 0xFFFFF000;
 
     memset((void*)prev_brk, 0, increment);

@@ -105,6 +105,8 @@ vfs_duplicate_file(struct file *file)
 
     memcpy(new_file, file, sizeof(struct file));
 
+    new_file->refs = 1;
+
     INC_NODE_REF(new_file->node);
 
     vfs_file_count++;

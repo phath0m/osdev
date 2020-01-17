@@ -9,7 +9,8 @@
 #include <sys/mutex.h>
 #include <sys/types.h>
 
-#define MALLOC_ALIGNMENT 256
+#define MALLOC_ALIGNMENT 128
+#define ALIGN_MASK 0xFFFFFF80
 
 struct malloc_block {
     void    *prev;
@@ -75,7 +76,7 @@ malloc(size_t size)
 {
     spinlock_lock(&malloc_lock);
 
-    size_t aligned_size = (size + MALLOC_ALIGNMENT) & 0xFFFFFF00;
+    size_t aligned_size = (size + MALLOC_ALIGNMENT) & ALIGN_MASK;
 
     struct malloc_block *free_block = find_free_block(aligned_size);
 
@@ -132,7 +133,7 @@ free(void *ptr)
 int
 brk(void *ptr)
 {
-    kernel_break = (uintptr_t)ptr + MALLOC_ALIGNMENT;
+    kernel_break = (uintptr_t)ptr + 256;
     kernel_break &= 0xFFFFFF00;
     last_allocated = NULL;
     last_freed = NULL;
@@ -148,13 +149,11 @@ brk(void *ptr)
 void *
 sbrk(size_t increment)
 {
-    kernel_break += MALLOC_ALIGNMENT;
-    kernel_break &= 0xFFFFFF00;
-
     intptr_t prev_brk = kernel_break;
 
-    kernel_break += MALLOC_ALIGNMENT + increment;
-    kernel_break &= 0xFFFFFF00;
+    kernel_break += increment;
+    kernel_break += MALLOC_ALIGNMENT;
+    kernel_break &= ALIGN_MASK;
 
     memset((void*)prev_brk, 0, increment);
 
@@ -166,3 +165,4 @@ sbrk(size_t increment)
 
     return (void*)prev_brk; 
 }
+
