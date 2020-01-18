@@ -55,8 +55,20 @@ attempt_login(const char *login, const char *passwd)
 int
 main(int argc, char *argv[])
 {
+    
     char login[512];
     char password[512];
+
+    char *tty = ttyname(0);
+
+    if (!tty) {
+        return -1;
+    }
+
+    char *tty_name = strrchr(tty, '/') + 1;
+
+    printf("Elysium (%s)\n", tty_name);
+
     for (;;) {
         fputs("login: ", stderr);
         fgets(login, 512, stdin);
