@@ -25,11 +25,11 @@ main(int argc, const char *argv[])
     }
 
     static char *sh_argv[2] = {
-        "-sh",
+        "/usr/bin/login",
         NULL
     };
 
-    execv("/bin/sh", sh_argv);
+    execv(sh_argv[0], sh_argv);
 
     return 0;
 }
