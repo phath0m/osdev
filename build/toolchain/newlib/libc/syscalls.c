@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/fcntl.h>
 #include <sys/times.h>
+#include <sys/time.h>
 #include <sys/errno.h>
 #include <sys/socket.h>
 #include <sys/syscalls.h>
@@ -147,6 +148,23 @@ int
 getpid()
 {
     return -1;
+}
+
+int
+gettimeofday(struct timeval *p, void *z)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_TIME), "b"(0));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    p->tv_sec = (time_t)ret;
+
+    return 0;
 }
 
 int
@@ -426,10 +444,4 @@ write(int file, char *ptr, int len)
     }
 
     return ret;
-}
-
-int
-gettimeofday(struct timeval *p, void *z)
-{
-    return -1;
 }

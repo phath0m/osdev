@@ -34,5 +34,6 @@
 #define SYS_MKPTY       0x20
 #define SYS_ISATTY      0x21
 #define SYS_TTYNAME     0x22
+#define SYS_TIME        0x23
 
 #endif

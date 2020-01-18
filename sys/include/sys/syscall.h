@@ -39,6 +39,7 @@
 #define SYS_MKPTY       0x20
 #define SYS_ISATTY      0x21
 #define SYS_TTYNAME     0x22
+#define SYS_TIME        0x23
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

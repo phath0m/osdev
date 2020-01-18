@@ -32,6 +32,7 @@ KERNEL_OBJECTS += i686/kern/exec.o
 KERNEL_OBJECTS += i686/kern/fork.o
 KERNEL_OBJECTS += i686/kern/sched.o
 KERNEL_OBJECTS += i686/kern/syscall_dispatch.o
+KERNEL_OBJECTS += i686/kern/time.o
 KERNEL_OBJECTS += i686/kern/usermode.o
 KERNEL_OBJECTS += i686/kern/vm.o
 
@@ -49,6 +50,7 @@ KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/file_ops.o
 KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/kputs.o
+KERNEL_OBJECTS += kern/misc_syscalls.o
 KERNEL_OBJECTS += kern/net.o
 KERNEL_OBJECTS += kern/net_syscalls.o
 KERNEL_OBJECTS += kern/panic.o
