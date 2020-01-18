@@ -138,7 +138,7 @@ sys_open_handler(syscall_args_t argv)
         return fd;
     }
 
-    return -(succ);
+    return succ;
 }
 
 static int
