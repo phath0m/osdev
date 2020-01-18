@@ -216,6 +216,8 @@ systerm_main()
         return;
     }
 
+    ioctl(vga, TEXTSCREEN_SETFG, (void*)7);
+
     struct termstate state;
     
     memset(&state, 0, sizeof(state));
@@ -238,14 +240,6 @@ systerm_main()
 int
 main()
 {
-
-    pid_t child = fork();
-
-    if (child) {
-        printf("systerm pid is %d\n", child);
-        return 0;
-    } else {
-        systerm_main();
-    }
+    systerm_main();
     return 0;
 }
