@@ -32,4 +32,7 @@
 #define SYS_UNLINK      0x1C
 #define SYS_UMASK       0x1D
 #define SYS_MKPTY       0x20
+#define SYS_ISATTY      0x21
+#define SYS_TTYNAME     0x22
+
 #endif

@@ -328,6 +328,33 @@ times(struct tms *buf)
 
 }
 
+int
+ttyname_r(int fd, char *buf, size_t buflen)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_TTYNAME), "b"(fd), "c"(buf), "d"(buflen));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+char *
+ttyname(int fd)
+{
+    static char tty_name[1024];
+
+    if (ttyname_r(fd, tty_name, sizeof(tty_name) != 0)) {
+        return NULL;
+    }
+
+    return tty_name;
+}
+
 mode_t
 umask(mode_t newmode)
 {
