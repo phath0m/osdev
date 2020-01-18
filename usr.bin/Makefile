@@ -5,6 +5,8 @@ MAKE = make
 
 SUBDIRS += kstat
 SUBDIRS += unlink
+SUBDIRS += grep
+SUBDIRS += login
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
