@@ -16,7 +16,7 @@
 
 
 static int
-sys_close_handler(syscall_args_t argv)
+sys_close(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
 
@@ -35,7 +35,7 @@ sys_close_handler(syscall_args_t argv)
 }
 
 static int
-sys_creat_handler(syscall_args_t argv)
+sys_creat(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
@@ -63,7 +63,7 @@ sys_creat_handler(syscall_args_t argv)
 }
 
 static int
-sys_fchmod_handler(syscall_args_t argv)
+sys_fchmod(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
@@ -80,7 +80,7 @@ sys_fchmod_handler(syscall_args_t argv)
 }
 
 static int
-sys_ioctl_handler(syscall_args_t argv)
+sys_ioctl(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(uint32_t, request, 1, argv);
@@ -98,7 +98,7 @@ sys_ioctl_handler(syscall_args_t argv)
 }
 
 static int
-sys_fstat_handler(syscall_args_t argv)
+sys_fstat(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
@@ -115,7 +115,7 @@ sys_fstat_handler(syscall_args_t argv)
 }
 
 static int
-sys_open_handler(syscall_args_t argv)
+sys_open(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
@@ -142,7 +142,7 @@ sys_open_handler(syscall_args_t argv)
 }
 
 static int
-sys_pipe_handler(syscall_args_t argv)
+sys_pipe(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, pipefd, 0, argv);
 
@@ -159,7 +159,7 @@ sys_pipe_handler(syscall_args_t argv)
 }
 
 static int
-sys_read_handler(syscall_args_t argv)
+sys_read(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(char*, buf, 1, argv);
@@ -179,7 +179,7 @@ sys_read_handler(syscall_args_t argv)
 }
 
 static int
-sys_readdir_handler(syscall_args_t argv)
+sys_readdir(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(struct dirent *, dirent, 1, argv);
@@ -196,7 +196,7 @@ sys_readdir_handler(syscall_args_t argv)
 }
 
 static int
-sys_rmdir_handler(syscall_args_t argv)
+sys_rmdir(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
 
@@ -206,7 +206,7 @@ sys_rmdir_handler(syscall_args_t argv)
 }
 
 static int
-sys_lseek_handler(syscall_args_t argv)
+sys_lseek(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(off_t, offset, 1, argv);
@@ -224,7 +224,7 @@ sys_lseek_handler(syscall_args_t argv)
 }
 
 static int
-sys_mkdir_handler(syscall_args_t argv)
+sys_mkdir(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
@@ -237,7 +237,7 @@ sys_mkdir_handler(syscall_args_t argv)
 }
 
 static int
-sys_stat_handler(syscall_args_t argv)
+sys_stat(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
@@ -258,7 +258,7 @@ sys_stat_handler(syscall_args_t argv)
 }
 
 static int
-sys_unlink_handler(syscall_args_t argv)
+sys_unlink(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
 
@@ -268,7 +268,7 @@ sys_unlink_handler(syscall_args_t argv)
 }
 
 static int
-sys_write_handler(syscall_args_t argv)
+sys_write(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(const char *, buf, 1, argv);
@@ -291,19 +291,19 @@ __attribute__((constructor))
 void
 _init_vfs_syscalls()
 {
-    register_syscall(SYS_CLOSE, 1, sys_close_handler);
-    register_syscall(SYS_CREAT, 2, sys_creat_handler);
-    register_syscall(SYS_FCHMOD, 2, sys_fchmod_handler);
-    register_syscall(SYS_FSTAT, 2, sys_fstat_handler);
-    register_syscall(SYS_IOCTL, 3, sys_ioctl_handler);
-    register_syscall(SYS_LSEEK, 3, sys_lseek_handler);
-    register_syscall(SYS_OPEN, 2, sys_open_handler);
-    register_syscall(SYS_PIPE, 1, sys_pipe_handler);
-    register_syscall(SYS_READ, 3, sys_read_handler);
-    register_syscall(SYS_READDIR, 2, sys_readdir_handler);
-    register_syscall(SYS_RMDIR, 1, sys_rmdir_handler);
-    register_syscall(SYS_MKDIR, 2, sys_mkdir_handler);
-    register_syscall(SYS_STAT, 2, sys_stat_handler);
-    register_syscall(SYS_UNLINK, 1, sys_unlink_handler);
-    register_syscall(SYS_WRITE, 3, sys_write_handler);
+    register_syscall(SYS_CLOSE, 1, sys_close);
+    register_syscall(SYS_CREAT, 2, sys_creat);
+    register_syscall(SYS_FCHMOD, 2, sys_fchmod);
+    register_syscall(SYS_FSTAT, 2, sys_fstat);
+    register_syscall(SYS_IOCTL, 3, sys_ioctl);
+    register_syscall(SYS_LSEEK, 3, sys_lseek);
+    register_syscall(SYS_OPEN, 2, sys_open);
+    register_syscall(SYS_PIPE, 1, sys_pipe);
+    register_syscall(SYS_READ, 3, sys_read);
+    register_syscall(SYS_READDIR, 2, sys_readdir);
+    register_syscall(SYS_RMDIR, 1, sys_rmdir);
+    register_syscall(SYS_MKDIR, 2, sys_mkdir);
+    register_syscall(SYS_STAT, 2, sys_stat);
+    register_syscall(SYS_UNLINK, 1, sys_unlink);
+    register_syscall(SYS_WRITE, 3, sys_write);
 }
