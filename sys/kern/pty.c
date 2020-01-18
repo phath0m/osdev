@@ -65,7 +65,7 @@ mkpty()
     struct vfs_node *node = vfs_node_new(NULL, &ptm_ops);
 
     node->state = pty;
-
+    node->device = pty->slave;
     struct file *res = file_new(node);
 
     res->flags = O_RDWR;
