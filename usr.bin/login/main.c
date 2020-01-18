@@ -1,8 +1,9 @@
 #include <pwd.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <sys/utsname.h>
 
 static void
 do_login(struct passwd *pwd)
@@ -67,7 +68,15 @@ main(int argc, char *argv[])
 
     char *tty_name = strrchr(tty, '/') + 1;
 
-    printf("Elysium (%s)\n", tty_name);
+    time_t now = time(NULL);
+    
+    struct tm *ptm = gmtime(&now);
+
+    puts(asctime(ptm));
+    
+    struct utsname uname_buf;
+    uname(&uname_buf);
+    printf("%s/%s (%s)\n\n", uname_buf.sysname, uname_buf.machine, tty_name);
 
     for (;;) {
         fputs("login: ", stderr);
