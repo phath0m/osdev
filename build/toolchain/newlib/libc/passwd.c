@@ -32,7 +32,9 @@ parse_passwd_line(struct passwd *pwd, FILE *fp)
     if (count_char(line, 1024, ':') != 6) {
         return -1;
     }
-    
+
+    line[strcspn(line, "\n")] = 0;    
+
     pwd->pw_name = strtok(line, ":");
     pwd->pw_passwd = strtok(NULL, ":");
     pwd->pw_uid = atoi(strtok(NULL, ":"));
