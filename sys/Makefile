@@ -19,6 +19,7 @@ KERNEL_OBJECTS += i686/rtl/crtbegin.o
 KERNEL_OBJECTS += i686/rtl/malloc.o
 KERNEL_OBJECTS += i686/dev/serial_tty.o
 KERNEL_OBJECTS += i686/dev/ps2_keyboard.o
+KERNEL_OBJECTS += i686/dev/vga_textscreen.o
 KERNEL_OBJECTS += i686/kern/context_switch.o
 KERNEL_OBJECTS += i686/kern/preinit.o
 KERNEL_OBJECTS += i686/kern/boot.o
@@ -38,7 +39,6 @@ KERNEL_OBJECTS += i686/kern/vm.o
 
 # non i686 things here
 KERNEL_OBJECTS += dev/pseudo_device.o
-KERNEL_OBJECTS += dev/vga_textscreen.o
 
 KERNEL_OBJECTS += fs/devfs.o
 KERNEL_OBJECTS += fs/tarfs.o
