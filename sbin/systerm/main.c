@@ -206,6 +206,20 @@ input_loop(int ptm, int kbd, int vga)
 }
 
 static void
+invoke_newtty(int ptm)
+{
+    char *pts = ttyname(ptm);
+
+    char *argv[] = {
+        "/sbin/newtty",
+        pts,
+        NULL
+    };
+    
+    execv(argv[0], argv);
+}
+
+static void
 systerm_main()
 {
     int ptm = mkpty();
@@ -213,10 +227,19 @@ systerm_main()
     int kbd = open("/dev/kbd", O_RDONLY);
 
     if (ptm == -1 || vga == -1 || kbd == -1) {
+        close(ptm);
+        close(vga);
+        close(kbd);
         return;
     }
 
     ioctl(vga, TEXTSCREEN_SETFG, (void*)7);
+
+    pid_t child = fork();
+
+    if (!child) {
+        invoke_newtty(ptm);
+    }
 
     struct termstate state;
     
@@ -241,5 +264,6 @@ int
 main()
 {
     systerm_main();
+    
     return 0;
 }
