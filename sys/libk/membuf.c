@@ -81,7 +81,7 @@ membuf_read(struct membuf *mb, void *buf, size_t nbyte, off_t pos)
 
     for (int i = 0; i < required_blocks; i++) {
         int relative_offset = cur_pos % MEMBUF_BLOCK_SIZE;
-        int byte_count = nbyte - bytes_read;
+        int byte_count = nbyte - (i * MEMBUF_BLOCK_SIZE);
 
         if (byte_count > (MEMBUF_BLOCK_SIZE - relative_offset)) byte_count = MEMBUF_BLOCK_SIZE - relative_offset;
 
@@ -114,7 +114,7 @@ membuf_write(struct membuf *mb, const void *buf, size_t nbyte, off_t pos)
 
     for (int i = 0; i < required_blocks; i++) {
         int relative_offset = cur_pos % MEMBUF_BLOCK_SIZE;
-        int byte_count = nbyte - written; 
+        int byte_count = nbyte - (i * MEMBUF_BLOCK_SIZE);
         if (byte_count > (MEMBUF_BLOCK_SIZE - relative_offset)) byte_count = MEMBUF_BLOCK_SIZE - relative_offset;
 
         void *block = get_block_buf(mb, cur_pos);

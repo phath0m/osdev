@@ -61,6 +61,9 @@ kmain()
     };
 
     printf("kernel: invoke /sbin/doit\n");
+    extern time_t time();
+    int i = time();
+    printf("time is %d\n", i);
 
     current_proc->umask = 0744;
 

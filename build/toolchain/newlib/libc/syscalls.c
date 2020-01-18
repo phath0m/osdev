@@ -7,7 +7,7 @@
 #include <sys/errno.h>
 #include <sys/socket.h>
 #include <sys/syscalls.h>
-#include <sys/time.h>
+#include <sys/utsname.h>
 #include <stdio.h>
 
 char **environ;
@@ -389,6 +389,21 @@ unlink(char *path)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_UNLINK), "b"(path));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+uname(struct utsname *buf)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_UNAME), "b"(buf));
 
     if (ret < 0) {
         errno = -ret;
