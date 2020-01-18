@@ -10,6 +10,7 @@ main(int argc, const char *argv[])
         fprintf(stderr, "usage: newtty <tty>\n");
         return -1;
     }
+    
     const char *console = argv[1];
 
     int tty = open(console, O_RDWR);
