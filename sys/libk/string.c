@@ -84,8 +84,8 @@ memset(void *ptr, int value, size_t nbyte)
 {
     char *buf = (char*)ptr;
 
-    for (int i = 0; i < nbyte; i++, *buf++) {
-        *buf = 0;
+    for (int i = 0; i < nbyte; i++) {
+        buf[i] = 0;
     }
 
     return ptr;
@@ -281,3 +281,4 @@ vsprintf(char *str, const char *fmt, va_list arg)
     }
     *str = 0;
 }
+

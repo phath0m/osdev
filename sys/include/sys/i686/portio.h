@@ -20,7 +20,7 @@ io_write_byte(uint16_t port, uint8_t val)
 }
 
 static inline void
-io_write_short(uint16_t port, uint8_t val)
+io_write_short(uint16_t port, uint16_t val)
 {
     asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
 }

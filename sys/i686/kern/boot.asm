@@ -22,7 +22,7 @@ boot_page_directory:
     dd 0x00C00083
     times (1024 - KERNEL_PAGE_NUMBER - 4) dd 0
 
-section .text
+section .multiboot
 
 align 4
     dd MAGIC
@@ -38,6 +38,7 @@ align 4
     dd 0x00000000
     dd 0x00000000
 
+section .text
 _start:
     mov ecx, (boot_page_directory - KERNEL_VIRTUAL_BASE)
     mov cr3, ecx

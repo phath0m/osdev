@@ -72,8 +72,7 @@ get_cmos_time()
     epoch += day * 86400;
     epoch += hour * 3600;
     epoch += minute * 60;
-    epoch += second;    
-    
+
     return epoch;
 }
 
