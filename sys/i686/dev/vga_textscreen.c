@@ -402,6 +402,9 @@ vga_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
         case '\n':
             statep->position = (statep->position + 80) - (statep->position + 80) % 80;
             break;
+        case '\b':
+            vga_buffer[--statep->position] = ' ' | (attr < 8);
+            break;
         default:
             vga_buffer[statep->position++] = ch | (attr << 8);
             break;

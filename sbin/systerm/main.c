@@ -150,7 +150,9 @@ process_term_char(struct termstate *state, char ch)
         flush_buffer(state);
     }
 
-    state->buf[state->buf_len++] = ch;
+    if (ch != '\b') {
+        state->buf[state->buf_len++] = ch;
+    }
 }
 
 static void
@@ -174,7 +176,8 @@ input_loop(int ptm, int kbd, int vga)
 
     uint8_t scancode;
     bool shift_pressed;
-
+    char input_buffer[512];
+    int buf_pos = 0;
     char ch = 0;
 
     for (;;) {
@@ -198,10 +201,22 @@ input_loop(int ptm, int kbd, int vga)
             ch = kbdus[key];
         }
 
-        if (ch) {
-            write(ptm, &ch, 1);
-            write(vga, &ch, 1);
+        if (!ch) {
+            continue;
         }
+        
+        if (ch == '\b' && buf_pos > 0) {
+            input_buffer[buf_pos - 1] = 0;
+            buf_pos--;
+        } else if (ch == '\n' || buf_pos >= sizeof(input_buffer)) {
+            input_buffer[buf_pos++] = '\n';
+            write(ptm, input_buffer, buf_pos);
+            buf_pos = 0;
+        } else {
+            input_buffer[buf_pos++] = ch;     
+        }
+        write(vga, &ch, 1);
+        
     }
 }
 
