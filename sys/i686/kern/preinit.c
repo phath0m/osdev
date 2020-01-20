@@ -13,6 +13,7 @@
 #define KERNEL_BASE 0xC0000000
 
 void *start_initramfs;
+multiboot_info_t *multiboot_header;
 
 int
 run_kernel(void *state)
@@ -51,6 +52,7 @@ _preinit(multiboot_info_t *multiboot_hdr)
     asm volatile("cli");
 
     start_initramfs = (void*)(initrd);
+    multiboot_header = multiboot_hdr;
 
     brk((void*)(heap));
     

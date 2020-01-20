@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/vm.h>
 #include <sys/i686/vm.h>
+#include <sys/i686/multiboot.h>
 
 #define PHYSICAL_START_ADDR 0x8000000
 
@@ -298,6 +299,29 @@ vm_space_destroy(struct vm_space *space)
     free(space);
 }
 
+static void
+map_vbe_data(struct page_directory *directory)
+{
+    /* defined in sys/i686/kern/premain.c */
+    extern multiboot_info_t *multiboot_header;
+
+    if (!multiboot_header->vbe_mode_info) {
+        return;
+    }
+
+    /*
+     * so this is really a hack in that it violates my own principles of separating shit
+     * but honestly I don't know a better place to put this code. we need to make sure that
+     * the linear framebuffer used for VBE is properly mapped for each vm_space we create
+     * to ensure we can seemlessly access the framebuffer
+     */
+    vbe_info_t *info = (vbe_info_t*)(KERNEL_VIRTUAL_BASE + multiboot_header->vbe_mode_info);    
+
+    for (uintptr_t i = 0; i < info->Yres * info->pitch; i += 0x1000) {
+        page_map_entry(directory, info->physbase + i, info->physbase + i, true, false);
+    } 
+}
+
 struct vm_space *
 vm_space_new()
 {
@@ -316,6 +340,8 @@ vm_space_new()
         dir_entry->size = true; // huge page
         dir_entry->address = (i * 0x400000) >> 12;
     }
+
+    map_vbe_data(directory);
 
     vm_space->kernel_brk = KERNEL_VIRTUAL_BASE + 0x8000000;
     vm_space->user_brk = 0x8000000;
