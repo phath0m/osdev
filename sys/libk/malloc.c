@@ -138,7 +138,7 @@ brk(void *ptr)
     last_allocated = NULL;
     last_freed = NULL;
     
-    kernel_heap_end = kernel_break + 0x1000000;
+    kernel_heap_end = kernel_break + 0x2000000;
     kernel_heap_start = kernel_break;
     
     spinlock_unlock(&malloc_lock);
