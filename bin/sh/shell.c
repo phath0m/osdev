@@ -324,6 +324,13 @@ builtin_cd(const char *name, int argc, const char *argv[])
 }
 
 int
+builtin_clear(const char *name, int argc, const char *argv[])
+{
+    fputs("\x1B" "c", stdout);
+    return 0;
+}
+
+int
 builtin_setenv(const char *name, int argc, const char *argv[])
 {
     if (argc == 1) {
@@ -382,6 +389,7 @@ main(int argc, const char *argv[])
     memset(&builtin_commands, 0, sizeof(struct dict));
 
     dict_set(&builtin_commands, "cd", builtin_cd);
+    dict_set(&builtin_commands, "clear", builtin_clear);
     dict_set(&builtin_commands, "setenv", builtin_setenv);
     dict_set(&builtin_commands, "source", builtin_source);
 
