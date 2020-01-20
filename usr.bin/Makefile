@@ -3,6 +3,7 @@ export LD=i686-elysium-gcc
 
 MAKE = make
 
+SUBDIRS += fbctl
 SUBDIRS += kstat
 SUBDIRS += unlink
 SUBDIRS += grep
