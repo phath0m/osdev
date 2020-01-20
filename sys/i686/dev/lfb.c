@@ -74,8 +74,11 @@ fast_memcpy_d(void *dst, const void *src, size_t nbyte)
 }
 
 static void
-fb_putc(struct lfb_state *state, int x, int y, int val, int fg_col, int bg_col)
+fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
 {
+    int x = state->position % state->textscreen_width * FONT_WIDTH;
+    int y = state->position / state->textscreen_width * FONT_HEIGHT;
+
     if (val > 128) {
         val = 4;
     }
@@ -218,15 +221,17 @@ lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
     struct lfb_state *state = (struct lfb_state*)dev->state;
 
     for (int i = 0; i < nbyte; i++) {
-        int x = state->position % state->textscreen_width * FONT_WIDTH;
-        int y = state->position / state->textscreen_width * FONT_HEIGHT;
        
         switch (buf[i]) {
             case '\n':
                 state->position = (state->position + state->textscreen_width) - (state->position + state->textscreen_width) % state->textscreen_width;
                 break;
+            case '\b':
+                state->position--;
+                fb_putc(state, ' ', state->foreground_color, 0);
+                break;
             default:
-                fb_putc(state, x, y, buf[i], state->foreground_color, 0);
+                fb_putc(state, buf[i], state->foreground_color, 0);
                 state->position++;
                 break;
                     
