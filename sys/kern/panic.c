@@ -1,6 +1,6 @@
 #include <stdarg.h>
 #include <stdio.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 
 void
 panic(const char *fmt, ...)

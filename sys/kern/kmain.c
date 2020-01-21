@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <ds/dict.h>
-#include <sys/kernel.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
+#include <sys/systm.h>
 #include <sys/vm.h>
 #include <sys/vfs.h>
 

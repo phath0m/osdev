@@ -1,8 +1,8 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
-#include <sys/kernel.h>
 #include <sys/proc.h>
 #include <sys/syscall.h>
+#include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 

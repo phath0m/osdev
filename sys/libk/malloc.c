@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/kernel.h>
 #include <sys/mutex.h>
+#include <sys/systm.h>
 #include <sys/types.h>
 
 #define MALLOC_ALIGNMENT 128

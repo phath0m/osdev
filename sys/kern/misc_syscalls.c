@@ -1,8 +1,8 @@
 #include <time.h>
 #include <string.h>
 #include <sys/errno.h>
-#include <sys/kernel.h>
 #include <sys/syscall.h>
+#include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/device.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/dev/textscreen.h>
 #include <sys/i686/multiboot.h>
 

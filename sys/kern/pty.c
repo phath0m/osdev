@@ -3,7 +3,7 @@
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/vfs.h>
 
 
