@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/device.h>
+#include <sys/mutex.h>
 #include <sys/types.h>
 #include <sys/dev/textscreen.h>
 #include <sys/i686/multiboot.h>
@@ -18,6 +19,7 @@
 
 struct lfb_state {
     vbe_info_t *    vbe;
+    spinlock_t      lock;
     uint8_t *       frame_buffer;
     uint8_t *       foreground;
     uint8_t *       backbuffer;
@@ -185,6 +187,8 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 {
     struct lfb_state *state = (struct lfb_state*)dev->state;
 
+    spinlock_lock(&state->lock);
+
     switch (request) {
     case TEXTSCREEN_CLEAR:
         state->position = 0;
@@ -200,6 +204,8 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
         handle_lfb_request(state, (struct lfb_req*)argp);
         break;
     }
+
+    spinlock_unlock(&state->lock);
     return 0;
 }
 
@@ -219,6 +225,8 @@ static int
 lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     struct lfb_state *state = (struct lfb_state*)dev->state;
+
+    spinlock_lock(&state->lock);
 
     for (int i = 0; i < nbyte; i++) {
        
@@ -241,6 +249,8 @@ lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
             fb_scroll(state);
         }
     }
+
+    spinlock_unlock(&state->lock);
 
     return nbyte;
 }
@@ -267,6 +277,7 @@ _init_lfb()
     state.foreground = calloc(1, state.buffer_size);
     state.background = calloc(1, state.buffer_size);
     state.backbuffer = calloc(1, state.buffer_size);
+    spinlock_unlock(&state.lock);
     lfb_device.state = &state;
     device_register(&lfb_device);
 }
