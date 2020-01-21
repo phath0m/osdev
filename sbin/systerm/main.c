@@ -94,27 +94,29 @@ eval_csi_command(struct termstate *state, char final_byte)
 }
 
 static void
+flush_buffer(struct termstate *state)
+{
+    if (state->buf_len == 0) {
+        return;
+    }
+    write(state->textscreen, state->buf, state->buf_len);
+    state->buf_len = 0;
+}
+
+static void
 eval_escape_char(struct termstate *state, char ch)
 {
     switch (ch) {
         case '[':
             state->csi_initiated = true;
             break;
+        case 'c':
+            flush_buffer(state);
+            ioctl(state->textscreen, TEXTSCREEN_CLEAR, NULL);
+            break;
         default:
             break;
     }
-}
-
-static void
-flush_buffer(struct termstate *state)
-{
-    if (state->buf_len == 0) {
-        return;
-    }
-
-    write(state->textscreen, state->buf, state->buf_len);
-
-    state->buf_len = 0;
 }
 
 static inline void
@@ -234,11 +236,19 @@ invoke_newtty(int ptm)
     execv(argv[0], argv);
 }
 
+struct lfb_req {
+    uint8_t     opcode;
+    uint32_t    length;
+    uint32_t    offset;
+    uint32_t    color;
+    void *      data;
+};
+
 static void
 systerm_main()
 {
     int ptm = mkpty();
-    int vga = open("/dev/vga", O_WRONLY);
+    int vga = open("/dev/lfb", O_WRONLY);
     int kbd = open("/dev/kbd", O_RDONLY);
 
     if (ptm == -1 || vga == -1 || kbd == -1) {
