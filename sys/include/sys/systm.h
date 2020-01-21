@@ -8,6 +8,11 @@
 #define ELYSIUM_RELEASE     "v0.0.1"
 #define ELYSIUM_VERSION     __DATE__ " "__TIME__ 
 
+#define KASSERT(expr, msg) \
+    if (!(expr)) { \
+        panic("kassert: %s", msg); \
+    }
+
 int kmain();
 void kputs(const char *str);
 void kset_output(struct device *dev);
