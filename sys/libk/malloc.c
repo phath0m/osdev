@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/kernel.h>
 #include <sys/mutex.h>
 #include <sys/types.h>
 
@@ -13,11 +14,13 @@
 #define ALIGN_MASK 0xFFFFFF80
 
 struct malloc_block {
-    void    *prev;
-    void    *ptr;
-    size_t  size;
+    uint32_t    magic;
+    void    *   prev;
+    void    *   ptr;
+    size_t      size;
 };
 
+#define HEAP_MAGIC 0xBADB01
 
 intptr_t kernel_break;
 intptr_t kernel_heap_start;
@@ -44,6 +47,11 @@ find_free_block(size_t size)
     struct malloc_block *prev = NULL;
 
     while (iter) {
+        
+        if (iter->magic != HEAP_MAGIC) {
+            panic("heap corruption detected");
+        }
+
         if (iter->size == size) {
             if (prev) {
                 prev->prev = iter->prev;
@@ -82,6 +90,7 @@ malloc(size_t size)
 
     if (!free_block) {
         free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block->magic = HEAP_MAGIC;
         free_block->ptr = sbrk(size);
         free_block->size = aligned_size;
     }
@@ -152,15 +161,13 @@ sbrk(size_t increment)
     intptr_t prev_brk = kernel_break;
 
     kernel_break += increment;
-    kernel_break += MALLOC_ALIGNMENT;
+    kernel_break += MALLOC_ALIGNMENT*2;
     kernel_break &= ALIGN_MASK;
 
-    memset((void*)prev_brk, 0, increment);
+    //memset((void*)prev_brk, 0, increment);
 
     if (kernel_break >= kernel_heap_end) {
-        printf("full stop! prev_brk=%p kernel_break=%p\n", prev_brk, kernel_break);
-        asm volatile("cli");
-        asm volatile("hlt");
+        panic("kernel heap full");
     }
 
     return (void*)prev_brk; 

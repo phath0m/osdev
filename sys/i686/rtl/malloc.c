@@ -10,10 +10,13 @@
  * redefined, original definition in sys/rtl/malloc.c
  */
 struct malloc_block {
-    void *  prev;
-    void *  ptr;
-    size_t  size;
+    uint32_t    magic;
+    void *      prev;
+    void *      ptr;
+    size_t      size;
 };
+
+#define HEAP_MAGIC  0xBADB01
 
 /*
  * defined in sys/rtl/malloc.c
@@ -59,6 +62,7 @@ malloc_pa(size_t size)
 
     if (!free_block) {
         free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block->magic = HEAP_MAGIC;
         free_block->ptr = sbrk_a(aligned_size);
         free_block->size = aligned_size;
     }
@@ -80,6 +84,7 @@ sbrk_a(size_t increment)
 {
     while ((kernel_break & 0xFFF) != 0) {
         struct malloc_block *free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block->magic = HEAP_MAGIC;
         free_block->ptr = sbrk(128);
         free_block->size = 128;
         free_block->prev = last_freed;
