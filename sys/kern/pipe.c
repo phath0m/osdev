@@ -2,6 +2,7 @@
 #include <sys/fcntl.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/wait.h>
@@ -96,7 +97,7 @@ pipe_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
     uint8_t *buf8 = (uint8_t*)buf;
 
     while (pipe->pending == 0 && !pipe->write_closed) {
-        sched_yield();
+        thread_yield();
     }
 
     spinlock_lock(&pipe->lock);
@@ -129,7 +130,7 @@ pipe_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
     uint8_t *buf8 = (uint8_t*)buf;
 
     while (pipe->pending != 0 && !pipe->closed) {
-        sched_yield();
+        thread_yield();
     }
 
     spinlock_lock(&pipe->lock);

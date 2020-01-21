@@ -9,6 +9,7 @@
 #include <ds/list.h>
 #include <sys/vm.h>
 #include <sys/proc.h>
+#include <sys/thread.h>
 
 #define KERNEL_BASE 0xC0000000
 
@@ -78,7 +79,7 @@ _preinit(multiboot_info_t *multiboot_hdr)
     }
     printf("kernel: detected %dMB of usable memory\n", (usable_memory / 1024 / 1024));
     
-    sched_run_kthread((kthread_entry_t)run_kernel, NULL, NULL);
+    thread_run((kthread_entry_t)run_kernel, NULL, NULL);
 
     /*
      * At this point, we are still using the stack initialized by the bootloader. 

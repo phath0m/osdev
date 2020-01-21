@@ -4,6 +4,7 @@
 #include <ds/list.h>
 #include <sys/fcntl.h>
 #include <sys/proc.h>
+#include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>

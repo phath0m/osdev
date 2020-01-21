@@ -7,6 +7,7 @@
 #include <ds/list.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
+#include <sys/thread.h>
 #include <sys/vm.h>
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
@@ -44,12 +45,12 @@ sched_reap_threads()
     struct thread *thread;
 
     while (iter_move_next(&iter, (void**)&thread)) {
-        proc_destroy(thread->proc);
+        thread_destroy(thread);
     }
 
     iter_close(&iter);
     
-    list_destroy(&dead_threads, true);
+    list_destroy(&dead_threads, false);
 }
 
 
@@ -126,7 +127,7 @@ sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t
 }
 
 void
-sched_run_kthread(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
+thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 {
     struct thread *thread = (struct thread*)calloc(0, sizeof(struct thread));
 
@@ -146,14 +147,14 @@ sched_run_kthread(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 }
 
 void
-sched_yield()
+thread_yield()
 {
     asm volatile("sti");
     asm volatile("hlt");
 }
 
 void
-schedule_thread(int state, struct thread *thread)
+thread_schedule(int state, struct thread *thread)
 {
     thread->state = state;
 
@@ -162,6 +163,15 @@ schedule_thread(int state, struct thread *thread)
     } else if (state == SDEAD) {
         list_append(&dead_threads, thread);
     }
+}
+
+void
+thread_destroy(struct thread *thread)
+{
+    list_destroy(&thread->joined_queues, true);
+    vm_space_destroy(thread->address_space);
+    proc_destroy(thread->proc);
+    free(thread);
 }
 
 __attribute__((constructor))

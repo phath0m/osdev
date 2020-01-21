@@ -3,6 +3,7 @@
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/proc.h>
+#include <sys/thread.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
 

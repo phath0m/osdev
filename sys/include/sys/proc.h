@@ -17,6 +17,8 @@
 
 typedef int (*kthread_entry_t)(void *state);
 
+struct regs;
+
 struct cred {
     uid_t   uid;
     gid_t   gid;
@@ -47,17 +49,6 @@ struct proc {
     pid_t               pid;
     int                 status;
     bool                exited;
-};
-
-struct thread {
-    struct list         joined_queues;
-    struct regs *       regs;
-    struct proc *       proc;
-    struct vm_space *   address_space;
-    uint8_t             state;
-    uintptr_t           stack;
-    uintptr_t           u_stack_bottom;
-    uintptr_t           u_stack_top;
 };
 
 /*
@@ -130,13 +121,5 @@ int proc_dup(int oldfd);
  * Duplicates a file descriptor
  */
 int proc_dup2(int oldfd, int newfd);
-
-uintptr_t sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg);
-
-void sched_run_kthread(kthread_entry_t entrypoint, struct vm_space *space, void *arg);
-
-void sched_yield();
-
-void schedule_thread(int state, struct thread *thread);
 
 #endif

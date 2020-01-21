@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/proc.h>
+#include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
@@ -117,11 +118,11 @@ proc_fork(struct regs *regs)
 
     memcpy(&state->regs, regs, sizeof(struct regs));
 
-    sched_run_kthread(init_child_proc, new_space, (void*)state);
+    thread_run(init_child_proc, new_space, (void*)state);
 
     asm volatile("sti");
 
-    sched_yield();
+    thread_yield();
 
     return new_proc->pid;
 }

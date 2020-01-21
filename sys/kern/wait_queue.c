@@ -1,5 +1,6 @@
 #include <ds/list.h>
 #include <sys/proc.h>
+#include <sys/thread.h>
 #include <sys/wait.h>
 
 // remove me
@@ -21,13 +22,13 @@ wq_pulse(struct wait_queue *queue)
     queue->signaled = true;
 
     while (iter_move_next(&iter, (void**)&thread)) {
-        schedule_thread(SRUN, thread);
+        thread_schedule(SRUN, thread);
     }
 
     iter_close(&iter);
     
     while (queue->wait_count) {
-        sched_yield();
+        thread_yield();
     }
 
     queue->signaled = false;
@@ -41,7 +42,7 @@ wq_wait(struct wait_queue *queue)
     if (!queue->signaled) {
         list_append(&queue->waiting_threads, current_proc->thread);
 
-        schedule_thread(SSLEEP, current_proc->thread);
+        thread_schedule(SSLEEP, current_proc->thread);
 
         while (!queue->signaled) {
         }

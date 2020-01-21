@@ -3,6 +3,7 @@
 #include <sys/fcntl.h>
 #include <sys/proc.h>
 #include <sys/syscall.h>
+#include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
@@ -149,10 +150,10 @@ sys_exit(syscall_args_t args)
 
     wq_pulse(&current_proc->waiters);
 
-    schedule_thread(SDEAD, current_proc->thread);
+    thread_schedule(SDEAD, current_proc->thread);
 
     for (; ;) {
-        sched_yield();
+        thread_yield();
     }
 
     return 0;
