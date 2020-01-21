@@ -3,8 +3,7 @@
 #include <ds/list.h>
 #include <ds/membuf.h>
 #include <sys/mutex.h>
-// delete me
-#include <stdio.h>
+#include <sys/systm.h>
 
 static void
 expand_buffer(struct membuf *mb, size_t newsize)
@@ -118,6 +117,8 @@ membuf_write(struct membuf *mb, const void *buf, size_t nbyte, off_t pos)
         if (byte_count > (MEMBUF_BLOCK_SIZE - relative_offset)) byte_count = MEMBUF_BLOCK_SIZE - relative_offset;
 
         void *block = get_block_buf(mb, cur_pos);
+
+        KASSERT(block != NULL, "get_block_buf should not equal NULL");
 
         memcpy(block + relative_offset, buf + (i * MEMBUF_BLOCK_SIZE), byte_count);
         written += byte_count;
