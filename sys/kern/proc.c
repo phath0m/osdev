@@ -4,6 +4,7 @@
 #include <sys/errno.h>
 #include <sys/wait.h>
 #include <sys/proc.h>
+#include <sys/systm.h>
 #include <sys/thread.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
@@ -19,9 +20,8 @@ struct list process_list;
 void
 proc_destroy(struct proc *proc)
 {
-    /*
-     * todo: terminate all threads and unmap virtual memory
-     */
+    KASSERT(proc != LIST_FIRST(&process_list), "init died");
+
     struct thread *thread = proc->thread;
 
     for (int i = 0; i < 4096; i++) {
@@ -35,6 +35,19 @@ proc_destroy(struct proc *proc)
     vm_space_destroy(thread->address_space);
 
     list_remove(&process_list, proc);
+
+    list_iter_t iter;
+    list_get_iter(&proc->children, &iter);
+
+    struct proc *orphan;
+
+    while (iter_move_next(&iter, (void**)&orphan)) {
+        orphan->parent = LIST_FIRST(&process_list);
+    }
+
+    iter_close(&iter);
+
+    list_remove(&proc->parent->children, proc);
 
     list_destroy(&proc->children, false);
     list_destroy(&proc->threads, false);
