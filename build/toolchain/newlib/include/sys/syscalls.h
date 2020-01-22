@@ -35,5 +35,6 @@
 #define SYS_ISATTY      0x21
 #define SYS_TTYNAME     0x22
 #define SYS_TIME        0x23
+#define SYS_PAUSE       0x24
 
 #endif

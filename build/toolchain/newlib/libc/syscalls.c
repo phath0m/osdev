@@ -261,6 +261,21 @@ open(const char *name, int flags, ...)
 }
 
 int
+pause()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_PAUSE));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 pipe(int pipefd[2])
 {
     int ret;
