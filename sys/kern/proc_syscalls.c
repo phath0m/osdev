@@ -285,6 +285,18 @@ sys_umask(syscall_args_t argv)
     return oldmask;
 }
 
+static int
+sys_pause(syscall_args_t argv)
+{
+    TRACE_SYSCALL("pause", "void");
+
+    asm volatile("sti");
+
+    thread_schedule(SSLEEP, current_proc->thread);
+
+    return 0;
+}
+
 __attribute__((constructor))
 void
 _init_proc_syscalls()
@@ -300,4 +312,5 @@ _init_proc_syscalls()
     register_syscall(SYS_DUP, 1, sys_dup);
     register_syscall(SYS_DUP2, 2, sys_dup2);
     register_syscall(SYS_UMASK, 1, sys_umask);
+    register_syscall(SYS_PAUSE, 0, sys_pause);
 }
