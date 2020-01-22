@@ -168,5 +168,9 @@ main(int argc, const char *argv[])
 
     start_services();
 
+    for (;;) {
+        pause();
+    }
+
     return 0;
 }
