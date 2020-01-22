@@ -2,6 +2,7 @@
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
+#include <sys/wait.h>
 #include <sys/proc.h>
 #include <sys/thread.h>
 #include <sys/vfs.h>
@@ -34,6 +35,11 @@ proc_destroy(struct proc *proc)
     vm_space_destroy(thread->address_space);
 
     list_remove(&process_list, proc);
+
+    list_destroy(&proc->children, false);
+    list_destroy(&proc->threads, false);
+
+    wq_empty(&proc->waiters);
 
     proc_count--;
 

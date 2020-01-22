@@ -61,6 +61,10 @@ print_heap_info()
     printf("files            : %d\n", heapinfo->file_count);
     printf("procs            : %d\n", heapinfo->proc_count);
     printf("list_elems       : %d\n", heapinfo->list_elem_count);
+    printf("page_block_count : %d\n", heapinfo->page_block_count);
+    printf("page_table_count : %d\n", heapinfo->page_table_count);
+    printf("vm_block_count   : %d\n", heapinfo->vm_block_count);
+    printf("vm_space_count   : %d\n", heapinfo->vm_space_count);
 
     free(resp);
 

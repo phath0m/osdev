@@ -53,6 +53,10 @@ struct klink_heap_stat {
     uint32_t    file_count;
     uint32_t    proc_count;
     uint32_t    list_elem_count;
+    uint32_t    page_block_count;
+    uint32_t    page_table_count;
+    uint32_t    vm_block_count;
+    uint32_t    vm_space_count;
 } __attribute__((packed));
 
 static int klink_close(struct socket *sock);
@@ -103,6 +107,12 @@ klink_send_heapstat(struct klink_session *session)
     /* defined in sys/libk/list.c */
     extern int list_elem_count;
 
+    /* defined in sys/i686/kern/vm.c */
+    extern int page_block_count;
+    extern int page_table_count;
+    extern int vm_block_count;
+    extern int vm_space_count;
+ 
     heapstat->heap_start = kernel_heap_start;
     heapstat->heap_break = kernel_break;
     heapstat->heap_end = kernel_heap_end;
@@ -112,6 +122,11 @@ klink_send_heapstat(struct klink_session *session)
     heapstat->file_count = vfs_file_count;
     heapstat->proc_count = proc_count;
     heapstat->list_elem_count = list_elem_count;
+
+    heapstat->page_block_count = page_block_count;
+    heapstat->page_table_count = page_table_count;
+    heapstat->vm_block_count = vm_block_count;
+    heapstat->vm_space_count = vm_space_count;
     list_append(&session->resp_queue, resp);
 
     return 0;

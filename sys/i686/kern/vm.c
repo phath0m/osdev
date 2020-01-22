@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ds/list.h>
+#include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/vm.h>
 #include <sys/i686/vm.h>
@@ -21,6 +22,14 @@ struct page_block {
 struct list pages_allocated;
 struct list pages_free;
 uintptr_t   pages_physical_brk;
+
+/*
+ * track allocations for kstat
+ */
+int page_block_count = 0;
+int page_table_count = 0;
+int vm_block_count = 0;
+int vm_space_count = 0;
 
 static struct page_block *
 page_find_free_block()
@@ -40,9 +49,10 @@ page_alloc(struct page_block **res)
     struct page_block *block = page_find_free_block();
 
     if (!block) {
-        block = (struct page_block*)calloc(0, sizeof(struct page_block));
+        block = (struct page_block*)calloc(1, sizeof(struct page_block));
         block->addr = pages_physical_brk;
         pages_physical_brk += PAGE_SIZE;
+        page_block_count++;
     }
 
     list_append(&pages_allocated, block);
@@ -65,13 +75,16 @@ page_free(void *addr)
     while (iter_move_next(&iter, (void**)&block)) {
         if (block->addr == (uintptr_t)addr) {
             to_remove = block;
+            break;
         }
     }
     
     iter_close(&iter);
 
     if (to_remove) {
+        page_block_count--;
         list_remove(&pages_allocated, to_remove);
+        free(to_remove);
     }
 }
 
@@ -84,18 +97,19 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
     struct page_directory_entry *dir_entry = &directory->tables[page_table_entry];
     struct page_table *table = (struct page_table*)(dir_entry->address << 12);
 
-    if (!dir_entry->present) {
-        
-        table = (struct page_table*)malloc_pa(sizeof(struct page_table));
 
+    if (!dir_entry->present) {    
+        table = (struct page_table*)malloc_pa(sizeof(struct page_table));
+        page_table_count++;
         memset(table, 0, sizeof(struct page_table));
 
         dir_entry->present = 1;
         dir_entry->read_write = 1;
         dir_entry->user = 1;
-        dir_entry->address = ((uint32_t)table - KERNEL_VIRTUAL_BASE) >> 12;
-    } else if (dir_entry->size) {
-        return;
+        dir_entry->address = (((uint32_t)table) - KERNEL_VIRTUAL_BASE) >> 12;
+     }
+     else if (dir_entry->size) {
+         panic("cannot re-map huge page!");
     } else {
         table = (struct page_table*)((uintptr_t)table + KERNEL_VIRTUAL_BASE);
     }
@@ -117,16 +131,18 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
 static void
 page_directory_free(struct page_directory *directory)
 {
-    for (int i = 32; i < 1024; i++) {
+    for (int i = 0; i < 1024; i++) {
         struct page_directory_entry *entry = &directory->tables[i];
 
-        if (entry->present) {
+        if (entry->present && !entry->size) {
             struct page_table *table = (struct page_table*)((entry->address << 12) + KERNEL_VIRTUAL_BASE);
-
+            page_table_count--;
+            entry->present = false;
             free(table);
         }
     }
 
+    vm_space_count--;
     free(directory);
 }
 
@@ -156,7 +172,7 @@ struct vm_block *
 vm_block_new()
 {
     struct vm_block *block = (struct vm_block*)calloc(0, sizeof(struct vm_block));
-
+    vm_block_count++;
     return block;
 }
 
@@ -262,8 +278,11 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
         if (frame && frame->ref_count <= 0) {
             page_free((void*)block->start_physical);
         }
+
         list_remove(&space->map, block);
+        
         free(block);
+        vm_block_count--;
     }
 }
 
@@ -293,8 +312,8 @@ vm_space_destroy(struct vm_space *space)
 
     iter_close(&iter);
 
-    list_destroy(&to_remove, true);
-
+    list_destroy(&to_remove, false);
+    list_destroy(&space->map, false);
     page_directory_free((struct page_directory*)space->state_virtual);
     free(space);
 }
@@ -327,9 +346,11 @@ vm_space_new()
 {
     struct vm_space *vm_space = (struct vm_space*)calloc(0, sizeof(struct vm_space));
     struct page_directory *directory = (struct page_directory*)malloc_pa(sizeof(struct page_directory));
+    vm_space_count++;
 
     memset(directory, 0, sizeof(struct page_directory));
 
+    
     uint32_t page_start = KERNEL_VIRTUAL_BASE >> 22;
 
     for (int i = 0; i < 32; i++) {
@@ -347,6 +368,7 @@ vm_space_new()
     vm_space->user_brk = 0x8000000;
     vm_space->state_physical = (void*)((uint32_t)directory - KERNEL_VIRTUAL_BASE);
     vm_space->state_virtual = (void*)directory;
+
 
     return vm_space;
 }

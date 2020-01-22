@@ -169,7 +169,6 @@ void
 thread_destroy(struct thread *thread)
 {
     list_destroy(&thread->joined_queues, true);
-    vm_space_destroy(thread->address_space);
     proc_destroy(thread->proc);
     free(thread);
 }

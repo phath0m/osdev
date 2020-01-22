@@ -10,6 +10,8 @@ struct wait_queue {
     int         wait_count;
 };
 
+
+void wq_empty(struct wait_queue *queue);
 void wq_pulse(struct wait_queue *queue);
 void wq_wait(struct wait_queue *queue);
 

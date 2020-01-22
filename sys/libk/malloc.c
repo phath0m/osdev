@@ -114,6 +114,7 @@ free(void *ptr)
 
     struct malloc_block *iter = last_allocated;
     struct malloc_block *prev = NULL;
+    bool block_freed = false;
 
     while (iter) {
 
@@ -128,6 +129,7 @@ free(void *ptr)
             last_freed = iter;
             kernel_heap_allocated_blocks--;
             kernel_heap_free_blocks++;
+            block_freed = true;
             break;
         }
 
@@ -136,6 +138,11 @@ free(void *ptr)
     }
     
     spinlock_unlock(&malloc_lock);
+    
+    if (!block_freed) {
+        stacktrace(5);
+        panic("double free (0x%p)", ptr);
+    }
 }
 
 

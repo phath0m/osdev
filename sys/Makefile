@@ -4,7 +4,7 @@ AS=nasm
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
 AFLAGS= -f elf32
-CFLAGS = -c -std=gnu99 --freestanding -Wall -Werror -nostartfiles -nodefaultlibs -DELYSIUM_TARGET="\"i686\"" -I ./include -I ../include
+CFLAGS = -c -std=gnu99 --freestanding -g -Wall -Werror -nostartfiles -nodefaultlibs -DELYSIUM_TARGET="\"i686\"" -I ./include -I ../include
 LDFLAGS = -T i686/linker.ld --freestanding -O2 -nostdlib
 
 # TODO: Make this conditional (for different arch)
@@ -34,6 +34,7 @@ KERNEL_OBJECTS += i686/kern/interrupt_handler.o
 KERNEL_OBJECTS += i686/kern/exec.o
 KERNEL_OBJECTS += i686/kern/fork.o
 KERNEL_OBJECTS += i686/kern/sched.o
+KERNEL_OBJECTS += i686/kern/stacktrace.o
 KERNEL_OBJECTS += i686/kern/syscall_dispatch.o
 KERNEL_OBJECTS += i686/kern/time.o
 KERNEL_OBJECTS += i686/kern/usermode.o

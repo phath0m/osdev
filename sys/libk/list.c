@@ -174,8 +174,8 @@ list_remove_back(struct list *listp, void **item)
 
         listp->count--;
         list_elem_count--;
-        free(tail);
 
+        free(tail);
         res = true;
     }
 

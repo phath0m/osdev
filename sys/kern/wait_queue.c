@@ -7,6 +7,30 @@
 #include <stdio.h>
 
 void
+wq_empty(struct wait_queue *queue)
+{
+    if (queue->wait_count == 0) {
+        return;
+    }
+
+    list_iter_t iter;
+
+    list_get_iter(&queue->waiting_threads, &iter);
+
+    struct thread *thread;
+
+    queue->signaled = true;
+
+    while (iter_move_next(&iter, (void**)&thread)) {
+        thread_schedule(SRUN, thread);
+    }
+
+    iter_close(&iter);
+
+    list_destroy(&queue->waiting_threads, false);
+}
+
+void
 wq_pulse(struct wait_queue *queue)
 {
     if (queue->wait_count == 0) {
@@ -26,7 +50,9 @@ wq_pulse(struct wait_queue *queue)
     }
 
     iter_close(&iter);
-    
+
+    list_destroy(&queue->waiting_threads, false);
+
     while (queue->wait_count) {
         thread_yield();
     }

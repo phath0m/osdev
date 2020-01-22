@@ -19,5 +19,6 @@ void kset_output(struct device *dev);
 void panic(const char *fmt, ...);
 void shutdown();
 void create_pipe(struct file **files);
+void stacktrace(int max_frames);
 
 #endif
