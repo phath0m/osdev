@@ -235,6 +235,21 @@ getppid()
 }
 
 int
+getsid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETSID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 gettimeofday(struct timeval *p, void *z)
 {
     int ret;
@@ -249,6 +264,21 @@ gettimeofday(struct timeval *p, void *z)
     p->tv_sec = (time_t)ret;
 
     return 0;
+}
+
+int
+getuid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETUID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 int
@@ -465,6 +495,21 @@ setpgid(pid_t pid, pid_t pgid)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETPGID), "b"(pid), "c"(pgid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+setsid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETSID));
 
     if (ret < 0) {
         errno = -ret;
