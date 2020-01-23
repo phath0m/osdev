@@ -307,6 +307,11 @@ main(int argc, char *argv[])
 
     int count = read_dirents(&options, entries, 512);
 
+    if (count < 0) {
+        perror("ls");
+        return -1;
+    }
+
     switch (options.sort_mode) {
         case SORT_ALPHA:
             sort_dirents_alphabetical(entries, count);
