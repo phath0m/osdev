@@ -19,18 +19,36 @@ int proc_count = 0;
 struct list process_list;
 
 void
+pgrp_leave_session(struct pgrp *group, struct session *session)
+{
+    list_remove(&session->groups, group);
+
+    if (LIST_SIZE(&session->groups) == 0) {
+        free(session);
+    }
+}
+
+struct pgrp *
+pgrp_new(struct proc *leader, struct session *session)
+{
+    struct pgrp *group = calloc(1, sizeof(struct pgrp));
+
+    group->leader = leader;
+    group->pgid = leader->pid;
+    group->session = session;
+
+    list_append(&session->groups, group);
+
+    return group;
+}
+
+void
 proc_destroy(struct proc *proc)
 {
     KASSERT(proc != LIST_FIRST(&process_list), "init died");
     KASSERT(proc->parent != NULL, "cannot have NULL parent");
 
-    struct pgrp *group = proc->group;
-
-    list_remove(&group->members, proc);
-
-    if (LIST_SIZE(&group->members) == 0) {
-        free(group);
-    }
+    proc_leave_group(proc, proc->group);
 
     struct thread *thread = proc->thread;
 
@@ -67,6 +85,17 @@ proc_destroy(struct proc *proc)
     proc_count--;
 
     free(proc);
+}
+
+void
+proc_leave_group(struct proc *proc, struct pgrp *group)
+{
+    list_remove(&group->members, proc);
+
+    if (LIST_SIZE(&group->members) == 0) {
+        pgrp_leave_session(group, group->session);
+        free(group);
+    }   
 }
 
 int
@@ -174,3 +203,12 @@ proc_newfildes(struct file *file)
     return -EMFILE;
 }
 
+struct session *
+session_new(struct proc *leader)
+{
+    struct session *session = calloc(1, sizeof(struct session));
+
+    session->leader = leader;
+
+    return session;  
+}

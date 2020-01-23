@@ -273,18 +273,10 @@ sys_setpgid(syscall_args_t argv)
         return -1;
     }
 
-    struct pgrp *group = current_proc->group;
+    struct pgrp *old_group = current_proc->group;
+    struct pgrp *new_group = pgrp_new(current_proc, old_group->session);
 
-    list_remove(&group->members, current_proc);
-
-    if (LIST_SIZE(&group->members) == 0) {
-        free(group);
-    }
-
-    struct pgrp *new_group = calloc(1, sizeof(struct pgrp));
-
-    new_group->pgid = current_proc->pid;
-    list_append(&new_group->members, current_proc);
+    proc_leave_group(current_proc, old_group);
 
     current_proc->group = new_group;
 

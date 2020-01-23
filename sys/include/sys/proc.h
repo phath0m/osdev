@@ -18,6 +18,7 @@
 typedef int (*kthread_entry_t)(void *state);
 
 struct regs;
+struct proc;
 
 struct cred {
     uid_t   uid;
@@ -26,8 +27,16 @@ struct cred {
     gid_t   egid;
 };
 
+struct session {
+    struct list         groups;
+    struct proc *       leader;
+    pid_t               sid;
+};
+
 struct pgrp {
     struct list         members;
+    struct session *    session;
+    struct proc *       leader;
     pid_t               pgid;           
 };
 
@@ -59,6 +68,17 @@ struct proc {
 extern struct proc *current_proc;
 
 /*
+ * proc_leave_session
+ * Removes a group from a session, freeing the session if empty
+ */
+void pgrp_leave_session(struct pgrp *group, struct session *session);
+
+/*
+ * allocates new process group
+ */
+struct pgrp *pgrp_new(struct proc *leader, struct session *session);
+
+/*
  * proc_execve
  * Loads an executable into the current address space and invokes the main entry point
  */
@@ -81,6 +101,11 @@ char *proc_getctty(struct proc *proc);
  * Frees a proc struct, killing any running threads and freeing all memory
  */
 void proc_destroy(struct proc *);
+
+/*
+ * Remove a process from a particular group; freeing the group if empty
+ */
+void proc_leave_group(struct proc *proc, struct pgrp *group);
 
 /*
  * proc_getbypid
@@ -123,5 +148,11 @@ int proc_dup(int oldfd);
  * Duplicates a file descriptor
  */
 int proc_dup2(int oldfd, int newfd);
+
+/*
+ * session_new()
+ * allocates a new session
+ */
+struct session *session_new(struct proc *leader);
 
 #endif
