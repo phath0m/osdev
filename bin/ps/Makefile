@@ -5,6 +5,7 @@ CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
 PS_OBJECTS += main.o
+PS_OBJECTS += list.o
 
 PS = ../../build/initrd/bin/ps
 
