@@ -44,6 +44,7 @@ struct proc {
     struct wait_queue   waiters;
     mode_t              umask;
     char                name[256];
+    time_t              start_time;
     uintptr_t           base;
     uintptr_t           brk;
     pid_t               pid;

@@ -41,6 +41,7 @@ struct klink_proc_info {
 struct klink_proc_stat {
     char        cmd[256];
     char        tty[32];
+    uint32_t    stime;
 } __attribute__((packed));
 
 struct klink_heap_stat {
@@ -157,6 +158,11 @@ klink_send_proclist(struct klink_session *session)
         info->pid = proc->pid;
         info->uid = proc->creds.uid;
         info->gid = proc->creds.gid;
+
+        if (proc->parent) {
+            printf("set parent pid to %d\n", proc->parent->pid);
+            info->ppid = proc->parent->pid;
+        }
     }
 
     resp->size = LIST_SIZE(&process_list) * sizeof(struct klink_proc_info);
@@ -190,6 +196,9 @@ klink_send_procstat(struct klink_session *session, int target)
             resp = (struct klink_dgram*)(calloc(0, resp_sz));
 
             struct klink_proc_stat *stat = (struct klink_proc_stat*)(resp + 1);
+            
+            stat->stime = proc->start_time;
+ 
             char *tty = proc_getctty(proc);
 
             strncpy(stat->cmd, proc->name, 255);

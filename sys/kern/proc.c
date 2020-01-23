@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
@@ -21,6 +22,7 @@ void
 proc_destroy(struct proc *proc)
 {
     KASSERT(proc != LIST_FIRST(&process_list), "init died");
+    KASSERT(proc->parent != NULL, "cannot have NULL parent");
 
     struct thread *thread = proc->thread;
 
@@ -140,7 +142,8 @@ struct proc *
 proc_new()
 {
     struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
-    
+
+    proc->start_time = time(NULL);    
     proc->pid = ++next_pid;
 
     list_append(&process_list, proc);
