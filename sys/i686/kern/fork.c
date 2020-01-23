@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/proc.h>
+#include <sys/systm.h>
 #include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
@@ -100,11 +101,16 @@ proc_fork(struct regs *regs)
     new_proc->parent = proc;
     new_proc->root = proc->root;
     new_proc->umask = proc->umask;
+    new_proc->group = proc->group;
 
     INC_NODE_REF(proc->root);
     INC_NODE_REF(proc->cwd);
 
     list_append(&proc->children, new_proc);
+
+    KASSERT(proc->group != NULL, "process cannot inherit a NULL group");
+
+    list_append(&proc->group->members, new_proc);
 
     copy_stack(proc->thread, new_space);
     copy_image(proc, new_space);

@@ -36,5 +36,17 @@
 #define SYS_TTYNAME     0x22
 #define SYS_TIME        0x23
 #define SYS_PAUSE       0x24
+#define SYS_SETPGID     0x25
+#define SYS_GETPGRP     0x26
+#define SYS_GETPID      0x27
+#define SYS_GETPPID     0x28
+#define SYS_GETGID      0x29
+#define SYS_GETEGID     0x2A
+#define SYS_GETUID      0x2B
+#define SYS_GETEUID     0x2C
+#define SYS_SETGID      0x2D
+#define SYS_SETEGID     0x2E
+#define SYS_SETUID      0x2F
+#define SYS_SETEUID     0x30
 
 #endif

@@ -24,6 +24,14 @@ proc_destroy(struct proc *proc)
     KASSERT(proc != LIST_FIRST(&process_list), "init died");
     KASSERT(proc->parent != NULL, "cannot have NULL parent");
 
+    struct pgrp *group = proc->group;
+
+    list_remove(&group->members, proc);
+
+    if (LIST_SIZE(&group->members) == 0) {
+        free(group);
+    }
+
     struct thread *thread = proc->thread;
 
     for (int i = 0; i < 4096; i++) {

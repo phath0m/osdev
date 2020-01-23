@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
@@ -160,11 +161,165 @@ sys_exit(syscall_args_t args)
 }
 
 static int
+sys_getgid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("getid", "void");
+
+    return current_proc->creds.gid;
+}
+
+static int
+sys_getegid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("geteid", "void");
+
+    return current_proc->creds.egid;
+}
+
+static int
+sys_getuid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("getuid", "void");
+
+    return current_proc->creds.uid;
+}
+
+static int
+sys_geteuid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("geteuid", "void");
+
+    return current_proc->creds.euid;
+}
+
+static int
+sys_getpgrp(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
+
+    TRACE_SYSCALL("getpgrp", "%d", pid);
+
+    if (pid != 0) {
+        return -1;
+    }
+
+    return current_proc->group->pgid;
+}
+
+static int
+sys_getpid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("getpid", "void");
+
+    return current_proc->pid;
+}
+
+static int
+sys_getppid()
+{
+    TRACE_SYSCALL("getppid", "void");
+
+    return current_proc->parent->pid;
+}
+
+static int
 sys_fork(syscall_args_t argv)
 {
     TRACE_SYSCALL("fork", "void");
 
     return proc_fork((struct regs*)argv->state);
+}
+
+static int
+sys_setgid(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(gid_t, gid, 0, argv);
+
+    TRACE_SYSCALL("setgid", "%d", gid);
+
+    if (current_proc->creds.uid == 0) {
+        current_proc->creds.gid = gid;
+        current_proc->creds.egid = gid;
+        return 0;
+    }
+
+    return -(EPERM);
+}
+
+static int
+sys_setegid(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(gid_t, gid, 0, argv);
+
+    TRACE_SYSCALL("setegid", "%d", gid);
+
+    if (current_proc->creds.uid == 0 || current_proc->creds.gid == gid) {
+        current_proc->creds.egid = gid;
+        return 0;
+    }
+
+    return -(EPERM);
+}
+
+static int
+sys_setpgid(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
+    DEFINE_SYSCALL_PARAM(pid_t, pgid, 1, argv);
+
+    TRACE_SYSCALL("setpgid", "%d, %d", pid, pgid);
+
+    if (pid != 0 || pgid != 0) {
+        return -1;
+    }
+
+    struct pgrp *group = current_proc->group;
+
+    list_remove(&group->members, current_proc);
+
+    if (LIST_SIZE(&group->members) == 0) {
+        free(group);
+    }
+
+    struct pgrp *new_group = calloc(1, sizeof(struct pgrp));
+
+    new_group->pgid = current_proc->pid;
+    list_append(&new_group->members, current_proc);
+
+    current_proc->group = new_group;
+
+    return 0;
+}
+
+static int
+sys_setuid(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(uid_t, uid, 0, argv);
+
+    TRACE_SYSCALL("setuid", "%d", uid);
+
+    if (current_proc->creds.euid == 0) {
+        current_proc->creds.uid = uid;
+        current_proc->creds.euid = uid;
+        return -1;
+    }
+
+    return -(EPERM);
+}
+
+static int
+sys_seteuid(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(uid_t, uid, 0, argv);
+
+    TRACE_SYSCALL("seteuid", "%d", uid);
+
+    if (current_proc->creds.euid == 0 || uid == current_proc->creds.uid) {
+        current_proc->creds.euid = uid;
+        return 0;
+    }
+
+    return -(EPERM);
 }
 
 static int
@@ -313,4 +468,16 @@ _init_proc_syscalls()
     register_syscall(SYS_DUP2, 2, sys_dup2);
     register_syscall(SYS_UMASK, 1, sys_umask);
     register_syscall(SYS_PAUSE, 0, sys_pause);
+    register_syscall(SYS_SETPGID, 2, sys_setpgid);
+    register_syscall(SYS_GETPGRP, 1, sys_getpgrp);
+    register_syscall(SYS_GETPID, 0, sys_getpid);
+    register_syscall(SYS_GETPPID, 0, sys_getppid);
+    register_syscall(SYS_GETGID, 0, sys_getgid);
+    register_syscall(SYS_GETEGID, 0, sys_getegid);
+    register_syscall(SYS_GETUID, 0, sys_getuid);
+    register_syscall(SYS_GETEUID, 0, sys_geteuid);
+    register_syscall(SYS_SETGID, 1, sys_setuid);
+    register_syscall(SYS_SETEGID, 1, sys_seteuid);
+    register_syscall(SYS_SETUID, 1, sys_setgid);
+    register_syscall(SYS_SETEUID, 1, sys_setegid);
 }

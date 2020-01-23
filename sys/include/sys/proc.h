@@ -26,15 +26,15 @@ struct cred {
     gid_t   egid;
 };
 
-struct container {
-    int     id;
+struct pgrp {
+    struct list         members;
+    pid_t               pgid;           
 };
 
 struct proc {
     struct cred         creds;
     struct list         threads;
     struct list         children;
-    struct container *  container;
     struct file *       files[4096];
     struct proc *       parent;
     struct thread *     thread;
@@ -42,6 +42,7 @@ struct proc {
     struct vfs_node *   root;
     struct vm_space *   address_space;
     struct wait_queue   waiters;
+    struct pgrp *       group;
     mode_t              umask;
     char                name[256];
     time_t              start_time;

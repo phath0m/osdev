@@ -23,8 +23,9 @@ run_kernel(void *state)
     extern struct thread *sched_curr_thread;
 
     struct proc *init = proc_new();
-    
+        
     init->thread = sched_curr_thread;
+    init->group = calloc(1, sizeof(struct pgrp));
 
     sched_curr_thread->proc = init;
     current_proc = init;

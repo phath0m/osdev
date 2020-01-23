@@ -145,9 +145,93 @@ fstat(int file, struct stat *st)
 }
 
 int
+getegid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETEGID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+geteuid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETEUID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+getgid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETGID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+getpgrp(pid_t pid)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETPGRP), "b"(pid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 getpid()
 {
-    return -1;
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETPID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+getppid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETPPID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 int
@@ -326,6 +410,81 @@ sbrk(int incr)
     caddr_t ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SBRK), "b"(incr));
+
+    return ret;
+}
+
+int
+setegid(gid_t gid)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETEGID), "b"(gid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+seteuid(uid_t uid)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETEUID), "b"(uid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+setgid(gid_t gid)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETGID), "b"(gid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+setpgid(pid_t pid, pid_t pgid)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETPGID), "b"(pid), "c"(pgid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+setuid(uid_t uid)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETUID), "b"(uid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
