@@ -3,6 +3,7 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/proc.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/thread.h>
 #include <sys/types.h>
@@ -29,6 +30,10 @@ can_execute_file(const char *path)
         }
 
         if ((buf.st_mode & S_IXGRP) && buf.st_gid == current_proc->creds.egid) {
+            return 0;
+        }
+
+        if ((buf.st_mode & S_IXOTH)) {
             return 0;
         }
 
@@ -177,6 +182,14 @@ sys_getegid(syscall_args_t argv)
 }
 
 static int
+sys_getsid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("getsid", "void");
+
+    return current_proc->group->session->sid;
+}
+
+static int
 sys_getuid(syscall_args_t argv)
 {
     TRACE_SYSCALL("getuid", "void");
@@ -275,6 +288,27 @@ sys_setpgid(syscall_args_t argv)
 
     struct pgrp *old_group = current_proc->group;
     struct pgrp *new_group = pgrp_new(current_proc, old_group->session);
+
+    proc_leave_group(current_proc, old_group);
+
+    current_proc->group = new_group;
+
+    return 0;
+}
+
+static int
+sys_setsid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("setsid", "(void)");
+    
+    struct pgrp *old_group = current_proc->group;
+
+    if (old_group->pgid == current_proc->pid) {
+        return -(EPERM);
+    }
+
+    struct session *new_session = session_new(current_proc);
+    struct pgrp *new_group = pgrp_new(current_proc, new_session);
 
     proc_leave_group(current_proc, old_group);
 
@@ -472,4 +506,6 @@ _init_proc_syscalls()
     register_syscall(SYS_SETEGID, 1, sys_seteuid);
     register_syscall(SYS_SETUID, 1, sys_setgid);
     register_syscall(SYS_SETEUID, 1, sys_setegid);
+    register_syscall(SYS_SETSID, 0, sys_setsid);
+    register_syscall(SYS_GETSID, 0, sys_getsid);
 }

@@ -53,6 +53,8 @@
 #define SYS_SETEGID     0x2E
 #define SYS_SETUID      0x2F
 #define SYS_SETEUID     0x30
+#define SYS_SETSID      0x31
+#define SYS_GETSID      0x32
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
