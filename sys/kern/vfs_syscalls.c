@@ -91,6 +91,7 @@ sys_ioctl(syscall_args_t argv)
     struct file *file = proc_getfile(fd);
 
     if (file) {
+        asm volatile("sti");
         return fops_ioctl(file, (uint64_t)request, arg);
     }
 

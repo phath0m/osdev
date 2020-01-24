@@ -16,7 +16,7 @@
 #define S_IRWXO     0000007
 #define S_IROTH     0000004
 #define S_IWOTH     0000002
-#define S_IXOTH     000000
+#define S_IXOTH     0000001
 
 struct stat {
     dev_t           st_dev;
