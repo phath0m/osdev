@@ -95,6 +95,8 @@ proc_fork(struct regs *regs)
 
     strncpy(new_proc->name, proc->name, sizeof(new_proc->name));
 
+    memcpy(&new_proc->creds, &proc->creds, sizeof(struct cred));
+
     new_proc->base = proc->base;
     new_proc->brk = proc->brk;
     new_proc->cwd = proc->cwd;
