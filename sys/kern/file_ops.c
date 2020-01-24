@@ -85,7 +85,7 @@ fops_close(struct file *file)
     struct file_ops *ops = file->node->ops;
     
     if (ops->close) {
-        ops->close(file->node);
+        ops->close(file->node, file);
     }
 
     vfs_file_count--;
@@ -110,6 +110,12 @@ vfs_duplicate_file(struct file *file)
     INC_NODE_REF(new_file->node);
 
     vfs_file_count++;
+
+    struct file_ops *ops = new_file->node->ops;
+
+    if (ops && ops->duplicate) {
+        ops->duplicate(new_file->node, new_file);
+    }
 
     return new_file;
 }

@@ -7,7 +7,7 @@
 #include <sys/vfs.h>
 
 
-static int ptm_close(struct vfs_node *node);
+static int ptm_close(struct vfs_node *node, struct file *fp);
 static int ptm_destroy(struct vfs_node *node);
 static int ptm_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int ptm_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
@@ -75,7 +75,7 @@ mkpty()
 
 
 static
-int ptm_close(struct vfs_node *node)
+int ptm_close(struct vfs_node *node, struct file *fp)
 {
     return 0;
 }
