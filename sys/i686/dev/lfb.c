@@ -192,7 +192,8 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
     switch (request) {
     case TEXTSCREEN_CLEAR:
         state->position = 0;
-        fast_memcpy_d(state->frame_buffer, state->background, 4*state->height*state->width);
+        memset(state->foreground, 0, state->buffer_size);
+        fast_memcpy_d(state->frame_buffer, state->background, state->buffer_size);
         break;
     case TEXTSCREEN_SETBG:
         state->background_color = state->color_palette[(uint8_t)argp];
