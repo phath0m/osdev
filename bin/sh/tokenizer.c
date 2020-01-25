@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "list.h"
+#include <collections/list.h>
 #include "tokenizer.h"
 
 static inline int

@@ -10,8 +10,8 @@
 
 #include <fcntl.h>
 
-#include "dict.h"
-#include "list.h"
+#include <collections/dict.h>
+#include <collections/list.h>
 #include "parser.h"
 #include "tokenizer.h"
 

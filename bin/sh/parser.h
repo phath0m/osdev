@@ -1,7 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "list.h"
+#include <collections/list.h>
 
 typedef enum {
     AST_COMMAND,

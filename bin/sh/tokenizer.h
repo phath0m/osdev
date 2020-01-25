@@ -1,7 +1,7 @@
 #ifndef TOKENIZER_H
 #define TOKENIZER_H
 
-#include "list.h"
+#include <collections/list.h>
 
 typedef enum {
     TOKEN_SYMBOL = 0,
