@@ -5,9 +5,9 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <collections/list.h>
 #include <sys/kernlink.h>
 #include <sys/socket.h>
-#include "./list.h"
 
 struct ps_entry {
     int     pid;
