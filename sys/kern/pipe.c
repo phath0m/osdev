@@ -8,9 +8,6 @@
 #include <sys/vfs.h>
 #include <sys/wait.h>
 
-// remove me
-#include <stdio.h>
-
 struct pipe {
     struct wait_queue   read_queue;
     struct wait_queue   write_queue;
@@ -164,13 +161,13 @@ pipe_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
         return -1;
     }
 
-    uint8_t *buf8 = (uint8_t*)buf;
-
     while (pipe->size != 0 && !pipe->read_closed) {
         thread_yield();
     }
 
     spinlock_lock(&pipe->lock);
+
+    uint8_t *buf8 = (uint8_t*)buf;
 
     for (int i = 0; i < nbyte; i++) {
         pipe->buf[(i + pipe->tail_pos) % pipe->buf_size] = buf8[i];
