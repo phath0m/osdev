@@ -308,6 +308,9 @@ input_loop(int ptm, int kbd, int vga)
                 case 'q':
                     ch = 17;
                     break;
+                case 's':
+                    ch = 19;
+                    break;
             }
         }
 
