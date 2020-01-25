@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/device.h>
+#include <sys/ioctl.h>
 #include <sys/mutex.h>
 #include <sys/types.h>
 #include <sys/dev/textscreen.h>
@@ -37,7 +38,7 @@ struct lfb_state {
     int *           color_palette;
 };
 
-static int default_color_palette[] = {0x353540, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b};
+static int default_color_palette[] = {0x0, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b};
 
 static int lfb_close(struct device *dev);
 static int lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
@@ -176,6 +177,43 @@ handle_lfb_request(struct lfb_state *state, struct lfb_req *req)
     }
 }
 
+static void
+clear_line(struct lfb_state *state, int n)
+{
+    int start_x;
+    int end_x;
+
+    switch (n) {
+        case 0:
+            start_x = state->position % state->textscreen_width * FONT_WIDTH;
+            end_x = FONT_WIDTH * state->textscreen_width; //start_x + (state->width - (start_x % state->width));
+            break;
+        case 1:
+            start_x = 0;
+            end_x = state->position % state->textscreen_width * FONT_WIDTH;
+            break;
+        case 2:
+            start_x = 0;
+            end_x = FONT_WIDTH * state->textscreen_width;
+            break;
+    }
+
+    int y = state->position / state->textscreen_width * FONT_HEIGHT;
+
+    uint32_t *fg = (uint32_t*)state->foreground;
+    uint32_t *fb = (uint32_t*)state->frame_buffer;
+    uint32_t *bg = (uint32_t*)state->background;
+
+    for (int i = 0; i < FONT_HEIGHT; i++) {
+        int start_off = (y + i) * state->width + start_x;
+        int end_off = (y + i) * state->width + end_x;
+        int size = (end_off - start_off)*4;
+
+        fast_memcpy_d(&fb[start_off], &bg[start_off], size);
+        memset(&fg[start_off], 0, size);
+    }
+}
+
 static int
 lfb_close(struct device *dev)
 {
@@ -190,19 +228,29 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
     spinlock_lock(&state->lock);
 
     switch (request) {
-    case TEXTSCREEN_CLEAR:
+    case TXIOCLRSCR:
         state->position = 0;
         memset(state->foreground, 0, state->buffer_size);
         fast_memcpy_d(state->frame_buffer, state->background, state->buffer_size);
         break;
-    case TEXTSCREEN_SETBG:
+    case TXIOSETBG :
         state->background_color = state->color_palette[(uint8_t)argp];
         break;
-    case TEXTSCREEN_SETFG:
+    case TXIOSETFG :
         state->foreground_color = state->color_palette[(uint8_t)argp];
         break;
-    case 0x200:
+    case TXIOSETCUR: 
+        state->position = ((struct curpos*)argp)->c_row * state->textscreen_width + ((struct curpos*)argp)->c_col;
+        break; 
+    case TXIOGETCUR:
+        ((struct curpos*)argp)->c_row = state->position / state->textscreen_width;
+        ((struct curpos*)argp)->c_col = state->position % state->textscreen_width;
+        break;
+    case FBIOBUFRQ:
         handle_lfb_request(state, (struct lfb_req*)argp);
+        break;
+    case TXIOERSLIN:       
+        clear_line(state, (int)argp);
         break;
     }
 
@@ -230,23 +278,28 @@ lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
     spinlock_lock(&state->lock);
 
     for (int i = 0; i < nbyte; i++) {
-       
         switch (buf[i]) {
             case '\n':
-                state->position = (state->position + state->textscreen_width) - (state->position + state->textscreen_width) % state->textscreen_width;
+                state->position += state->textscreen_width;
                 break;
             case '\b':
                 state->position--;
-                fb_putc(state, ' ', state->foreground_color, 0);
+                fb_putc(state, ' ', state->foreground_color, state->background_color);
+                break;
+            case '\r':
+                state->position -= state->position % state->textscreen_width;
                 break;
             default:
-                fb_putc(state, buf[i], state->foreground_color, 0);
+                fb_putc(state, buf[i], state->foreground_color, state->background_color);
                 state->position++;
                 break;
                     
         } 
 
-        if (state->position >= (state->textscreen_width * state->textscreen_height)) {
+         if (state->position >= (state->textscreen_width * state->textscreen_height)) {
+            state->position = (state->textscreen_width * state->textscreen_height) - 1;
+            printf("SCROLL!\n");
+            if (state->position == 0x734971)
             fb_scroll(state);
         }
     }

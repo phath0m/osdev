@@ -70,6 +70,7 @@ KERNEL_OBJECTS += net/klink.o
 
 # Kernel runtime library
 KERNEL_OBJECTS += libk/dict.o
+KERNEL_OBJECTS += libk/fifo.o
 KERNEL_OBJECTS += libk/list.o
 KERNEL_OBJECTS += libk/malloc.o
 KERNEL_OBJECTS += libk/mutex.o

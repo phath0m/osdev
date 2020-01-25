@@ -232,6 +232,9 @@ klink_send_procstat(struct klink_session *session, int target)
 static int
 klink_query(struct klink_session *session, struct klink_dgram *req)
 {
+    if (!req) {
+        printf("received NULL!\n");
+    }
     switch (req->what) {
         case KWHAT_PROCLIST:
             klink_send_proclist(session);
