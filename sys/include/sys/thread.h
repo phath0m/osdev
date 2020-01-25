@@ -1,6 +1,9 @@
 #ifndef _SYS_THREAD_H
 #define _SYS_THREAD_H
 
+#include <ds/list.h>
+#include <sys/proc.h>
+
 struct thread {
     struct list         joined_queues;
     struct regs *       regs;
