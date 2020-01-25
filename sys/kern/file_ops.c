@@ -1,16 +1,13 @@
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/limits.h>
+#include <sys/malloc.h>
 #include <sys/mount.h>
+#include <sys/string.h>
+#include <sys/unistd.h>
 #include <sys/vfs.h>
-
-// reminder: remove this
-#include <stdio.h>
 
 int vfs_file_count = 0;
 

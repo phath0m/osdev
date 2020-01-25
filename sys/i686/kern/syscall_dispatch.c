@@ -2,9 +2,9 @@
  * sys/i686/kern/syscall.c
  * x86 system call implementation via interrupt 0x80
  */
-#include <stdlib.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
+#include <sys/malloc.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/i686/interrupt.h>

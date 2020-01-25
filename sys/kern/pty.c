@@ -1,14 +1,12 @@
-#include <stdlib.h>
-#include <string.h>
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/termios.h>
 #include <sys/vfs.h>
-// remove me
-#include <stdio.h>
 
 #define PTY_LINEBUF_SIZE    4096
 

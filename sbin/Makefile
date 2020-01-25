@@ -1,7 +1,6 @@
 MAKE = make
 
 SUBDIRS += doit
-SUBDIRS += systerm
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)

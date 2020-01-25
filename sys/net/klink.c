@@ -1,9 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ds/list.h>
 #include <sys/net.h>
 #include <sys/proc.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
 #include <sys/types.h>
 
 #define AF_KLINK    40
@@ -152,7 +151,6 @@ klink_send_proclist(struct klink_session *session)
     struct proc *proc;
     int i = 0;
 
-    printf("walking process_list\n");
     while (iter_move_next(&iter, (void**)&proc)) {
         struct klink_proc_info *info = (struct klink_proc_info*)&procs[i++];
 
@@ -164,9 +162,8 @@ klink_send_proclist(struct klink_session *session)
             info->ppid = proc->parent->pid;
         }
     }
-    printf("done walking process_list\n");
     resp->size = LIST_SIZE(&process_list) * sizeof(struct klink_proc_info);
-    printf("appending to resp queue\n");
+
     list_append(&session->resp_queue, resp);
 
     iter_close(&iter);

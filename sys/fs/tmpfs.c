@@ -1,13 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ds/dict.h>
 #include <ds/list.h>
 #include <ds/membuf.h>
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
+#include <sys/malloc.h>
 #include <sys/stat.h>
+#include <sys/string.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 

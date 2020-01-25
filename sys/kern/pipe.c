@@ -1,8 +1,8 @@
-#include <stdlib.h>
-#include <string.h>
 #include <sys/fcntl.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/string.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/wait.h>

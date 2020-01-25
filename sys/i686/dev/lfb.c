@@ -5,16 +5,14 @@
  * a textwall on osdev wiki
  */
 
-#include <stdlib.h>
-#include <string.h>
 #include <sys/device.h>
 #include <sys/ioctl.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/string.h>
 #include <sys/types.h>
 #include <sys/dev/textscreen.h>
 #include <sys/i686/multiboot.h>
-// remove me
-#include <stdio.h>
 
 #include "./lfb_font.h"
 

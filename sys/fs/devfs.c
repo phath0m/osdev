@@ -1,15 +1,12 @@
-#include <stdlib.h>
-#include <string.h>
 #include <ds/list.h>
 #include <sys/dirent.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
+#include <sys/malloc.h>
 #include <sys/stat.h>
+#include <sys/string.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
-
-// delete me
-#include <stdio.h>
 
 
 static int devfs_destroy(struct vfs_node *node);

@@ -6,9 +6,6 @@
 #include <sys/types.h>
 #include <sys/vfs.h>
 
-// remove
-#include <stdio.h>
-
 
 /*
  * filesystem syscalls

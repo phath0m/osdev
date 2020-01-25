@@ -1,9 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ds/list.h>
 #include <sys/fcntl.h>
 #include <sys/proc.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
@@ -228,7 +227,6 @@ proc_execve(const char *path, const char **argv, const char **envp)
             struct file *fp = proc->files[i];
 
             if (fp && (fp->flags & O_CLOEXEC)) {
-                printf("Closing descriptor %d\n", i);
                 proc->files[i] = NULL;
                 fops_close(fp);
             }

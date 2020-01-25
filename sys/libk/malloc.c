@@ -3,10 +3,9 @@
  * Cross platform malloc implementation
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/types.h>
 

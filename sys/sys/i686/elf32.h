@@ -1,7 +1,7 @@
 #ifndef SYS_I686_ELF32_H
 #define SYS_I686_ELF32_H
 
-#include <string.h>
+#include <sys/string.h>
 #include <sys/types.h>
 
 #define ELF_NIDENT                      16

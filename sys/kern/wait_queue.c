@@ -2,9 +2,6 @@
 #include <sys/proc.h>
 #include <sys/wait.h>
 
-// remove me
-#include <stdio.h>
-
 void
 wq_empty(struct wait_queue *queue)
 {

@@ -3,9 +3,9 @@
  * Responsible for managing virtual memory on i686 compatible devices
  */
 
-#include <stdlib.h>
-#include <string.h>
 #include <ds/list.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/vm.h>

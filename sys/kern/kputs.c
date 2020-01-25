@@ -1,5 +1,5 @@
-#include <string.h>
 #include <sys/device.h>
+#include <sys/string.h>
 
 static struct device *output_device;
 

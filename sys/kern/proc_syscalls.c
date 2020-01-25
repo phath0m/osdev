@@ -1,15 +1,13 @@
-#include <stdlib.h>
-#include <string.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/stat.h>
+#include <sys/string.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
-// remove me
-#include <stdio.h>
 
 static inline int
 can_execute_file(const char *path)

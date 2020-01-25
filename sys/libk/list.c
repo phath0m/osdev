@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include <ds/list.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/types.h>
 

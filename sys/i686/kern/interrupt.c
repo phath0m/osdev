@@ -3,7 +3,7 @@
  * Enables everything required for hardware and software interrupts as well as context switching
  */
 
-#include <string.h>
+#include <sys/string.h>
 #include <sys/types.h>
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>

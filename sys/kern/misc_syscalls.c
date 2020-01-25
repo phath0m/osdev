@@ -1,13 +1,10 @@
-#include <time.h>
-#include <string.h>
 #include <sys/errno.h>
+#include <sys/string.h>
 #include <sys/syscall.h>
 #include <sys/systm.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
-
-// remove
-#include <stdio.h>
 
 static int
 sys_time(syscall_args_t argv)

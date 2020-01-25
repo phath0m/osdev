@@ -1,6 +1,7 @@
 #ifndef SYS_KERNEL_H
 #define SYS_KERNEL_H
 
+#include <stdarg.h>
 #include <sys/vfs.h>
 #include <sys/device.h>
 
@@ -20,5 +21,7 @@ void panic(const char *fmt, ...);
 void shutdown();
 void create_pipe(struct file **files);
 void stacktrace(int max_frames);
+void printf(const char *fmt, ...);
+void vprintf(const char *fmt, va_list arg);
 
 #endif

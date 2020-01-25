@@ -4,7 +4,7 @@ AS=nasm
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
 AFLAGS= -f elf32
-CFLAGS = -c -std=gnu99 --freestanding -g -Wall -Werror -nostartfiles -nodefaultlibs -DELYSIUM_TARGET="\"i686\"" -I ./include -I ../include
+CFLAGS = -c -std=gnu99 --freestanding -g -Wall -Werror -nostartfiles -nodefaultlibs -DELYSIUM_TARGET="\"i686\"" -I ./
 LDFLAGS = -T i686/linker.ld --freestanding -O2 -nostdlib
 
 # TODO: Make this conditional (for different arch)

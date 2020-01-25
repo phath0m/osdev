@@ -1,8 +1,8 @@
-#include <stdlib.h>
-#include <string.h>
 #include <ds/list.h>
 #include <ds/membuf.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/string.h>
 #include <sys/systm.h>
 
 static void

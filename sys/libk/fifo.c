@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include <ds/fifo.h>
+#include <sys/malloc.h>
 #include <sys/types.h>
 
 

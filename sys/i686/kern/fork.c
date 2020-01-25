@@ -1,6 +1,6 @@
-#include <stdlib.h>
-#include <string.h>
 #include <sys/proc.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/vfs.h>

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <sys/systm.h>
 #include <sys/types.h>
 
 struct stackframe {

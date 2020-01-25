@@ -1,12 +1,9 @@
-#include <string.h>
 #include <sys/device.h>
 #include <sys/errno.h>
+#include <sys/string.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
-
-// remove
-#include <stdio.h>
 
 static int
 sys_isatty(syscall_args_t argv)

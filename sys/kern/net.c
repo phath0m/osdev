@@ -1,12 +1,10 @@
-#include <stdlib.h>
 #include <ds/list.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/malloc.h>
 #include <sys/net.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
-// remove
-#include <stdio.h>
 
 static struct list protocol_list;
 

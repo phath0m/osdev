@@ -5,8 +5,6 @@
 #include <sys/device.h>
 #include <sys/types.h>
 #include <sys/i686/portio.h>
-// remove me
-#include <stdio.h>
 
 #define PORT0   0x3F8
 #define PORT1   0x2F8

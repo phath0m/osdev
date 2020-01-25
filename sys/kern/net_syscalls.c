@@ -4,9 +4,6 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-// remove
-#include <stdio.h>
-
 int
 sys_connect(int fd, void *address, size_t address_len)
 {

@@ -1,5 +1,6 @@
-#include <string.h>
-#include <stdio.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
+#include <sys/systm.h>
 #include <sys/vfs.h>
 
 #define TAR_REG     '0'

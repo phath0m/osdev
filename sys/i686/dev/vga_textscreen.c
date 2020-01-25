@@ -2,17 +2,14 @@
  * Basic driver for interacting with textscreen
  */
 
-#include <string.h>
-#include <stdlib.h>
 #include <sys/device.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
 #include <sys/types.h>
 #include <sys/dev/textscreen.h>
 #include <sys/i686/portio.h>
 
 #include "./vga_textscreen_font.h"
-
-// delete me
-#include <stdio.h>
 
 #define VGA_SET_MODE_320X200    0x100
 #define VGA_DRAW                0x101
