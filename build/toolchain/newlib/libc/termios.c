@@ -2,8 +2,38 @@
 #include <sys/ioctl.h>
 #include <sys/termios.h>
 
+speed_t
+cfgetispeed(const struct termios *p)
+{
+    return 0;
+}
+
+speed_t
+cfgetospeed(const struct termios * p)
+{
+    return 0;
+}
+
+int
+cfsetispeed(struct termios *p, speed_t s)
+{
+    return 0;
+}
+
+int
+cfsetospeed(struct termios *p, speed_t s)
+{
+    return 0;
+}
+
 int
 tcdrain(int fd)
+{
+    return 0;
+}
+
+int
+tcflow(int fd, int action)
 {
     return 0;
 }
@@ -18,6 +48,12 @@ int
 tcgetattr(int fd, struct termios *buf)
 {
     return ioctl(fd, TCGETS, buf);
+}
+
+int
+tcsendbreak(int fd, int duration)
+{
+    return 0;
 }
 
 int
