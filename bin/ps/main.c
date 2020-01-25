@@ -1,3 +1,4 @@
+#include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +56,13 @@ ps_print_extended(struct ps_entry *entry)
 
     get_time_string(time_buf, 10, entry->stime);
 
-    printf("%-10s", "root");
+    struct passwd *pwd = getpwuid(entry->uid);
+
+    if (pwd) {
+        printf("%-10s", pwd->pw_name);
+    } else {
+        printf("%-10s", "?");
+    }
     printf("%5d ", entry->pid);
     printf("%5d ", entry->ppid);
     printf("%-6s", time_buf);
