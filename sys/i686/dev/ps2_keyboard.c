@@ -1,7 +1,7 @@
 #include <ds/fifo.h>
 #include <sys/device.h>
 #include <sys/interrupt.h>
-#include <sys/thread.h>
+#include <sys/proc.h>
 #include <sys/types.h>
 #include <sys/i686/portio.h>
 

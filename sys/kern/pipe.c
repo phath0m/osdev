@@ -3,7 +3,6 @@
 #include <sys/fcntl.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/wait.h>
@@ -162,7 +161,7 @@ pipe_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
     }
 
     while (pipe->size != 0 && !pipe->read_closed) {
-        thread_yield();
+        //thread_yield();
     }
 
     spinlock_lock(&pipe->lock);

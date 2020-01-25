@@ -7,7 +7,6 @@
 #include <ds/list.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
-#include <sys/thread.h>
 #include <sys/vm.h>
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>

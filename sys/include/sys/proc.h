@@ -62,6 +62,17 @@ struct proc {
     bool                exited;
 };
 
+struct thread {
+    struct list         joined_queues;
+    struct regs *       regs;
+    struct proc *       proc;
+    struct vm_space *   address_space;
+    uint8_t             state;
+    uintptr_t           stack;
+    uintptr_t           u_stack_bottom;
+    uintptr_t           u_stack_top;
+};
+
 /*
  * Pointer to the currently running process, defined in architecture specific scheduler implementation 
  */
@@ -154,5 +165,15 @@ int proc_dup2(int oldfd, int newfd);
  * allocates a new session
  */
 struct session *session_new(struct proc *leader);
+
+uintptr_t sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg);
+
+void thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg);
+
+void thread_yield();
+
+void thread_schedule(int state, struct thread *thread);
+
+void thread_destroy(struct thread *thread);
 
 #endif

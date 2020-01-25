@@ -9,7 +9,6 @@
 #include <ds/list.h>
 #include <sys/vm.h>
 #include <sys/proc.h>
-#include <sys/thread.h>
 
 #define KERNEL_BASE 0xC0000000
 

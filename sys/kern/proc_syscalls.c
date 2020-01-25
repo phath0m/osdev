@@ -5,7 +5,6 @@
 #include <sys/proc.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
-#include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>

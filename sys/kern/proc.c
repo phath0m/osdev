@@ -6,7 +6,6 @@
 #include <sys/wait.h>
 #include <sys/proc.h>
 #include <sys/systm.h>
-#include <sys/thread.h>
 #include <sys/vfs.h>
 #include <sys/vm.h>
 

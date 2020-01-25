@@ -1,6 +1,5 @@
 #include <ds/list.h>
 #include <sys/proc.h>
-#include <sys/thread.h>
 #include <sys/wait.h>
 
 // remove me
