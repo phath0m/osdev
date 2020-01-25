@@ -17,11 +17,13 @@ userland:
 	mkdir -p ./build/initrd/dev
 	mkdir -p ./build/initrd/usr/bin
 	mkdir -p ./build/initrd/usr/games
+	mkdir -p ./build/initrd/usr/libexec
 	mkdir -p ./build/initrd/tmp
 	make -C bin
 	make -C sbin
 	make -C usr.bin
 	make -C usr.games
+	make -C usr.libexec
 	cp -rp etc ./build/initrd
 
 kernel: $(KERNEL)
