@@ -152,6 +152,7 @@ klink_send_proclist(struct klink_session *session)
     struct proc *proc;
     int i = 0;
 
+    printf("walking process_list\n");
     while (iter_move_next(&iter, (void**)&proc)) {
         struct klink_proc_info *info = (struct klink_proc_info*)&procs[i++];
 
@@ -160,13 +161,12 @@ klink_send_proclist(struct klink_session *session)
         info->gid = proc->creds.gid;
 
         if (proc->parent) {
-            printf("set parent pid to %d\n", proc->parent->pid);
             info->ppid = proc->parent->pid;
         }
     }
-
+    printf("done walking process_list\n");
     resp->size = LIST_SIZE(&process_list) * sizeof(struct klink_proc_info);
-
+    printf("appending to resp queue\n");
     list_append(&session->resp_queue, resp);
 
     iter_close(&iter);
@@ -190,7 +190,7 @@ klink_send_procstat(struct klink_session *session, int target)
     struct proc *proc;
     
     while (iter_move_next(&iter, (void**)&proc)) {
-        if (proc->pid == target) {
+        if (proc && proc->pid == target) {
             size_t resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_proc_stat);
 
             resp = (struct klink_dgram*)(calloc(0, resp_sz));
@@ -198,15 +198,13 @@ klink_send_procstat(struct klink_session *session, int target)
             struct klink_proc_stat *stat = (struct klink_proc_stat*)(resp + 1);
             
             stat->stime = proc->start_time;
- 
             char *tty = proc_getctty(proc);
-
             strncpy(stat->cmd, proc->name, 255);
             
             if (tty) {
                 strncpy(stat->tty, tty, 31);
             } else {
-                tty[0] = '\x00';
+                stat->tty[0] = '\x00';
             }
 
             break;
@@ -232,9 +230,6 @@ klink_send_procstat(struct klink_session *session, int target)
 static int
 klink_query(struct klink_session *session, struct klink_dgram *req)
 {
-    if (!req) {
-        printf("received NULL!\n");
-    }
     switch (req->what) {
         case KWHAT_PROCLIST:
             klink_send_proclist(session);
