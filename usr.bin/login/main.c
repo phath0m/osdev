@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/utsname.h>
 
-static void
+static int
 do_login(struct passwd *pwd)
 {
     static char *sh_argv[2] = {
@@ -13,7 +13,15 @@ do_login(struct passwd *pwd)
         NULL
     };
 
+    
+    setuid(pwd->pw_uid);
+    setgid(pwd->pw_gid);
+
     execv(pwd->pw_shell, sh_argv);
+
+    perror("execv");
+
+    return -1;
 }
 
 static void
@@ -48,9 +56,8 @@ attempt_login(const char *login, const char *passwd)
     show_motd();
     puts("");
 
-    do_login(pwd);
+    return do_login(pwd);
 
-    return 0;
 }
 
 int
