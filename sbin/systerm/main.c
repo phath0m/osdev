@@ -13,31 +13,59 @@ extern int mkpty();
 
 #define TERM_BUF_SIZE   1024
 
+#define KEY_UP_ARROW        72
+#define KEY_DOWN_ARROW      80
+#define KEY_LEFT_ARROW      75
+#define KEY_RIGHT_ARROW     77
+
 /* ioctl commands for textscreen device */
 #define TEXTSCREEN_CLEAR    0x0000
 #define TEXTSCREEN_SETBG    0x0001
 #define TEXTSCREEN_SETFG    0x0002
+#define TXCLRSCR        0x0000
+#define TXSETBG         0x0001
+#define TXSETFG         0x0002
+#define TXSETCUR        0x0003
+#define TXGETCUR        0x0004
+#define TXERSLIN        0x0005
+
+struct curpos {
+    unsigned short  c_row;
+    unsigned short  c_col;
+};
 
 struct termstate {
     int     textscreen; /* file descriptor to output device */
+    int     ptm; /* file descriptor to master pseudo-terminal */
     bool    csi_initiated; /* Should be processing a CSI sequence */
     bool    escape_initiated; /* Should we be processing an escape character ? */
     char    csi_buf[256]; /* buffer for CSI sequences */
     int     csi_len; /* length of CSI buf */
     char    buf[TERM_BUF_SIZE]; /* buffer of data to print; used to avoid excessive write() calls */
     int     buf_len; /* length of buf*/
+    int     foreground;
+    int     background;
 };
 
 /*
  * SGR - Select Graphic Rendition; sets display attributes
  */
 static void
-eval_sgr_parameter(struct termstate *state, int param)
+set_sgr_parameter(struct termstate *state, int param)
 {
     switch (param) {
         case 0:
             ioctl(state->textscreen, TEXTSCREEN_SETFG, (void*)7);
             ioctl(state->textscreen, TEXTSCREEN_SETBG, (void*)0);
+            state->background = 0;
+            state->background = 7;
+            break;
+        case 7:
+            ioctl(state->textscreen, TEXTSCREEN_SETFG, (void*)0);
+            ioctl(state->textscreen, TEXTSCREEN_SETBG, (void*)7); 
+            //int tmp = state->background;
+            //state->background = state->foreground;
+            //state->foreground = tmp;
             break;
         case 30:
         case 31:
@@ -47,6 +75,7 @@ eval_sgr_parameter(struct termstate *state, int param)
         case 35:
         case 36:
         case 37:
+            state->foreground = param - 30;
             ioctl(state->textscreen, TEXTSCREEN_SETFG, (void*)(param - 30));
             break;    
         case 40:
@@ -57,19 +86,84 @@ eval_sgr_parameter(struct termstate *state, int param)
         case 45:
         case 46:
         case 47:
+            state->background = param - 40;
             ioctl(state->textscreen, TEXTSCREEN_SETBG, (void*)(param - 40));
             break;
         default:
+            printf("got uknown SGR parameter %d\n", param);
             break;
     }
 }
 
 static void
-eval_csi_parameter(struct termstate *state, int param, char final_byte)
+eval_sgr_command(struct termstate *state, int args[], int argc)
 {
-    switch (final_byte) {
+    for (int i = 0; i < argc; i++) {
+        set_sgr_parameter(state, args[i]);
+    }
+}
+
+static void
+eval_set_cursor_pos(struct termstate *state, int args[], int argc)
+{
+
+    struct curpos new_pos;
+    
+    if (argc == 2) {
+        new_pos.c_col = args[1];
+        new_pos.c_row = args[0];
+    } else {
+        new_pos.c_row = 0;
+        new_pos.c_col = 0;
+    }
+
+    ioctl(state->textscreen, TXSETCUR, &new_pos);
+}
+
+static void
+eval_status_command(struct termstate *state, int args[], int argc)
+{
+    if (argc == 1 && args[0] == 6) {
+        struct curpos curpos;
+        ioctl(state->textscreen, TXGETCUR, &curpos);
+
+        char buf[16];
+        sprintf(buf, "\x1B[%d;%dR", curpos.c_row, curpos.c_col);
+
+        write(state->ptm, buf, strlen(buf));
+    }
+}
+
+// TXERSLIN
+
+static void
+eval_K_command(struct termstate *state, int args[], int argc)
+{
+    if (argc == 1) {
+        ioctl(state->textscreen, TXERSLIN, (void*)args[0]);
+    } else {
+        ioctl(state->textscreen, TXERSLIN, (void*)0);
+    }
+}
+
+static void
+eval_csi_parameter(struct termstate *state, char command, int args[], int argc)
+{
+    switch (command) {
         case 'm':
-            eval_sgr_parameter(state, param);
+            eval_sgr_command(state, args, argc);
+            break;
+        case 'n':
+            eval_status_command(state, args, argc);
+            break;
+        case 'K':
+            eval_K_command(state, args, argc);
+            break;
+        case 'H':
+            eval_set_cursor_pos(state, args, argc);
+            break;
+        default:
+            printf("unknown CSI command %c\n", command);
             break;
     }
 }
@@ -78,16 +172,20 @@ static void
 eval_csi_command(struct termstate *state, char final_byte)
 {
     char *last_parameter = state->csi_buf;
+    int args[64];
+    int argc = 0;
 
     for (int i = 0; i < state->csi_len; i++) {
         if (state->csi_buf[i] == ';') {
             state->csi_buf[i] = 0;
-            eval_csi_parameter(state, atoi(last_parameter), final_byte);
+            args[argc++] = atoi(last_parameter);
             last_parameter = &state->csi_buf[i+1];
         }
     }   
-   
-    eval_csi_parameter(state, atoi(last_parameter), final_byte);
+ 
+    args[argc++] = atoi(last_parameter);
+
+    eval_csi_parameter(state, final_byte, args, argc);
 
     memset(state->csi_buf, 0, sizeof(state->csi_buf));
     state->csi_len = 0;
@@ -152,9 +250,7 @@ process_term_char(struct termstate *state, char ch)
         flush_buffer(state);
     }
 
-    if (ch != '\b') {
-        state->buf[state->buf_len++] = ch;
-    }
+    state->buf[state->buf_len++] = ch;
 }
 
 static void
@@ -178,8 +274,7 @@ input_loop(int ptm, int kbd, int vga)
 
     uint8_t scancode;
     bool shift_pressed;
-    char input_buffer[512];
-    int buf_pos = 0;
+    bool control_pressed;
     char ch = 0;
 
     for (;;) {
@@ -193,6 +288,11 @@ input_loop(int ptm, int kbd, int vga)
             continue;
         }
 
+        if (key == 29) {
+            control_pressed = !key_up;
+            continue;
+        }
+
         if (!key_up) {
             continue;
         }
@@ -203,22 +303,33 @@ input_loop(int ptm, int kbd, int vga)
             ch = kbdus[key];
         }
 
-        if (!ch) {
-            continue;
+        if (control_pressed) {
+            switch (ch) {
+                case 'q':
+                    ch = 17;
+                    break;
+            }
         }
-        
-        if (ch == '\b' && buf_pos > 0) {
-            input_buffer[buf_pos - 1] = 0;
-            buf_pos--;
-        } else if (ch == '\n' || buf_pos >= sizeof(input_buffer)) {
-            input_buffer[buf_pos++] = '\n';
-            write(ptm, input_buffer, buf_pos);
-            buf_pos = 0;
-        } else {
-            input_buffer[buf_pos++] = ch;     
+
+        switch (key) {
+            case KEY_UP_ARROW:
+                write(ptm, "\x1B[A", 3);
+                break;
+            case KEY_DOWN_ARROW:
+                write(ptm, "\x1B[B", 3);
+                break;
+            case KEY_LEFT_ARROW:
+                write(ptm, "\x1B[D", 3);
+                break;
+            case KEY_RIGHT_ARROW:
+                write(ptm, "\x1B[C", 3);
+                break;
+            default:
+                if (ch) {
+                    write(ptm, &ch, 1);
+                }
+                break;
         }
-        write(vga, &ch, 1);
-        
     }
 }
 
@@ -270,6 +381,7 @@ systerm_main()
     
     memset(&state, 0, sizeof(state));
 
+    state.ptm = ptm;
     state.textscreen = vga;
    
     input_loop(ptm, kbd, vga);
