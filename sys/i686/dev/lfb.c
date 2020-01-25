@@ -180,6 +180,9 @@ handle_lfb_request(struct lfb_state *state, struct lfb_req *req)
 static void
 clear_line(struct lfb_state *state, int n)
 {
+    while (state->position >= (state->textscreen_width * state->textscreen_height)) {
+        state->position = state->position - state->textscreen_width;
+    }
     int start_x;
     int end_x;
 
@@ -278,6 +281,9 @@ lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
     spinlock_lock(&state->lock);
 
     for (int i = 0; i < nbyte; i++) {
+        if (state->position >= (state->textscreen_width * state->textscreen_height)) {
+            fb_scroll(state);
+        }
         switch (buf[i]) {
             case '\n':
                 state->position += state->textscreen_width;
@@ -295,13 +301,6 @@ lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
                 break;
                     
         } 
-
-         if (state->position >= (state->textscreen_width * state->textscreen_height)) {
-            state->position = (state->textscreen_width * state->textscreen_height) - 1;
-            printf("SCROLL!\n");
-            if (state->position == 0x734971)
-            fb_scroll(state);
-        }
     }
 
     spinlock_unlock(&state->lock);
