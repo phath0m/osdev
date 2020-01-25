@@ -14,10 +14,11 @@ clean:
 $(NEWLIB): $(NEWLIB_SRC)
 	tar xvfz $(NEWLIB_SRC)
 	patch -p0 -i newlib.patch
-	mkdir -p "$(NEWLIB)/newlib/libc/sys/elysium"
+	mkdir -p "$(NEWLIB)/newlib/libc/sys/elysium"	
 	cp libc/*.c "$(NEWLIB)/newlib/libc/sys/elysium"
 	cp libc/*.asm "$(NEWLIB)/newlib/libc/sys/elysium"
 	cp include/sys/*.h "$(NEWLIB)/newlib/libc/include/sys"
+	cp ../../../sys/include/sys/termios.h "$(NEWLIB)/newlib/libc/include/sys"
 	cp include/machine/*.h "$(NEWLIB)/newlib/libc/include/machine"
 	cp libc/Makefile.am "$(NEWLIB)/newlib/libc/sys/elysium"
 	cp libc/configure.in "$(NEWLIB)/newlib/libc/sys/elysium"
