@@ -1,12 +1,9 @@
-/*
- * Basic driver for interacting with textscreen
- */
-
+#include <ds/fifo.h>
 #include <sys/device.h>
+#include <sys/interrupt.h>
+#include <sys/thread.h>
 #include <sys/types.h>
 #include <sys/i686/portio.h>
-// remove me
-#include <stdio.h>
 
 
 static int keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
@@ -24,28 +21,36 @@ struct device keyboard_device = {
 };
 
 
-static uint8_t
-read_scancode()
+static struct fifo *keyboard_buf;
+
+static int
+keyboard_irq_handler(int inum, struct regs *regs)
 {
     while ((io_read_byte(0x64) & 1) == 0);
 
-    return io_read_byte(0x60);
+    uint8_t scancode = io_read_byte(0x60);
+
+    fifo_write(keyboard_buf, &scancode, 1);
+
+    return 0;
 }
 
 static int
 keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
 {
-    for (int i = 0; i < nbyte; i++) {
-        buf[i] = read_scancode();
+    while (FIFO_EMPTY(keyboard_buf)) {
+        thread_yield();
     }
 
-    return nbyte;
+    return fifo_read(keyboard_buf, buf, nbyte);
 }
 
 __attribute__((constructor))
 static void
 _init_keyboard()
 {
+    keyboard_buf = fifo_new(4096);
     device_register(&keyboard_device);
+    register_intr_handler(33, keyboard_irq_handler);
 }
 
