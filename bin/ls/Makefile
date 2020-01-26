@@ -6,7 +6,7 @@ LDFLAGS =
 
 LS_OBJECTS += main.o
 
-LS = ../../build/initrd/bin/ls
+LS = ls
 
 all: $(LS)
 
@@ -14,5 +14,7 @@ $(LS): $(LS_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(LS) "$(DESTDIR)/$(PREFIX)/ls"
 clean:
 	rm -f $(LS_OBJECTS)

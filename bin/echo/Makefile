@@ -6,7 +6,7 @@ LDFLAGS =
 
 ECHO_OBJECTS += main.o
 
-ECHO = ../../build/initrd/bin/echo
+ECHO = echo
 
 all: $(ECHO)
 
@@ -14,5 +14,7 @@ $(ECHO): $(ECHO_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(ECHO) "$(DESTDIR)/$(PREFIX)/echo"
 clean:
 	rm -f $(ECHO_OBJECTS)

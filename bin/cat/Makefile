@@ -6,7 +6,7 @@ LDFLAGS =
 
 CAT_OBJECTS += main.o
 
-CAT = ../../build/initrd/bin/cat
+CAT = cat
 
 all: $(CAT)
 
@@ -14,5 +14,9 @@ $(CAT): $(CAT_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+
+install:
+	cp $(CAT) "$(DESTDIR)/$(PREFIX)/cat"
+
 clean:
 	rm -f $(CAT_OBJECTS)

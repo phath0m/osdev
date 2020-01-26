@@ -6,7 +6,7 @@ LDFLAGS = -lcollections
 
 PS_OBJECTS += main.o
 
-PS = ../../build/initrd/bin/ps
+PS = ps
 
 all: $(PS)
 
@@ -14,5 +14,7 @@ $(PS): $(PS_OBJECTS)
 	$(LD) -o $@ $^ $(LDFLAGS) -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(PS) "$(DESTDIR)/$(PREFIX)/ps"
 clean:
 	rm -f $(PS_OBJECTS)

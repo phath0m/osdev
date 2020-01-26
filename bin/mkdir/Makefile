@@ -6,7 +6,7 @@ LDFLAGS =
 
 MKDIR_OBJECTS += main.o
 
-MKDIR = ../../build/initrd/bin/mkdir
+MKDIR = mkdir
 
 all: $(MKDIR)
 
@@ -14,5 +14,7 @@ $(MKDIR): $(MKDIR_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(MKDIR) "$(DESTDIR)/$(PREFIX)/mkdir"
 clean:
 	rm -f $(MKDIR_OBJECTS)

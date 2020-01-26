@@ -8,7 +8,7 @@ SHELL_OBJECTS += parser.o
 SHELL_OBJECTS += shell.o
 SHELL_OBJECTS += tokenizer.o
 
-SH = ../../build/initrd/bin/sh
+SH = sh
 
 all: $(SH)
 
@@ -16,5 +16,7 @@ $(SH): $(SHELL_OBJECTS)
 	$(LD) -o $@ $^ $(LDFLAGS) -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(SH) "$(DESTDIR)/$(PREFIX)/sh"
 clean:
 	rm -f $(SHELL_OBJECTS)
