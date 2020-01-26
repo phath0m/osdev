@@ -58,6 +58,7 @@ kmain()
 
     const char *envp[] = {
         "CONSOLE=/dev/ttyS1",
+        "TERM=xterm",
         NULL,
     };
 

@@ -272,6 +272,15 @@ tmpfs_stat(struct vfs_node *node, struct stat *stat)
     stat->st_gid = file->gid;
     stat->st_mode = file->mode;
 
+    switch (file->type) {
+        case DT_REG:
+            stat->st_mode |= IFREG;
+            break;
+        case DT_DIR:
+            stat->st_mode |= IFDIR;
+            break;
+    }
+
     if (file->content) {
         stat->st_size = MEMBUF_SIZE(file->content);
     } else {

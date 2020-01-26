@@ -8,7 +8,6 @@
 #define S_IWUSR     0000200
 #define S_IXUSR     0000100
 
-
 #define S_IRWXG     0000070
 #define S_IRGRP     0000040
 #define S_IWGRP     0000020
@@ -17,6 +16,12 @@
 #define S_IROTH     0000004
 #define S_IWOTH     0000002
 #define S_IXOTH     0000001
+
+#define IFDIR  0040000 /* directory */
+#define IFCHR  0020000 /* character special */
+#define IFBLK  0060000 /* block special */
+#define IFREG  0100000 /* regular */
+
 
 struct stat {
     dev_t           st_dev;
