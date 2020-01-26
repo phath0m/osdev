@@ -4,6 +4,7 @@
 #include <sys/types.h>
 
 /* input modes */
+#define IGNBRK          0x00000001
 #define BRKINT          0x00000002
 #define IGNCR           0x00000080
 #define IGNPAR          0x00000004
@@ -52,7 +53,7 @@
 #define CREAD           0x00000800
 #define PARENB          0x00001000
 #define PARODD          0x00002000
-#define HPCL            0x00004000
+#define HUPCL           0x00004000
 #define CLOCAL          0x00004000
 
 /* local modes */
@@ -66,6 +67,15 @@
 #define NOFLSH          0x80000000
 #define TOSTOP          0x00400000
 #define XCASE           0x01000000
+
+/* other shit */
+#define TCIFLUSH    1
+#define TCOFLUSH    2
+#define TCIOFLUSH   3
+#define TCOOFF      1
+#define TCOON       2
+#define TCIOFF      3
+#define TCION       4
 
 #define VMIN            16
 #define VTIME           17
@@ -125,5 +135,6 @@ int tcsetattr(int, int, struct termios *);
 #define TCSETSF     0x03
 
 #define TIOCGWINSZ  0x04
+#define TIOCSWINSZ  0x05
 
 #endif

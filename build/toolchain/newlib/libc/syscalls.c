@@ -9,8 +9,79 @@
 #include <sys/syscalls.h>
 #include <sys/utsname.h>
 #include <stdio.h>
+#include <utime.h>
 
 char **environ;
+
+
+/* Begin things that I've been too lazy to implement */
+long
+sysconf(int name)
+{
+    switch (name) {
+        case 8:
+            return 4096;
+        case 11:
+            return 10000;
+        default:
+            return -1;
+    }
+}
+
+int
+fcntl(int fd, int cmd, ...)
+{
+    if (cmd == F_GETFD || cmd == F_SETFD) {
+        return 0;
+    }
+
+    return -1;
+}
+
+
+long
+pathconf(char *path, int name)
+{
+    return 0;
+}
+
+int
+fpathconf(int file, int name)
+{
+    return 0;
+}
+
+char *
+getcwd(char *buf, size_t size)
+{
+    return "/";
+}
+
+char *
+getwd(char *buf)
+{
+    return getcwd(buf, 256);
+}
+
+int
+utime(const char *filename, const struct utimbuf *times)
+{
+    return 0;
+}
+
+unsigned int
+sleep(unsigned int seconds)
+{
+    return 0;
+}
+
+char *
+getlogin(void)
+{
+    return "root";
+}
+
+/* here are the actual syscalls */
 
 void
 _exit(int status)
@@ -19,11 +90,56 @@ _exit(int status)
 }
 
 int
+access(const char *path, int mode)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_ACCESS), "b"(path), "c"(mode));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 chdir(const char *path)
 {
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHDIR), "b"(path));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+chmod(const char *path, mode_t mode)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHMOD), "b"(path), "c"(mode));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+chown(const char *path, uid_t owner, gid_t group)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHOWN), "b"(path), "c"(owner), "d"(group));
 
     if (ret < 0) {
         errno = -ret;
@@ -115,6 +231,36 @@ execve(char *name, char **argv, char **env)
 }
 
 int
+fchmod(int file, mode_t mode)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FCHMOD), "b"(file), "c"(mode));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+fchown(int file, uid_t owner, gid_t group)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FCHOWN), "b"(file), "c"(owner), "d"(group));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 fork()
 {
     int ret;
@@ -135,6 +281,21 @@ fstat(int file, struct stat *st)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FSTAT), "b"(file), "c"(st));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+ftruncate(int file, off_t length)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FTRUNCATE), "b"(file), "c"(length));
 
     if (ret < 0) {
         errno = -ret;
@@ -328,6 +489,22 @@ lseek(int file, int ptr, int dir)
 
     return ret;
 }
+
+int
+lstat(const char *file, struct stat *st)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_STAT), "b"(file), "c"(st));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
 
 int
 mkdir(const char *path, mode_t mode)
@@ -563,6 +740,21 @@ clock_t
 times(struct tms *buf)
 {
 
+}
+
+int
+truncate(const char *path, off_t length)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_TRUNCATE), "b"(path), "c"(length));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 int

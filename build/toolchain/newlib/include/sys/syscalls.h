@@ -31,6 +31,8 @@
 #define SYS_CREAT       0x1B
 #define SYS_UNLINK      0x1C
 #define SYS_UMASK       0x1D
+#define SYS_FCHMOD      0x1E
+#define SYS_CHMOD       0x1F
 #define SYS_MKPTY       0x20
 #define SYS_ISATTY      0x21
 #define SYS_TTYNAME     0x22
@@ -50,5 +52,9 @@
 #define SYS_SETEUID     0x30
 #define SYS_SETSID      0x31
 #define SYS_GETSID      0x32
+#define SYS_CHOWN       0x33
+#define SYS_FCHOWN      0x34
+#define SYS_TRUNCATE    0x37
+#define SYS_FTRUNCATE   0x38
 
 #endif
