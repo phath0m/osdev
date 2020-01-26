@@ -4,20 +4,17 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu11 -Werror -I ./include
 
 KERNEL = ./sys/kernel.bin
+INITRD = build/iso/boot/initrd.img
+BUILDROOT = $(shell realpath build/initrd)
 ISO_IMAGE = build/os.iso
 
 all: $(KERNEL) $(ISO)
 
 clean:
-	rm -f $(ISO_IMAGE) $(KERNEL)
+	rm -f $(ISO_IMAGE) $(KERNEL) $(INITRD)
 
 userland:
-	mkdir -p ./build/initrd/bin
-	mkdir -p ./build/initrd/sbin
 	mkdir -p ./build/initrd/dev
-	mkdir -p ./build/initrd/usr/bin
-	mkdir -p ./build/initrd/usr/games
-	mkdir -p ./build/initrd/usr/libexec
 	mkdir -p ./build/initrd/tmp
 	make -C bin
 	make -C sbin
@@ -28,12 +25,19 @@ userland:
 
 kernel: $(KERNEL)
 
-iso: $(KERNEL) $(ISO_IMAGE)
+iso: $(KERNEL) $(INITRD) $(ISO_IMAGE)
 
 $(KERNEL):
 	make -C sys
 
+$(INITRD):
+	make -C bin PREFIX=/ DESTDIR=$(BUILDROOT) install
+	make -C sbin PREFIX=/ DESTDIR=$(BUILDROOT) install
+	make -C usr.bin PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C usr.games PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C usr.libexec PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	tar --owner=root -C $(BUILDROOT) -cvf $(INITRD) .
+
 $(ISO_IMAGE):
-	tar --owner=root -C ./build/initrd -cvf ./build/iso/boot/initrd.img .
 	cp -p $(KERNEL) ./build/iso/boot
 	grub2-mkrescue -o $(ISO_IMAGE) build/iso

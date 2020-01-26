@@ -15,6 +15,6 @@ $(ECHO): $(ECHO_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(ECHO) "$(DESTDIR)/$(PREFIX)/echo"
+	cp $(ECHO) "$(DESTDIR)/$(PREFIX)/bin/echo"
 clean:
 	rm -f $(ECHO_OBJECTS)

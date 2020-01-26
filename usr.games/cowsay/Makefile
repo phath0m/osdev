@@ -6,7 +6,7 @@ LDFLAGS =
 
 COWSAY_OBJECTS += main.o
 
-COWSAY = ../../build/initrd/usr/games/cowsay
+COWSAY = cowsay
 
 all: $(COWSAY)
 
@@ -14,5 +14,7 @@ $(COWSAY): $(COWSAY_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(COWSAY) "$(DESTDIR)/$(PREFIX)/games/cowsay"
 clean:
-	rm -f $(COWSAY_OBJECTS)
+	rm -f $(COWSAY_OBJECTS) $(COWSAY)

@@ -15,6 +15,6 @@ $(RMDIR): $(RMDIR_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(RMDIR) "$(DESTDIR)/$(PREFIX)/rmdir"
+	cp $(RMDIR) "$(DESTDIR)/$(PREFIX)/bin/rmdir"
 clean:
 	rm -f $(RMDIR_OBJECTS)

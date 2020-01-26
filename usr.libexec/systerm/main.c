@@ -29,11 +29,6 @@ extern int mkpty();
 #define TXGETCUR        0x0004
 #define TXERSLIN        0x0005
 
-struct curpos {
-    unsigned short  c_row;
-    unsigned short  c_col;
-};
-
 struct termstate {
     int     textscreen; /* file descriptor to output device */
     int     ptm; /* file descriptor to master pseudo-terminal */

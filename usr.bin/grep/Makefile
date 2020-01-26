@@ -4,15 +4,17 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-UNLINK_OBJECTS += main.o
+GREP_OBJECTS += main.o
 
-UNLINK = ../../build/initrd/usr/bin/grep
+GREP = grep
 
-all: $(UNLINK)
+all: $(GREP)
 
-$(UNLINK): $(UNLINK_OBJECTS)
+$(GREP): $(GREP_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(GREP) "$(DESTDIR)/$(PREFIX)/bin/grep"
 clean:
-	rm -f $(UNLINK_OBJECTS)
+	rm -f $(GREP_OBJECTS) $(GREP)

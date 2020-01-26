@@ -15,6 +15,6 @@ $(CHMOD): $(CHMOD_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(CHMOD) "$(DESTDIR)/$(PREFIX)/chmod"
+	cp $(CHMOD) "$(DESTDIR)/$(PREFIX)/bin/chmod"
 clean:
 	rm -f $(CHMOD_OBJECTS) $(CHMOD)

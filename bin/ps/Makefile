@@ -15,6 +15,6 @@ $(PS): $(PS_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(PS) "$(DESTDIR)/$(PREFIX)/ps"
+	cp $(PS) "$(DESTDIR)/$(PREFIX)/bin/ps"
 clean:
 	rm -f $(PS_OBJECTS)

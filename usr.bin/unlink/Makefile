@@ -6,7 +6,7 @@ LDFLAGS =
 
 UNLINK_OBJECTS += main.o
 
-UNLINK = ../../build/initrd/usr/bin/unlink
+UNLINK = unlink
 
 all: $(UNLINK)
 
@@ -14,5 +14,7 @@ $(UNLINK): $(UNLINK_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(UNLINK) "$(DESTDIR)/$(PREFIX)/bin/unlink"
 clean:
-	rm -f $(UNLINK_OBJECTS)
+	rm -f $(UNLINK_OBJECTS) $(UNLINK)

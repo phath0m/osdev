@@ -6,15 +6,17 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-DOIT_OBJECTS += main.o
+SYSTERM_OBJECTS += main.o
 
-DOIT = ../../build/initrd/usr/libexec/systerm
+SYSTERM = systerm
 
-all: $(DOIT)
+all: $(SYSTERM)
 
-$(DOIT): $(DOIT_OBJECTS)
+$(SYSTERM): $(SYSTERM_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(SYSTERM) "$(DESTDIR)/$(PREFIX)/libexec/systerm"
 clean:
-	rm -f $(DOIT_OBJECTS)
+	rm -f $(SYSTERM_OBJECTS) $(SYSTERM)

@@ -6,7 +6,7 @@ LDFLAGS =
 
 LOGIN_OBJECTS += main.o
 
-LOGIN = ../../build/initrd/usr/bin/login
+LOGIN = login
 
 all: $(LOGIN)
 
@@ -14,5 +14,7 @@ $(LOGIN): $(LOGIN_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(LOGIN) "$(DESTDIR)/$(PREFIX)/bin/login"
 clean:
-	rm -f $(LOGIN_OBJECTS)
+	rm -f $(LOGIN_OBJECTS) $(LOGIN)

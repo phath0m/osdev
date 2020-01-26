@@ -17,6 +17,6 @@ $(SH): $(SHELL_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(SH) "$(DESTDIR)/$(PREFIX)/sh"
+	cp $(SH) "$(DESTDIR)/$(PREFIX)/bin/sh"
 clean:
 	rm -f $(SHELL_OBJECTS)

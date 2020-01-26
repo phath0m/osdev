@@ -16,7 +16,7 @@ $(CAT): $(CAT_OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@
 
 install:
-	cp $(CAT) "$(DESTDIR)/$(PREFIX)/cat"
+	cp $(CAT) "$(DESTDIR)/$(PREFIX)/bin/cat"
 
 clean:
 	rm -f $(CAT_OBJECTS)

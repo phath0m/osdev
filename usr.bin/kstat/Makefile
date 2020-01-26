@@ -6,7 +6,7 @@ LDFLAGS =
 
 KSTAT_OBJECTS += main.o
 
-KSTAT = ../../build/initrd/usr/bin/kstat
+KSTAT = kstat
 
 all: $(KSTAT)
 
@@ -14,5 +14,7 @@ $(KSTAT): $(KSTAT_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(KSTAT) "$(DESTDIR)/$(PREFIX)/bin/kstat"
 clean:
-	rm -f $(KSTAT_OBJECTS)
+	rm -f $(KSTAT_OBJECTS) $(KSTAT)

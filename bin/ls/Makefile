@@ -15,6 +15,6 @@ $(LS): $(LS_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(LS) "$(DESTDIR)/$(PREFIX)/ls"
+	cp $(LS) "$(DESTDIR)/$(PREFIX)/bin/ls"
 clean:
 	rm -f $(LS_OBJECTS)

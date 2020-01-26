@@ -15,6 +15,6 @@ $(CHOWN): $(CHOWN_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(CHOWN) "$(DESTDIR)/$(PREFIX)/chown"
+	cp $(CHOWN) "$(DESTDIR)/$(PREFIX)/bin/chown"
 clean:
 	rm -f $(CHOWN_OBJECTS) $(CHOWN)
