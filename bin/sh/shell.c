@@ -331,6 +331,18 @@ builtin_clear(const char *name, int argc, const char *argv[])
 }
 
 int
+builtin_exit(const char *name, int argc, const char *argv[])
+{
+    int exit_code = 0;
+
+    if (argc > 1) {
+        exit_code = atoi(argv[1]);
+    }
+
+    exit(exit_code);
+}
+
+int
 builtin_setenv(const char *name, int argc, const char *argv[])
 {
     if (argc == 1) {
@@ -366,11 +378,17 @@ builtin_source(const char *name, int argc, const char *argv[])
 void
 shell_repl()
 {
+    uid_t uid = getuid();
+
     for (;;) {
         char buffer[512];
         memset(buffer, 0, 512);
 
-        fputs("# ", stdout);
+        if (uid == 0) {
+            fputs("# ", stdout);
+        } else {
+            fputs("$ ", stdout);
+        }
 
         fflush(stdout);
 
@@ -390,6 +408,7 @@ main(int argc, const char *argv[])
 
     dict_set(&builtin_commands, "cd", builtin_cd);
     dict_set(&builtin_commands, "clear", builtin_clear);
+    dict_set(&builtin_commands, "exit", builtin_exit);
     dict_set(&builtin_commands, "setenv", builtin_setenv);
     dict_set(&builtin_commands, "source", builtin_source);
 
