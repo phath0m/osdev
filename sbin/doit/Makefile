@@ -6,7 +6,7 @@ LDFLAGS = -lcollections -lini
 
 DOIT_OBJECTS += main.o
 
-DOIT = ../../build/initrd/sbin/doit
+DOIT = doit
 
 all: $(DOIT)
 
@@ -14,5 +14,7 @@ $(DOIT): $(DOIT_OBJECTS)
 	$(LD) -o $@ $^ $(LDFLAGS) -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(DOIT) "$(DESTDIR)/$(PREFIX)/sbin/doit"
 clean:
-	rm -f $(DOIT_OBJECTS)
+	rm -f $(DOIT_OBJECTS) $(DOIT)

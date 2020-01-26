@@ -8,7 +8,7 @@ LDFLAGS =
 
 NEWTTY_OBJECTS += main.o
 
-NEWTTY = ../../build/initrd/sbin/newtty
+NEWTTY = newtty
 
 all: $(NEWTTY)
 
@@ -16,5 +16,7 @@ $(NEWTTY): $(NEWTTY_OBJECTS)
 	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
+install:
+	cp $(NEWTTY) "$(DESTDIR)/$(PREFIX)/sbin/newtty"
 clean:
-	rm -f $(NEWTTY_OBJECTS)
+	rm -f $(NEWTTY_OBJECTS) $(NEWTTY)
