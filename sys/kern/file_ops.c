@@ -83,20 +83,25 @@ fops_access(struct proc *proc, const char *path, int mode)
     struct vfs_node *cwd = proc->cwd;
 
     bool will_write = mode & W_OK;
-    //bool will_read = mode & R_OK;
+    bool will_read = mode & R_OK;
 
     struct vfs_node *child = NULL;
 
-    if (vfs_get_node(root, cwd, &child, path) == 0) {
-
-        if ((child->mount_flags & MS_RDONLY) && will_write) {
-            return -(EROFS);
-        }
-    } else {
+    if (vfs_get_node(root, cwd, &child, path) != 0) {
         return -(ENOENT);
     }
 
-    // TODO: implement actual checks here...
+    if (will_write && (child->mount_flags & MS_RDONLY)) {
+        return -(EROFS);
+    }
+
+    if (will_write && !can_write(child, &proc->creds)) {
+        return -(EACCES);
+    }
+
+    if (will_read && !can_read(child, &proc->creds)) {
+        return -(EACCES);
+    }
 
     return 0;
 }
@@ -195,6 +200,64 @@ fops_open_r(struct proc *proc, struct file **result, const char *path, int flags
 }
 
 int
+fops_chmod(struct proc *proc, const char *path, mode_t mode)
+{
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
+    struct vfs_node *child = NULL;
+
+    if (vfs_get_node(root, cwd, &child, path) != 0) {
+        return -(ENOENT);
+    }
+
+    if (child->mount_flags & MS_RDONLY) {
+        return -(EROFS);
+    }
+
+    if (!can_write(child, &proc->creds)) {
+        return -(EACCES);
+    }
+
+    struct file_ops *ops = child->ops;
+
+    if (ops && ops->chmod) {
+        return ops->chmod(child, mode);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
+fops_chown(struct proc *proc, const char *path, uid_t owner, gid_t group)
+{
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
+    struct vfs_node *child = NULL;
+
+    if (vfs_get_node(root, cwd, &child, path) != 0) {
+        return -(ENOENT);
+    }
+
+    if (child->mount_flags & MS_RDONLY) {
+        return -(EROFS);
+    }
+
+    if (!can_write(child, &proc->creds)) {
+        return -(EACCES);
+    }
+
+    struct file_ops *ops = child->ops;
+
+    if (ops && ops->chown) {
+        return ops->chown(child, owner, group);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
 fops_creat(struct proc *proc, struct file **result, const char *path, mode_t mode)
 {
     struct vfs_node *root = proc->root;
@@ -211,13 +274,12 @@ fops_creat(struct proc *proc, struct file **result, const char *path, mode_t mod
 
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
-
-        if ((parent->mount_flags & MS_RDONLY)) {
-            return -(EROFS);
-        }
-    } else {
+    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
+    }
+
+    if ((parent->mount_flags & MS_RDONLY)) {
+        return -(EROFS);
     }
 
     struct file_ops *ops = parent->ops;
@@ -260,6 +322,32 @@ fops_fchmod(struct file *file, mode_t mode)
 }
 
 int
+fops_fchown(struct file *file, uid_t owner, gid_t group)
+{
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+    if (ops->chown) {
+        return ops->chown(node, owner, group);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
+fops_ftruncate(struct file *file, off_t length)
+{
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+    if (ops->truncate) {
+        return ops->truncate(node, length);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
 fops_ioctl(struct file *file, uint64_t request, void *arg)
 {
     struct vfs_node *node = file->node;
@@ -289,12 +377,12 @@ fops_mkdir(struct proc *proc, const char *path, mode_t mode)
 
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
-        if ((parent->mount_flags & MS_RDONLY)) {
-            return -(EROFS);
-        }
-    } else {
+    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
+    }
+
+    if ((parent->mount_flags & MS_RDONLY)) {
+        return -(EROFS);
     }
 
     if (!can_write(parent, &proc->creds)) {
@@ -367,12 +455,12 @@ fops_rmdir(struct proc *proc, const char *path)
 
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
-        if ((parent->mount_flags & MS_RDONLY)) {
-            return -(EROFS);
-        }
-    } else {
+    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
+    }
+
+    if ((parent->mount_flags & MS_RDONLY)) {
+       return -(EROFS);
     }
 
     if (!can_write(parent, &proc->creds)) {
@@ -421,6 +509,35 @@ fops_tell(struct file *file)
 }
 
 int
+fops_truncate(struct proc *proc, const char *path, off_t length)
+{
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
+    struct vfs_node *child = NULL;
+
+    if (vfs_get_node(root, cwd, &child, path) != 0) {
+        return -(ENOENT);
+    }
+    
+    if (child->mount_flags & MS_RDONLY) {
+        return -(EROFS);
+    }
+
+    if (!can_write(child, &proc->creds)) {
+        return -(EACCES);
+    }
+
+    struct file_ops *ops = child->ops;
+
+    if (ops && ops->truncate) {
+        return ops->truncate(child, length);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
 fops_unlink(struct proc *proc, const char *path)
 {
     struct vfs_node *root = proc->root;
@@ -437,12 +554,12 @@ fops_unlink(struct proc *proc, const char *path)
 
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) == 0) {
-        if ((parent->mount_flags & MS_RDONLY)) {
-            return -(EROFS);
-        }
-    } else {
+    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
+    }
+
+    if ((parent->mount_flags & MS_RDONLY)) {
+        return -(EROFS);
     }
 
     if (!can_write(parent, &proc->creds)) {

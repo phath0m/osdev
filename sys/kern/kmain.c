@@ -23,6 +23,7 @@ kmain()
         extern void *start_initramfs;
         extern void tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive);
 
+        root->mode = 755;
         current_proc->cwd = root;
         current_proc->root = root;
         

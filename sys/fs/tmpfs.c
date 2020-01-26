@@ -21,6 +21,7 @@ static int tmpfs_lookup(struct vfs_node *parent, struct vfs_node **result, const
 static int tmpfs_mount(struct device *dev, struct vfs_node **root);
 //static struct tmpfs_node *tmpfs_node_new();
 static int tmpfs_chmod(struct vfs_node *node, mode_t mode);
+static int tmpfs_chown(struct vfs_node *node, uid_t owner, gid_t group);
 static int tmpfs_creat(struct vfs_node *parent, struct vfs_node **child, const char *name, mode_t mode);
 static int tmpfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int tmpfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
@@ -28,11 +29,13 @@ static int tmpfs_rmdir(struct vfs_node *parent, const char *dirname);
 static int tmpfs_mkdir(struct vfs_node *parent, const char *name, mode_t mode);
 static int tmpfs_seek(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 static int tmpfs_stat(struct vfs_node *node, struct stat *stat);
+static int tmpfs_truncate(struct vfs_node *node, off_t length);
 static int tmpfs_unlink(struct vfs_node *parent, const char *dirname);
 static int tmpfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops tmpfs_file_ops = {
     .chmod      = tmpfs_chmod,
+    .chown      = tmpfs_chown,
     .creat      = tmpfs_creat,
     .lookup     = tmpfs_lookup,
     .read       = tmpfs_read,
@@ -41,6 +44,7 @@ struct file_ops tmpfs_file_ops = {
     .mkdir      = tmpfs_mkdir,
     .seek       = tmpfs_seek,
     .stat       = tmpfs_stat,
+    .truncate   = tmpfs_truncate,
     .unlink     = tmpfs_unlink,
     .write      = tmpfs_write
 };
@@ -67,12 +71,23 @@ tmpfs_node_new()
     return node;
 }
 
-static
-int tmpfs_chmod(struct vfs_node *node, mode_t mode)
+static int
+tmpfs_chmod(struct vfs_node *node, mode_t mode)
 {
     struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
 
     tmpfs_node->mode = mode;
+
+    return 0;
+}
+
+static int
+tmpfs_chown(struct vfs_node *node, uid_t owner, gid_t group)
+{
+    struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
+
+    tmpfs_node->uid = owner;
+    tmpfs_node->gid = group;
 
     return 0;
 }
@@ -270,6 +285,16 @@ tmpfs_stat(struct vfs_node *node, struct stat *stat)
     stat->st_uid = file->uid;
     stat->st_ino = (ino_t)file;
     stat->st_mtime = file->mtime;
+    return 0;
+}
+
+static int
+tmpfs_truncate(struct vfs_node *node, off_t length)
+{
+    struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
+
+    membuf_clear(tmpfs_node->content);
+
     return 0;
 }
 

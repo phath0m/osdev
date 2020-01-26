@@ -55,6 +55,10 @@
 #define SYS_SETEUID     0x30
 #define SYS_SETSID      0x31
 #define SYS_GETSID      0x32
+#define SYS_CHOWN       0x33
+#define SYS_FCHOWN      0x34
+#define SYS_TRUNCATE    0x37
+#define SYS_FTRUNCATE   0x38
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

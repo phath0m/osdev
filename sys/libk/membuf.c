@@ -46,6 +46,13 @@ get_block_buf(struct membuf *mb, off_t pos)
 }
 
 void
+membuf_clear(struct membuf *mb)
+{
+    list_destroy(&mb->blocks, true);
+    memset(&mb->blocks, 0, sizeof(struct list));
+}
+
+void
 membuf_destroy(struct membuf *mb)
 {
     list_destroy(&mb->blocks, true);

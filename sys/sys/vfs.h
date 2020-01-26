@@ -28,6 +28,7 @@ struct vfs_node;
 typedef int (*file_close_t)(struct file *file);
 
 typedef int (*fs_chmod_t)(struct vfs_node *node, mode_t mode);
+typedef int (*fs_chown_t)(struct vfs_node *node, uid_t owner, uid_t group);
 typedef int (*fs_node_destroy_t)(struct vfs_node *node);
 typedef int (*fs_close_t)(struct vfs_node *node, struct file *fp);
 typedef int (*fs_creat_t)(struct vfs_node *node, struct vfs_node **result, const char *name, mode_t mode);
@@ -41,6 +42,7 @@ typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_
 typedef int (*fs_rmdir_t)(struct vfs_node *node, const char *path);
 typedef int (*fs_seek_t)(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 typedef int (*fs_stat_t)(struct vfs_node *node, struct stat *stat);
+typedef int (*fs_truncate_t)(struct vfs_node *node, off_t length);
 typedef int (*fs_unlink_t)(struct vfs_node *parent, const char *name);
 typedef int (*fs_write_t)(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
@@ -51,10 +53,11 @@ struct file {
     int                 refs;
     uint64_t            position;
 };
-
+ 
 struct file_ops {
     fs_node_destroy_t       destroy;
     fs_chmod_t              chmod;
+    fs_chown_t              chown;
     fs_close_t              close;
     fs_creat_t              creat;
     fs_duplicate_t          duplicate;
@@ -66,6 +69,7 @@ struct file_ops {
     fs_mkdir_t              mkdir;
     fs_seek_t               seek;
     fs_stat_t               stat;
+    fs_truncate_t           truncate;
     fs_unlink_t             unlink;
     fs_write_t              write;
 };
@@ -130,125 +134,46 @@ int fops_open_r(struct proc *proc, struct file **result, const char *path, int f
 
 void register_filesystem(char *name, struct fs_ops *ops);
 
+int fops_access(struct proc *proc, const char *path, int mode);
 
-/*
- * fops_fchmod
- * @param file  The file
- * @param mode  The mode
- */
 int fops_fchmod(struct file *file, mode_t mode);
 
-/*
- * fops_close
- * Releases a file struct and frees any associated resources
- * @param file  Pointer to the open file struct
- */
+int fops_fchown(struct file *file, uid_t owner, gid_t group);
+
+int fops_ftruncate(struct file *fp, off_t length);
+
+int fops_chmod(struct proc *proc, const char *path, mode_t mode);
+
+int fops_chown(struct proc *proc, const char *path, uid_t owner, gid_t group);
+
 int fops_close(struct file *file);
 
-/*
- * fops_creat
- * Creates a new file
- */
 int fops_creat(struct proc *proc, struct file **result, const char *path, mode_t mode);
 
-/*
- * fops_ioctl
- */
 int fops_ioctl(struct file *fp, uint64_t request, void *arg);
 
-/*
- * vfs_lookup
- * Looks up a directory entry relative to the supplied VFS node
- * @param parent    The VFS node for the directory that is to be searched
- * @param result    Pointer to a vfs_node pointer that will store the result
- * @param name      Name of the child directory contained inside the parent VFS node
- */
 int vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name); 
 
-/*
- * vfs_mount
- * Mounts a filesystem
- * @param root      VFS node pointing to the root of the filesystem
- * @param dev       Device containing filesystem
- * @param fsname    Name of the filesystem to mount
- * @param path      Path to the mount point
- * @flags           Mount flags
- */
 int vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const char *path, int flags);
 
-/*
- * fops_mkdir
- * Creates a new directory
- * @param root  Root filesystem
- * @param cwd   Current working directory for relative paths
- * @param path  Path to mount
- * @param mode  Mode for newly created file
- */
 int fops_mkdir(struct proc *proc, const char *path, mode_t mode);
 
-/*
- * fops_read
- * Reads n bytes from an open file
- * @param file  Pointer to an open file struct
- * @param buf   Buffer to read n bytes into
- * @param nbyte Amount of bytes to read
- */
 int fops_read(struct file *file, char *buf, size_t nbyte);
 
-/*
- * fops_readdirent
- * Reads a single directory entry
- * @param file      Pointer to an open file struct
- * @param dirent    Pointer to a dirent struct
- */
 int fops_readdirent(struct file *file, struct dirent *dirent);
 
-/*
- * fops_rmdir
- * Removes an empty directory
- * @param root  Pointer to the root filesystem
- * @param cwd   Current working directory used for relative paths
- * @param path  Path of file to delete
- */
 int fops_rmdir(struct proc *proc, const char *path);
 
-/*
- * fops_seek
- * Moves the position nbytes relative to the supplied offset
- * @param file      Pointer to an open file struct
- * @param off       Offset to move
- * @param whence    specifies origin to use relative to the supplied offset
- */
 int fops_seek(struct file *file, off_t off, int whence);
 
-/*
- * fops_stat
- * Obtains information about a file, writing the info into the provided stat struct
- * @param file  Pointer to an open file
- * @param stat  Pointer to a stat buf
- */
 int fops_stat(struct file *file, struct stat *stat);
 
-/*
- * fops_tell
- * Reports the current position in the supplied file
- * @param file  Pointer to the open file struct
- */
 uint64_t fops_tell(struct file *file);
 
-/*
- * fops_unlink
- * Deletes a file
- */
+int fops_truncate(struct proc *proc, const char *path, off_t length);
+
 int fops_unlink(struct proc *proc, const char *path);
 
-/*
- * fops_write
- * Writes n bytes to the supplied file
- * @param file      pointer to an open file
- * @param buf       pointer to the data to write
- * @param nbyte     how many bytes to write
- */
 int fops_write(struct file *file, const char *buf, size_t nbyte);
 
 #endif

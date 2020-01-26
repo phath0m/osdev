@@ -11,6 +11,39 @@
  * filesystem syscalls
  */
 
+static int
+sys_access(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
+
+    TRACE_SYSCALL("access", "\"%s\", %d", path, mode);
+
+    return fops_access(current_proc, path, mode);
+}
+
+static int
+sys_chmod(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
+
+    TRACE_SYSCALL("chmod", "\"%s\", %d", path, mode);
+
+    return fops_chmod(current_proc, path, mode);
+}
+
+static int
+sys_chown(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(uid_t, owner, 1, argv);
+    DEFINE_SYSCALL_PARAM(gid_t, group, 2, argv);
+
+    TRACE_SYSCALL("chown", "\"%s\", %d, %d", path, owner, group);
+
+    return fops_chown(current_proc, path, owner, group);
+}
 
 static int
 sys_close(syscall_args_t argv)
@@ -71,6 +104,41 @@ sys_fchmod(syscall_args_t argv)
 
     if (file) {
         return fops_fchmod(file, mode);
+    }
+
+    return -(EBADF);
+}
+
+static int
+sys_fchown(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(uid_t, owner, 1, argv);
+    DEFINE_SYSCALL_PARAM(gid_t, group, 2, argv);
+
+    TRACE_SYSCALL("fchown", "%d, %d, %d", fd, owner, group);
+
+    struct file *file = proc_getfile(fd);
+
+    if (file) {
+        return fops_fchown(file, owner, group);
+    }
+
+    return -(EBADF);
+}
+
+static int
+sys_ftruncate(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(off_t, length, 1, argv);
+
+    TRACE_SYSCALL("ftruncate", "%d, 0x%p", fd, length);
+
+    struct file *file = proc_getfile(fd);
+
+    if (file) {
+        return fops_ftruncate(file, length);
     }
 
     return -(EBADF);
@@ -256,6 +324,17 @@ sys_stat(syscall_args_t argv)
 }
 
 static int
+sys_truncate(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(off_t, length, 1, argv);
+
+    TRACE_SYSCALL("truncate", "\"%s\", %d", path, length);
+
+    return fops_truncate(current_proc, path, length);
+}
+
+static int
 sys_unlink(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
@@ -291,6 +370,7 @@ _init_vfs_syscalls()
 {
     register_syscall(SYS_CLOSE, 1, sys_close);
     register_syscall(SYS_CREAT, 2, sys_creat);
+    register_syscall(SYS_CHMOD, 2, sys_chmod);
     register_syscall(SYS_FCHMOD, 2, sys_fchmod);
     register_syscall(SYS_FSTAT, 2, sys_fstat);
     register_syscall(SYS_IOCTL, 3, sys_ioctl);
@@ -304,4 +384,9 @@ _init_vfs_syscalls()
     register_syscall(SYS_STAT, 2, sys_stat);
     register_syscall(SYS_UNLINK, 1, sys_unlink);
     register_syscall(SYS_WRITE, 3, sys_write);
+    register_syscall(SYS_CHOWN, 3, sys_chown);
+    register_syscall(SYS_FCHOWN, 3, sys_fchown);
+    register_syscall(SYS_TRUNCATE, 2, sys_truncate);
+    register_syscall(SYS_FTRUNCATE, 2, sys_ftruncate);
+    register_syscall(SYS_ACCESS, 2, sys_access);
 }

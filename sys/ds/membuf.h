@@ -16,6 +16,7 @@ struct membuf {
     struct list blocks;
 };
 
+void membuf_clear(struct membuf *mb);
 void membuf_destroy(struct membuf *mb);
 struct membuf *membuf_new();
 void membuf_write(struct membuf *mb, const void *buf, size_t nbyte, off_t pos);
