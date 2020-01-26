@@ -208,7 +208,7 @@ vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const c
     struct file *file;
 
     if (fops_openfs(dev, &mount, fsname, flags) == 0) {
-        if (fops_open(root, &file, path, O_RDONLY) == 0) {
+        if (fops_open(current_proc, &file, path, O_RDONLY) == 0) {
             struct vfs_node *mount_point = file->node;
             
             mount_point->ismount = true;

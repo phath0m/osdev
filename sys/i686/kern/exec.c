@@ -147,7 +147,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     struct file *exe;
 
-    if (fops_open(root, &exe, path, O_RDONLY) == 0) {
+    if (fops_open(proc, &exe, path, O_RDONLY) == 0) {
         fops_seek(exe, 0, SEEK_END);
 
         size_t size = fops_tell(exe);

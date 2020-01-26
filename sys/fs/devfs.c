@@ -74,8 +74,8 @@ devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
             struct vfs_node *node = vfs_node_new(parent->device, &devfs_file_ops);
             node->device = dev;
             node->inode = (ino_t)dev;
-            node->group = 0;
-            node->owner = 0;
+            node->gid = 0;
+            node->uid = 0;
             node->state = (void*)dev;
 
             *result = node;
@@ -96,8 +96,8 @@ devfs_mount(struct device *dev, struct vfs_node **root)
     struct vfs_node *node = vfs_node_new(dev, &devfs_file_ops);
 
     node->inode = 0;
-    node->group = 0;
-    node->owner = 0;
+    node->gid = 0;
+    node->uid = 0;
 
     *root = node;
 

@@ -42,7 +42,7 @@ sys_creat(syscall_args_t argv)
     struct file *file;
     mode &= current_proc->umask;
 
-    int succ = fops_creat(current_proc->root, current_proc->cwd, &file, path, mode);
+    int succ = fops_creat(current_proc, &file, path, mode);
 
     if (succ == 0) {
         int fd = proc_getfildes();
@@ -122,7 +122,7 @@ sys_open(syscall_args_t argv)
 
     struct file *file;
 
-    int succ = fops_open_r(current_proc->root, current_proc->cwd, &file, path, mode);
+    int succ = fops_open_r(current_proc, &file, path, mode);
 
     if (succ == 0) {
         int fd = proc_getfildes();
@@ -200,7 +200,7 @@ sys_rmdir(syscall_args_t argv)
 
     TRACE_SYSCALL("rmdir", "\"%s\"", path);
 
-    return fops_rmdir(current_proc->root, current_proc->cwd, path);
+    return fops_rmdir(current_proc, path);
 }
 
 static int
@@ -231,7 +231,7 @@ sys_mkdir(syscall_args_t argv)
 
     mode &= current_proc->umask;
 
-    return fops_mkdir(current_proc->root, current_proc->cwd, path, mode);
+    return fops_mkdir(current_proc, path, mode);
 }
 
 static int
@@ -246,7 +246,7 @@ sys_stat(syscall_args_t argv)
 
     int res = 0;
 
-    if (fops_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY) == 0) {
+    if (fops_open_r(current_proc, &file, path, O_RDONLY) == 0) {
         res = fops_stat(file, buf);
 
         fops_close(file);
@@ -262,7 +262,7 @@ sys_unlink(syscall_args_t argv)
 
     TRACE_SYSCALL("unlink", "\"%s\"", path);
 
-    return fops_unlink(current_proc->root, current_proc->cwd, path);
+    return fops_unlink(current_proc, path);
 }
 
 static int

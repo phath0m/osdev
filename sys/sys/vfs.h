@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/device.h>
 #include <sys/limits.h>
+#include <sys/proc.h>
 
 #define SEEK_SET    0x00
 #define SEEK_CUR    0x01
@@ -101,8 +102,9 @@ struct vfs_node {
     int                 mount_flags;
     bool                ismount;
     ino_t               inode;
-    gid_t               group;
-    uid_t               owner;
+    gid_t               gid;
+    uid_t               uid;
+    mode_t              mode;
     uint64_t            size;
     void *              state;
     int                 refs;
@@ -122,9 +124,9 @@ struct vfs_node *vfs_node_new(struct device *dev, struct file_ops *ops);
 
 int vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **result, const char *path);
 
-int fops_open(struct vfs_node *root, struct file **result, const char *path, int flags);
+int fops_open(struct proc *proc, struct file **result, const char *path, int flags);
 
-int fops_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags);
+int fops_open_r(struct proc *proc, struct file **result, const char *path, int flags);
 
 void register_filesystem(char *name, struct fs_ops *ops);
 
@@ -147,7 +149,7 @@ int fops_close(struct file *file);
  * fops_creat
  * Creates a new file
  */
-int fops_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode);
+int fops_creat(struct proc *proc, struct file **result, const char *path, mode_t mode);
 
 /*
  * fops_ioctl
@@ -182,7 +184,7 @@ int vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, con
  * @param path  Path to mount
  * @param mode  Mode for newly created file
  */
-int fops_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode);
+int fops_mkdir(struct proc *proc, const char *path, mode_t mode);
 
 /*
  * fops_read
@@ -208,7 +210,7 @@ int fops_readdirent(struct file *file, struct dirent *dirent);
  * @param cwd   Current working directory used for relative paths
  * @param path  Path of file to delete
  */
-int fops_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path);
+int fops_rmdir(struct proc *proc, const char *path);
 
 /*
  * fops_seek
@@ -238,7 +240,7 @@ uint64_t fops_tell(struct file *file);
  * fops_unlink
  * Deletes a file
  */
-int fops_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path);
+int fops_unlink(struct proc *proc, const char *path);
 
 /*
  * fops_write

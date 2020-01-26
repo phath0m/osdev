@@ -34,6 +34,34 @@ split_path(char *path, char **directory, char **file)
     return true;
 }
 
+static bool
+can_read(struct vfs_node *node, struct cred *creds)
+{
+    if (creds->uid == 0) {
+        return true;
+    }
+
+    if (node->uid == creds->uid && (node->mode & S_IRUSR)) {
+        return true;
+    }
+
+    return (node->mode & S_IROTH);
+}
+
+static bool
+can_write(struct vfs_node *node, struct cred *creds)
+{
+    if (creds->uid == 0) {
+        return true;
+    }
+
+    if (node->uid == creds->uid && (node->mode & S_IWUSR)) {
+        return true;
+    }
+
+    return (node->mode & S_IWOTH);
+}
+
 struct file *
 file_new(struct vfs_node *node)
 {
@@ -49,8 +77,11 @@ file_new(struct vfs_node *node)
 }
 
 int
-fops_access(struct vfs_node *root, struct vfs_node *cwd, const char *path, int mode)
+fops_access(struct proc *proc, const char *path, int mode)
 {
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
     bool will_write = mode & W_OK;
     //bool will_read = mode & R_OK;
 
@@ -118,22 +149,33 @@ vfs_duplicate_file(struct file *file)
 }
 
 int
-fops_open(struct vfs_node *root, struct file **result, const char *path, int flags)
+fops_open(struct proc *proc, struct file **result, const char *path, int flags)
 {
-    return fops_open_r(root, NULL, result, path, flags);
+    return fops_open_r(proc, result, path, flags);
 }
 
 int
-fops_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, int flags)
+fops_open_r(struct proc *proc, struct file **result, const char *path, int flags)
 {
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
     struct vfs_node *child = NULL;
 
     if (vfs_get_node(root, cwd, &child, path) == 0) {
         bool will_write = (flags == O_RDWR || flags == O_WRONLY);
-        //bool will_read = (flags == O_RDWR || flags == O_RDONLY);
+        bool will_read = (flags == O_RDWR || flags == O_RDONLY);
 
         if ((child->mount_flags & MS_RDONLY) && will_write) {
             return -(EROFS);
+        }
+
+        if (will_write && !can_write(child, &proc->creds)) {
+            return -(EACCES);
+        }
+
+        if (will_read && !can_read(child, &proc->creds)) {
+            return -(EACCES);
         }
 
         struct file *file = file_new(child);
@@ -146,15 +188,18 @@ fops_open_r(struct vfs_node *root, struct vfs_node *cwd, struct file **result, c
     }
 
     if ((flags & O_CREAT)) {
-        return fops_creat(root, cwd, result, path, 0700);
+        return fops_creat(proc, result, path, 0700);
     }
 
     return -(ENOENT);
 }
 
 int
-fops_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, const char *path, mode_t mode)
+fops_creat(struct proc *proc, struct file **result, const char *path, mode_t mode)
 {
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
     char path_buf[PATH_MAX+1];
 
     strncpy(path_buf, path, PATH_MAX);
@@ -181,7 +226,11 @@ fops_creat(struct vfs_node *root, struct vfs_node *cwd, struct file **result, co
     if (!ops || !ops->creat) {
         return -(ENOTSUP);
     }
-    
+
+    if (!can_write(parent, &proc->creds)) {
+        return -(EACCES);
+    }
+
     int res = ops->creat(parent, &child, filename, mode);
 
     if (res != 0) {
@@ -224,8 +273,11 @@ fops_ioctl(struct file *file, uint64_t request, void *arg)
 }
 
 int
-fops_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t mode)
+fops_mkdir(struct proc *proc, const char *path, mode_t mode)
 {
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
     char path_buf[PATH_MAX+1];
 
     strncpy(path_buf, path, PATH_MAX);
@@ -243,6 +295,10 @@ fops_mkdir(struct vfs_node *root, struct vfs_node *cwd, const char *path, mode_t
         }
     } else {
         return -(ENOENT);
+    }
+
+    if (!can_write(parent, &proc->creds)) {
+        return -(EACCES);
     }
 
     struct file_ops *ops = parent->ops;
@@ -295,8 +351,11 @@ fops_readdirent(struct file *file, struct dirent *dirent)
 }
 
 int
-fops_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path)
+fops_rmdir(struct proc *proc, const char *path)
 {
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
     char path_buf[PATH_MAX+1];
 
     strncpy(path_buf, path, PATH_MAX);
@@ -314,6 +373,10 @@ fops_rmdir(struct vfs_node *root, struct vfs_node *cwd, const char *path)
         }
     } else {
         return -(ENOENT);
+    }
+
+    if (!can_write(parent, &proc->creds)) {
+        return -(EACCES);
     }
 
     struct file_ops *ops = parent->ops;
@@ -358,8 +421,11 @@ fops_tell(struct file *file)
 }
 
 int
-fops_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path)
+fops_unlink(struct proc *proc, const char *path)
 {
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
     char path_buf[PATH_MAX+1];
 
     strncpy(path_buf, path, PATH_MAX);
@@ -377,6 +443,10 @@ fops_unlink(struct vfs_node *root, struct vfs_node *cwd, const char *path)
         }
     } else {
         return -(ENOENT);
+    }
+
+    if (!can_write(parent, &proc->creds)) {
+        return -(EACCES);
     }
 
     struct file_ops *ops = parent->ops;

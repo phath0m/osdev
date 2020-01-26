@@ -1,4 +1,5 @@
 #include <sys/malloc.h>
+#include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/vfs.h>
@@ -35,7 +36,7 @@ extract_file(struct vfs_node *root, const char *name, void *data, size_t size, m
 {
     struct file *fp;
 
-    if (fops_creat(root, NULL, &fp, name, mode) != 0) {
+    if (fops_creat(current_proc, &fp, name, mode) != 0) {
         printf("error: extracting %s\n", name);
         return;
     }
@@ -83,7 +84,7 @@ tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *arc
                     extract_file(root, name, data, size, mode);
                     break;
                 case TAR_DIR:
-                    fops_mkdir(root, NULL, name, mode);
+                    fops_mkdir(current_proc, name, mode);
                     break;
             }
         }

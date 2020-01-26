@@ -16,7 +16,7 @@ can_execute_file(const char *path)
 
     struct file *file;
 
-    if (fops_open(current_proc->root, &file, path, O_RDONLY) == 0) {
+    if (fops_open(current_proc, &file, path, O_RDONLY) == 0) {
 
         fops_stat(file, &buf);
 
@@ -49,7 +49,7 @@ sys_chdir(syscall_args_t args)
 
     struct file *file;
 
-    int res = fops_open_r(current_proc->root, current_proc->cwd, &file, path, O_RDONLY);
+    int res = fops_open_r(current_proc, &file, path, O_RDONLY);
 
     if (res == 0) {
         if (current_proc->cwd) {
@@ -99,7 +99,7 @@ sys_execve(syscall_args_t args)
         return exec_err;
     }
 
-    int status = fops_open(current_proc->root, &fd, file, O_RDONLY);
+    int status = fops_open(current_proc, &fd, file, O_RDONLY);
 
     if (status == 0) {
         char interpreter[512];

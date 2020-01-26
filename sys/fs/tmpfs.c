@@ -107,7 +107,10 @@ tmpfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
         struct vfs_node *node = vfs_node_new(NULL, &tmpfs_file_ops);
         
         node->state = child;
-        
+        node->mode = child->mode;
+        node->uid = child->uid;
+        node->gid = child->gid;    
+
         *result = node;
 
         return 0;

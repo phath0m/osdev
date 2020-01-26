@@ -22,6 +22,9 @@ kmain()
 
         extern void *start_initramfs;
         extern void tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive);
+
+        current_proc->cwd = root;
+        current_proc->root = root;
         
         tar_extract_archive(root, NULL, start_initramfs);
 
@@ -34,8 +37,6 @@ kmain()
             printf("kernel: mounted tmpfs to /tmp\n");
         }*/
 
-        current_proc->cwd = root;
-        current_proc->root = root;
     } else {
         panic("could not mount initramfs!\n");
     }
