@@ -5,8 +5,8 @@
 #include <sys/string.h>
 #include <sys/systm.h>
 
-static void
-expand_buffer(struct membuf *mb, size_t newsize)
+void
+membuf_expand(struct membuf *mb, size_t newsize)
 {
     int requested_blocks = (newsize / MEMBUF_BLOCK_SIZE) + 1; 
 
@@ -112,7 +112,7 @@ membuf_write(struct membuf *mb, const void *buf, size_t nbyte, off_t pos)
     size_t requested_size = pos + nbyte;
 
     if (requested_size > MEMBUF_ACTUAL_SIZE(mb)) {
-        expand_buffer(mb, requested_size);
+        membuf_expand(mb, requested_size);
     }
     
     int required_blocks = (nbyte / MEMBUF_BLOCK_SIZE) + 1;

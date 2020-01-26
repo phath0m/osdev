@@ -49,6 +49,8 @@ extract_file(struct vfs_node *root, const char *name, void *data, size_t size, m
 void
 tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive)
 {
+    printf("extracting files for initial ramdisk...\n");
+
     for (int i = 0; ;i++) {
         struct tar_header *header = (struct tar_header*)archive;
 

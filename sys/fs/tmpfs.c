@@ -254,10 +254,6 @@ tmpfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
             break;
     }
 
-    if (new_pos > MEMBUF_SIZE(file->content)) {
-        return -(ESPIPE);
-    }
-
     if (new_pos < 0) {
         return -(ESPIPE);
     }

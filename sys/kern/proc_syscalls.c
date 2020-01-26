@@ -348,7 +348,7 @@ sys_seteuid(syscall_args_t argv)
 static int
 sys_sbrk(syscall_args_t argv)
 {
-    DEFINE_SYSCALL_PARAM(size_t, increment, 0, argv);
+    DEFINE_SYSCALL_PARAM(ssize_t, increment, 0, argv);
 
     TRACE_SYSCALL("sbrk", "%d", increment);
 
@@ -358,7 +358,9 @@ sys_sbrk(syscall_args_t argv)
 
     struct vm_space *space = proc->thread->address_space;
 
-    vm_map(space, (void*)proc->brk, increment, PROT_READ | PROT_WRITE);
+    if (increment > 0) {
+        vm_map(space, (void*)proc->brk, increment, PROT_READ | PROT_WRITE);
+    }
 
     proc->brk += increment;
 

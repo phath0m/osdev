@@ -21,7 +21,67 @@ boot_page_directory:
     dd 0x00400083
     dd 0x00800083
     dd 0x00C00083
-    times (1024 - KERNEL_PAGE_NUMBER - 4) dd 0
+    dd 0x01000083
+    dd 0x01400083
+    dd 0x01800083
+    dd 0x01C00083
+    dd 0x02000083
+    dd 0x02400083
+    dd 0x02800083
+    dd 0x02C00083
+    dd 0x03000083
+    dd 0x03400083
+    dd 0x03800083
+    dd 0x03C00083
+    dd 0x04000083
+    dd 0x04400083
+    dd 0x04800083
+    dd 0x04C00083
+    dd 0x05000083
+    dd 0x05400083
+    dd 0x05800083
+    dd 0x05C00083
+    dd 0x06000083
+    dd 0x06400083
+    dd 0x06800083
+    dd 0x06C00083
+    dd 0x07000083
+    dd 0x07400083
+    dd 0x07800083
+    dd 0x07C00083
+    dd 0x08000083
+    dd 0x08400083
+    dd 0x08800083
+    dd 0x08C00083
+    dd 0x09000083
+    dd 0x09400083
+    dd 0x09800083
+    dd 0x09C00083
+    dd 0x0A000083
+    dd 0x0A400083
+    dd 0x0A800083
+    dd 0x0AC00083
+    dd 0x0B000083
+    dd 0x0B400083
+    dd 0x0B800083
+    dd 0x0BC00083
+    dd 0x0C000083
+    dd 0x0C400083
+    dd 0x0C800083
+    dd 0x0CC00083
+    dd 0x0D000083
+    dd 0x0D400083
+    dd 0x0D800083
+    dd 0x0DC00083
+    dd 0x0E000083
+    dd 0x0E400083
+    dd 0x0E800083
+    dd 0x0EC00083
+    dd 0x0F000083
+    dd 0x0F400083
+    dd 0x0F800083
+    dd 0x0FC00083
+    times (1024 - KERNEL_PAGE_NUMBER - 64) dd 0
 
 section .multiboot
 
@@ -94,4 +154,5 @@ stack_bottom:
 times 16386 db 0
 
 stack_top:
+
 

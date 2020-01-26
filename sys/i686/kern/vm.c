@@ -12,7 +12,7 @@
 #include <sys/i686/vm.h>
 #include <sys/i686/multiboot.h>
 
-#define PHYSICAL_START_ADDR 0x8000000
+#define PHYSICAL_START_ADDR 0x20000000
 
 struct page_block {
     uintptr_t   addr;
@@ -353,7 +353,7 @@ vm_space_new()
     
     uint32_t page_start = KERNEL_VIRTUAL_BASE >> 22;
 
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < 127; i++) {
         struct page_directory_entry *dir_entry = &directory->tables[page_start + i];
         dir_entry->present = true;
         dir_entry->read_write = true;
@@ -364,7 +364,7 @@ vm_space_new()
 
     map_vbe_data(directory);
 
-    vm_space->kernel_brk = KERNEL_VIRTUAL_BASE + 0x8000000;
+    vm_space->kernel_brk = KERNEL_VIRTUAL_BASE + 0x1FC00000;
     vm_space->user_brk = 0x8000000;
     vm_space->state_physical = (void*)((uint32_t)directory - KERNEL_VIRTUAL_BASE);
     vm_space->state_virtual = (void*)directory;

@@ -66,9 +66,7 @@ _preinit(multiboot_info_t *multiboot_hdr)
     printf("base   = 0x%p\n", KERNEL_BASE);
     printf("initrd = 0x%p\n", initrd);
     printf("heap   = 0x%p\n", heap);
-    
-    _init();
-
+    printf("usable memory map:\n"); 
     uint32_t usable_memory = 0;
 
     for (int i = 0; i < multiboot_hdr->mmap_length; i+= sizeof(struct multiboot_mmap_entry)) {
@@ -76,11 +74,14 @@ _preinit(multiboot_info_t *multiboot_hdr)
         struct multiboot_mmap_entry * entry = (struct multiboot_mmap_entry*)(KERNEL_BASE + multiboot_hdr->mmap_addr + i);
 
         if (entry->type == 1) {
+            printf("  %p-%p\n", (int)entry->addr, (int)(entry->addr+entry->len));
             usable_memory += entry->len;
         }
     }
     printf("kernel: detected %dMB of usable memory\n", (usable_memory / 1024 / 1024));
-    
+
+    _init(); 
+
     thread_run((kthread_entry_t)run_kernel, NULL, NULL);
 
     /*

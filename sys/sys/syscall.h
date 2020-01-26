@@ -1,6 +1,7 @@
 #ifndef SYS_SYSCALL_H
 #define SYS_SYSCALL_H
 
+#include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/proc.h>
 
@@ -64,7 +65,7 @@
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
 
 
-#define TRACE_SYSCALL(name, fmt, ...) ; //printf("pid=%d   %s(" fmt ")\n", current_proc->pid, name, ## __VA_ARGS__);
+#define TRACE_SYSCALL(name, fmt, ...) ;// printf("pid=%d   %s(" fmt ")\n", current_proc->pid, name, ## __VA_ARGS__);
 
 struct syscall_args {
     void *      state;

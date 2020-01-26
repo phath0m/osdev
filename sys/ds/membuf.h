@@ -18,6 +18,8 @@ struct membuf {
 
 void membuf_clear(struct membuf *mb);
 void membuf_destroy(struct membuf *mb);
+void membuf_expand(struct membuf *mb, size_t newsize);
+
 struct membuf *membuf_new();
 void membuf_write(struct membuf *mb, const void *buf, size_t nbyte, off_t pos);
 size_t membuf_read(struct membuf *mb, void *buf, size_t nbyte, off_t pos);
