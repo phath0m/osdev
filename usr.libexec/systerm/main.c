@@ -18,17 +18,6 @@ extern int mkpty();
 #define KEY_LEFT_ARROW      75
 #define KEY_RIGHT_ARROW     77
 
-/* ioctl commands for textscreen device */
-#define TEXTSCREEN_CLEAR    0x0000
-#define TEXTSCREEN_SETBG    0x0001
-#define TEXTSCREEN_SETFG    0x0002
-#define TXCLRSCR        0x0000
-#define TXSETBG         0x0001
-#define TXSETFG         0x0002
-#define TXSETCUR        0x0003
-#define TXGETCUR        0x0004
-#define TXERSLIN        0x0005
-
 struct termstate {
     int     textscreen; /* file descriptor to output device */
     int     ptm; /* file descriptor to master pseudo-terminal */
@@ -50,14 +39,14 @@ set_sgr_parameter(struct termstate *state, int param)
 {
     switch (param) {
         case 0:
-            ioctl(state->textscreen, TEXTSCREEN_SETFG, (void*)7);
-            ioctl(state->textscreen, TEXTSCREEN_SETBG, (void*)0);
+            ioctl(state->textscreen, TXIOSETFG, (void*)7);
+            ioctl(state->textscreen, TXIOSETBG, (void*)0);
             state->background = 0;
             state->background = 7;
             break;
         case 7:
-            ioctl(state->textscreen, TEXTSCREEN_SETFG, (void*)0);
-            ioctl(state->textscreen, TEXTSCREEN_SETBG, (void*)7); 
+            ioctl(state->textscreen, TXIOSETFG, (void*)0);
+            ioctl(state->textscreen, TXIOSETBG, (void*)7); 
             //int tmp = state->background;
             //state->background = state->foreground;
             //state->foreground = tmp;
@@ -71,7 +60,7 @@ set_sgr_parameter(struct termstate *state, int param)
         case 36:
         case 37:
             state->foreground = param - 30;
-            ioctl(state->textscreen, TEXTSCREEN_SETFG, (void*)(param - 30));
+            ioctl(state->textscreen, TXIOSETFG, (void*)(param - 30));
             break;    
         case 40:
         case 41:
@@ -82,7 +71,7 @@ set_sgr_parameter(struct termstate *state, int param)
         case 46:
         case 47:
             state->background = param - 40;
-            ioctl(state->textscreen, TEXTSCREEN_SETBG, (void*)(param - 40));
+            ioctl(state->textscreen, TXIOSETBG, (void*)(param - 40));
             break;
         default:
             printf("got uknown SGR parameter %d\n", param);
@@ -112,7 +101,7 @@ eval_set_cursor_pos(struct termstate *state, int args[], int argc)
         new_pos.c_col = 0;
     }
 
-    ioctl(state->textscreen, TXSETCUR, &new_pos);
+    ioctl(state->textscreen, TXIOSETCUR, &new_pos);
 }
 
 static void
@@ -120,7 +109,7 @@ eval_status_command(struct termstate *state, int args[], int argc)
 {
     if (argc == 1 && args[0] == 6) {
         struct curpos curpos;
-        ioctl(state->textscreen, TXGETCUR, &curpos);
+        ioctl(state->textscreen, TXIOGETCUR, &curpos);
 
         char buf[16];
         sprintf(buf, "\x1B[%d;%dR", curpos.c_row, curpos.c_col);
@@ -129,15 +118,13 @@ eval_status_command(struct termstate *state, int args[], int argc)
     }
 }
 
-// TXERSLIN
-
 static void
 eval_K_command(struct termstate *state, int args[], int argc)
 {
     if (argc == 1) {
-        ioctl(state->textscreen, TXERSLIN, (void*)args[0]);
+        ioctl(state->textscreen, TXIOERSLIN, (void*)args[0]);
     } else {
-        ioctl(state->textscreen, TXERSLIN, (void*)0);
+        ioctl(state->textscreen, TXIOERSLIN, (void*)0);
     }
 }
 
@@ -153,6 +140,12 @@ eval_csi_parameter(struct termstate *state, char command, int args[], int argc)
             break;
         case 'K':
             eval_K_command(state, args, argc);
+            break;
+        case 'h':
+            ioctl(state->textscreen, TXIOCURSOFF, NULL);
+            break;
+        case 'l':
+            ioctl(state->textscreen, TXIOCURSON, NULL);
             break;
         case 'H':
             eval_set_cursor_pos(state, args, argc);
@@ -205,7 +198,7 @@ eval_escape_char(struct termstate *state, char ch)
             break;
         case 'c':
             flush_buffer(state);
-            ioctl(state->textscreen, TEXTSCREEN_CLEAR, NULL);
+            ioctl(state->textscreen, TXIOCLRSCR, NULL);
             break;
         default:
             break;
@@ -367,7 +360,7 @@ systerm_main()
         return;
     }
 
-    ioctl(vga, TEXTSCREEN_SETFG, (void*)7);
+    ioctl(vga, TXIOSETFG, (void*)7);
 
     pid_t child = fork();
 
