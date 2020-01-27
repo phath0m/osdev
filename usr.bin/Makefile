@@ -10,6 +10,7 @@ SUBDIRS += kstat
 SUBDIRS += unlink
 SUBDIRS += grep
 SUBDIRS += login
+SUBDIRS += sleep
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
