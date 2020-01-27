@@ -19,6 +19,22 @@ struct lfb_req {
     void *      data;
 };
 
+struct targa_hdr {
+    uint8_t     id_len;
+    uint8_t     map_type;
+    uint8_t     img_type;
+    uint16_t    map_first;
+    uint16_t    map_len;
+    uint8_t     map_entry_size;
+    uint16_t    x;
+    uint16_t    y;
+    uint16_t    width;
+    uint16_t    height;
+    uint8_t     bpp;
+    uint8_t     misc;
+} __attribute__((packed));
+
+
 static int
 parse_arguments(struct fbctl_options *options, int argc, char *argv[])
 {
@@ -42,6 +58,41 @@ parse_arguments(struct fbctl_options *options, int argc, char *argv[])
     return 0;
 }
 
+void *
+open_tga_image(const char *image_path)
+{
+    FILE *fp = fopen(image_path, "r");
+
+    if (!fp) {
+        return NULL;
+    }
+
+    struct targa_hdr header;
+
+    fread(&header, 1, sizeof(header), fp);
+
+    if (header.width != 600 || header.height != 800) {
+        return NULL;
+    }
+
+    int bpp = header.bpp / 8;
+
+    uint32_t *buf = calloc(1, header.width*header.height*sizeof(uint32_t));
+
+    for (int y = header.height - 1; y >= 0; y--)
+    for (int x = 0; x < header.width; x++) {
+        uint8_t rgb[4];
+
+        fread(rgb, 1, bpp, fp);
+
+        buf[y * header.width + x] = rgb[0] | (rgb[1] << 8) | (rgb[2] << 16);
+    }
+
+    fclose(fp);
+
+    return buf;
+}
+
 static int
 change_background(struct fbctl_options *options)
 {
@@ -52,33 +103,24 @@ change_background(struct fbctl_options *options)
         return -1;
     }
 
-    int bg = open(options->background, O_RDONLY);
 
-    if (bg < 0) {
-        perror("fbctl");
-        return -1;
+    void *buf = open_tga_image(options->background);
+ 
+    if (!buf) {
+        printf("fbctl: could not load image\n");
+        return NULL;
     }
 
-    void *buf = calloc(1, 65536);
+    /* write to background buffer */
+    struct lfb_req req;
+    req.opcode = 0;
+    req.length = 1920000;
+    req.offset = 0;
+    req.data = buf;
 
-    for (int i = 0; i < 1920000; i += 65536) {
-        int nbytes = read(bg, buf, 65536);
-        
-        /* write to background buffer */
-        struct lfb_req req;
-        req.opcode = 0;
-        req.length = nbytes;
-        req.offset = i;
-        req.data = buf;
-
-        ioctl(fd, 0x200, &req);
-    }
-
-    close(bg);
+    ioctl(fd, 0x200, &req);
 
     /* draw background and shade with provided alpha value */
-    struct lfb_req req;
-
     req.opcode = 1;
     req.color = options->alpha;
 
