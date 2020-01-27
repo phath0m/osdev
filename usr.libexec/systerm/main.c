@@ -62,6 +62,9 @@ set_sgr_parameter(struct termstate *state, int param)
             state->foreground = param - 30;
             ioctl(state->textscreen, TXIOSETFG, (void*)(param - 30));
             break;    
+        case 39:
+            ioctl(state->textscreen, TXIOSETFG, (void*)7);
+            break;
         case 40:
         case 41:
         case 42:
@@ -72,6 +75,9 @@ set_sgr_parameter(struct termstate *state, int param)
         case 47:
             state->background = param - 40;
             ioctl(state->textscreen, TXIOSETBG, (void*)(param - 40));
+            break;
+        case 49:
+            ioctl(state->textscreen, TXIOSETBG, (void*)0);
             break;
         default:
             printf("got uknown SGR parameter %d\n", param);
@@ -375,6 +381,8 @@ systerm_main()
     state.ptm = ptm;
     state.textscreen = vga;
    
+    ioctl(vga, TXIOCURSON, NULL);
+
     input_loop(ptm, kbd, vga);
 
     for ( ;; ) {
