@@ -7,6 +7,7 @@
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/string.h>
+#include <sys/timer.h>
 #include <sys/vm.h>
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
@@ -21,6 +22,8 @@ struct vm_space *   sched_curr_address_space;
 struct thread *     sched_curr_thread;
 
 uintptr_t           sched_curr_page_dir;
+
+uint32_t            sched_ticks;
 
 static void
 init_pit(uint32_t frequency)
@@ -50,12 +53,13 @@ sched_reap_threads()
     list_destroy(&dead_threads, false);
 }
 
-
 int
 sched_get_next_proc(uintptr_t prev_esp)
 {
     /* defined in sys/i686/kern/interrupt.c */
     extern void set_tss_esp0(uint32_t esp0);
+
+    timer_tick();
 
     struct thread *next_thread = NULL;
 
