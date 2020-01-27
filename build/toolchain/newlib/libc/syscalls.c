@@ -72,6 +72,7 @@ utime(const char *filename, const struct utimbuf *times)
 unsigned int
 sleep(unsigned int seconds)
 {
+    asm volatile("int $0x80" : : "a"(SYS_SLEEP), "b"(seconds));
     return 0;
 }
 

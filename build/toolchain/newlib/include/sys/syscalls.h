@@ -56,5 +56,6 @@
 #define SYS_FCHOWN      0x34
 #define SYS_TRUNCATE    0x37
 #define SYS_FTRUNCATE   0x38
+#define SYS_SLEEP       0x39
 
 #endif
