@@ -14,10 +14,15 @@ int vfs_file_count = 0;
 static bool
 split_path(char *path, char **directory, char **file)
 {
-    int last_slash = 0;
+    int last_slash = -1;
 
     for (int i = 0; i < PATH_MAX && path[i]; i++) {
         if (path[i] == '/') last_slash = i;
+    }
+
+    if (last_slash == -1) {
+        *file = path;
+        return false;
     }
 
     path[last_slash] = 0;
@@ -269,12 +274,11 @@ fops_creat(struct proc *proc, struct file **result, const char *path, mode_t mod
 
     char *filename;
     char *parent_path;
-
-    split_path(path_buf, &parent_path, &filename);
-
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
+    if (!split_path(path_buf, &parent_path, &filename)) {
+        parent = cwd;
+    } else if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
     }
 
@@ -372,12 +376,11 @@ fops_mkdir(struct proc *proc, const char *path, mode_t mode)
     
     char *dirname;
     char *parent_path;
-
-    split_path(path_buf, &parent_path, &dirname);
-
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
+    if (!split_path(path_buf, &parent_path, &dirname)) {
+        parent = cwd;
+    } else if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
     }
 
@@ -450,12 +453,11 @@ fops_rmdir(struct proc *proc, const char *path)
 
     char *dirname;
     char *parent_path;
-
-    split_path(path_buf, &parent_path, &dirname);
-
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
+    if (!split_path(path_buf, &parent_path, &dirname)) {
+        parent = cwd;
+    } else if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
     }
 
@@ -549,12 +551,11 @@ fops_unlink(struct proc *proc, const char *path)
 
     char *filename;
     char *parent_path;
-
-    split_path(path_buf, &parent_path, &filename);
-
     struct vfs_node *parent;
 
-    if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
+    if (!split_path(path_buf, &parent_path, &filename)) {
+        parent = cwd;
+    } else if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
         return -(ENOENT);
     }
 
