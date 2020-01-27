@@ -42,7 +42,7 @@ fops_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int 
     if (fs) {
         struct vfs_node *node = NULL;
 
-        int result = fs->ops->mount(dev, &node);
+        int result = fs->ops->mount(NULL, dev, &node);
 
         if (node) {
             node->mount_flags = flags;
@@ -58,7 +58,7 @@ fops_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int 
 struct vfs_mount *
 vfs_mount_new(struct device *dev, struct filesystem *fs, uint64_t flags)
 {
-    struct vfs_mount *mount = (struct vfs_mount*)calloc(0, sizeof(struct vfs_mount));
+    struct vfs_mount *mount = (struct vfs_mount*)calloc(1, sizeof(struct vfs_mount));
 
     mount->device = dev;
     mount->filesystem = fs;
@@ -96,12 +96,18 @@ vfs_node_destroy(struct vfs_node *node)
 }
 
 struct vfs_node *
-vfs_node_new(struct device *dev, struct file_ops *ops)
+vfs_node_new(struct vfs_node *parent, struct device *dev, struct file_ops *ops)
 {
     struct vfs_node *node = (struct vfs_node*)calloc(0, sizeof(struct vfs_node));
     
+    if (parent) {
+        INC_NODE_REF(parent);
+    }
+
+    node->parent = parent;   
     node->device = dev;
     node->ops = ops;
+
     vfs_node_count++;
     return node;
 }

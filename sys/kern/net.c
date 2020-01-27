@@ -162,7 +162,7 @@ sock_send(struct socket *sock, const void *buf, size_t nbyte)
 struct file *
 sock_to_file(struct socket *sock)
 {
-    struct vfs_node *node = vfs_node_new(NULL, &sock_file_ops);
+    struct vfs_node *node = vfs_node_new(NULL, NULL, &sock_file_ops);
     
     node->state = sock;
 

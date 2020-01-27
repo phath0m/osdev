@@ -13,7 +13,7 @@ static int devfs_destroy(struct vfs_node *node);
 static int devfs_ioctl(struct vfs_node *node, uint64_t mode, void *arg);
 
 static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
-static int devfs_mount(struct device *dev, struct vfs_node **root);
+static int devfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root);
 static int defops_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int defops_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 static int defops_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence);
@@ -71,7 +71,7 @@ devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
 
     while (iter_move_next(&iter, (void**)&dev)) {
         if (strcmp(name, dev->name) == 0) {
-            struct vfs_node *node = vfs_node_new(parent->device, &devfs_file_ops);
+            struct vfs_node *node = vfs_node_new(parent, parent->device, &devfs_file_ops);
             node->device = dev;
             node->inode = (ino_t)dev;
             node->gid = 0;
@@ -91,9 +91,9 @@ devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
 }
 
 static int
-devfs_mount(struct device *dev, struct vfs_node **root)
+devfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root)
 {
-    struct vfs_node *node = vfs_node_new(dev, &devfs_file_ops);
+    struct vfs_node *node = vfs_node_new(parent, dev, &devfs_file_ops);
 
     node->inode = 0;
     node->gid = 0;

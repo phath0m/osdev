@@ -18,7 +18,7 @@ struct tmpfs_node;
 struct tar_header;
 
 static int tmpfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
-static int tmpfs_mount(struct device *dev, struct vfs_node **root);
+static int tmpfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root);
 //static struct tmpfs_node *tmpfs_node_new();
 static int tmpfs_chmod(struct vfs_node *node, mode_t mode);
 static int tmpfs_chown(struct vfs_node *node, uid_t owner, gid_t group);
@@ -119,7 +119,7 @@ tmpfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
     struct tmpfs_node *child;
 
     if (dict_get(&dir->children, name, (void**)&child)) {
-        struct vfs_node *node = vfs_node_new(NULL, &tmpfs_file_ops);
+        struct vfs_node *node = vfs_node_new(parent, NULL, &tmpfs_file_ops);
         
         node->state = child;
         node->mode = child->mode;
@@ -135,9 +135,9 @@ tmpfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
 }
 
 static int
-tmpfs_mount(struct device *dev, struct vfs_node **root)
+tmpfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root)
 {
-    struct vfs_node *node = vfs_node_new(dev, &tmpfs_file_ops);
+    struct vfs_node *node = vfs_node_new(parent, dev, &tmpfs_file_ops);
 
     node->state = tmpfs_node_new();
 

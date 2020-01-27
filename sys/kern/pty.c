@@ -72,7 +72,7 @@ mkpty()
 
     pty->slave = mkpty_slave(pty);
 
-    struct vfs_node *node = vfs_node_new(NULL, &ptm_ops);
+    struct vfs_node *node = vfs_node_new(NULL, NULL, &ptm_ops);
 
     node->state = pty;
     node->device = pty->slave;

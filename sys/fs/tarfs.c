@@ -17,7 +17,7 @@ struct ramfs_node;
 struct tar_header;
 
 static int ramfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
-static int ramfs_mount(struct device *dev, struct vfs_node **root);
+static int ramfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root);
 static struct ramfs_node *ramfs_node_new();
 static int ramfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int ramfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
@@ -189,7 +189,7 @@ ramfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
     struct ramfs_node *child;
 
     if (dict_get(&dir->children, name, (void**)&child)) {
-        struct vfs_node *node = vfs_node_new(NULL, &ramfs_file_ops);
+        struct vfs_node *node = vfs_node_new(parent, NULL, &ramfs_file_ops);
         
         node->size = child->size;
         node->state = child;
@@ -203,11 +203,11 @@ ramfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
 }
 
 static int
-ramfs_mount(struct device *dev, struct vfs_node **root)
+ramfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root)
 {
     extern void *start_initramfs;
 
-    struct vfs_node *node = vfs_node_new(dev, &ramfs_file_ops);
+    struct vfs_node *node = vfs_node_new(parent, dev, &ramfs_file_ops);
 
     node->state = parse_tar_archive(start_initramfs);
     

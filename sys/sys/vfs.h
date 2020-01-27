@@ -36,7 +36,7 @@ typedef int (*fs_duplicate_t)(struct vfs_node *node, struct file *fp);
 typedef int (*fs_ioctl_t)(struct vfs_node *node, uint64_t request, void *arg);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
 typedef int (*fs_mkdir_t)(struct vfs_node *parent, const char *name, mode_t mode); 
-typedef int (*fs_mount_t)(struct device *dev, struct vfs_node **root);
+typedef int (*fs_mount_t)(struct vfs_node *parent, struct device *dev, struct vfs_node **root);
 typedef int (*fs_readdirent_t)(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 typedef int (*fs_rmdir_t)(struct vfs_node *node, const char *path);
@@ -103,6 +103,7 @@ struct vfs_node {
     struct dict         children;
     struct file_ops *   ops;
     struct vfs_node *   mount;
+    struct vfs_node *   parent;
     int                 mount_flags;
     bool                ismount;
     ino_t               inode;
@@ -124,7 +125,7 @@ int fops_openfs(struct device *dev, struct vfs_node **root, const char *fsname, 
 
 void vfs_node_destroy(struct vfs_node *node);
 
-struct vfs_node *vfs_node_new(struct device *dev, struct file_ops *ops);
+struct vfs_node *vfs_node_new(struct vfs_node *parent, struct device *dev, struct file_ops *ops);
 
 int vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **result, const char *path);
 

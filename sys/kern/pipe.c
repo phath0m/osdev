@@ -53,7 +53,7 @@ pipe_new()
 void
 create_pipe(struct file **pipes)
 {
-    struct vfs_node *node = vfs_node_new(NULL, &pipe_ops);
+    struct vfs_node *node = vfs_node_new(NULL, NULL, &pipe_ops);
     struct file *read_end = file_new(node);
     struct file *write_end = file_new(node);
    
