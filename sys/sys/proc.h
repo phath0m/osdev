@@ -107,6 +107,8 @@ int proc_fork(struct regs *regs);
  */
 char *proc_getctty(struct proc *proc);
 
+void proc_getcwd(struct proc *proc, char *buf, int bufsize);
+
 /*
  * proc_destroy
  * Frees a proc struct, killing any running threads and freeing all memory

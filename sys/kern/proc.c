@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
+#include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/time.h>
 #include <sys/vfs.h>
@@ -84,6 +85,64 @@ proc_destroy(struct proc *proc)
     proc_count--;
 
     free(proc);
+}
+
+static int
+getcwd_r(struct vfs_node *child, struct vfs_node *parent, char **components, int depth)
+{
+    if (child == NULL) {
+        return depth;
+    }
+
+    int ret = 0;
+
+    list_iter_t iter;
+
+    dict_get_keys(&child->children, &iter);
+
+    char *key;
+    
+    while (iter_move_next(&iter, (void**)&key)) {
+        struct vfs_node *node;
+ 
+        dict_get(&child->children, key, (void**)&node);  
+
+        if (node != parent) {
+            continue;
+        }
+
+        components[depth] = key;
+        
+        ret = depth + 1;
+
+        if (node->parent->parent) {
+            ret = getcwd_r(node->parent->parent, node->parent, components, ret);
+        }
+        
+        break;
+    }
+
+    iter_close(&iter);
+    
+    return ret;
+}
+
+void
+proc_getcwd(struct proc *proc, char *buf, int bufsize)
+{
+    char *components[256];
+
+    int ncomponents = getcwd_r(proc->cwd->parent, proc->cwd, components, 0);
+
+    for (int i = ncomponents - 1; i >= 0; i--) {
+        *(buf++) = '/';
+        size_t component_size = strlen(components[i]);
+        strcpy(buf, components[i]);
+        buf += component_size;
+        printf("Subcomponent: %s\n", components[i]);
+    }
+    
+    *(buf++) = 0;
 }
 
 void

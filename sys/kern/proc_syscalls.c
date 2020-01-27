@@ -163,6 +163,19 @@ sys_exit(syscall_args_t args)
 }
 
 static int
+sys_getcwd(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(char *, buf, 0, argv);
+    DEFINE_SYSCALL_PARAM(size_t, size, 1, argv);
+
+    TRACE_SYSCALL("getcwd", "0x%p, %d", buf, size);
+
+    proc_getcwd(current_proc, buf, size);
+    
+    return 0;
+}
+
+static int
 sys_getgid(syscall_args_t argv)
 {
     TRACE_SYSCALL("getid", "void");
@@ -529,4 +542,5 @@ _init_proc_syscalls()
     register_syscall(SYS_SETSID, 0, sys_setsid);
     register_syscall(SYS_GETSID, 0, sys_getsid);
     register_syscall(SYS_SLEEP, 1, sys_sleep);
+    register_syscall(SYS_GETCWD, 2, sys_getcwd);
 }
