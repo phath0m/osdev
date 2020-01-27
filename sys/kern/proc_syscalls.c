@@ -368,6 +368,27 @@ sys_sbrk(syscall_args_t argv)
 }
 
 static int
+sys_sleep(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, seconds, 0, argv);
+
+    TRACE_SYSCALL("sleep", "%d", seconds);
+
+    extern uint32_t timer_ticks;
+    uint32_t required_ticks = seconds * 1000;
+
+    int wakeup_time = timer_ticks + required_ticks;
+
+    asm volatile("sti");
+
+    while (timer_ticks < wakeup_time) {
+        thread_yield();
+    }
+
+    return 0;
+}
+
+static int
 sys_wait(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, status, 0, argv);
@@ -507,4 +528,5 @@ _init_proc_syscalls()
     register_syscall(SYS_SETEUID, 1, sys_setegid);
     register_syscall(SYS_SETSID, 0, sys_setsid);
     register_syscall(SYS_GETSID, 0, sys_getsid);
+    register_syscall(SYS_SLEEP, 1, sys_sleep);
 }

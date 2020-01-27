@@ -60,6 +60,7 @@
 #define SYS_FCHOWN      0x34
 #define SYS_TRUNCATE    0x37
 #define SYS_FTRUNCATE   0x38
+#define SYS_SLEEP       0x39
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
