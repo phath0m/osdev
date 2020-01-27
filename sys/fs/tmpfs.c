@@ -9,6 +9,8 @@
 #include <sys/string.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
+// delete me
+#include <sys/systm.h>
 
 #define TAR_REG     '0'
 #define TAR_SYMLINK '2'
@@ -163,9 +165,9 @@ tmpfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
     }
 
     if (end > MEMBUF_SIZE(file->content)) {
-        nbyte = end - start;
+        nbyte = MEMBUF_SIZE(file->content) - start;
     }
-
+    
     return membuf_read(file->content, buf, nbyte, pos);
 }
 

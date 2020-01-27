@@ -109,7 +109,6 @@ handle_page_fault(int inum, struct regs *regs)
     
     return 0;
 }
-
 static void
 print_stack(struct regs *regs, int max_fames)
 {
