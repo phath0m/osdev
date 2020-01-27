@@ -10,6 +10,8 @@
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/string.h>
+#include <sys/systm.h>
+#include <sys/timer.h>
 #include <sys/types.h>
 #include <sys/dev/textscreen.h>
 #include <sys/i686/multiboot.h>
@@ -31,9 +33,12 @@ struct lfb_state {
     int             textscreen_width;
     int             textscreen_height;
     int             position;
+    int             last_position;
     int             background_color;
     int             foreground_color;
     int *           color_palette;
+    bool            enable_cursor;
+    bool            show_cursor_next_tick;
 };
 
 static int default_color_palette[] = {0x0, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b};
@@ -110,6 +115,38 @@ fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
         }
 
         fast_memcpy_d(&fb[pos], row, sizeof(row));
+    }
+}
+
+static void
+fb_draw_cursor(struct lfb_state *state, int position, bool clear)
+{
+    uint32_t *fb = (uint32_t*)state->frame_buffer;
+    uint32_t *fg = (uint32_t*)state->foreground;
+    uint32_t *bg = (uint32_t*)state->background;
+
+    int x = position % state->textscreen_width * FONT_WIDTH;
+    int y = position / state->textscreen_width * FONT_HEIGHT;
+
+    uint32_t row[FONT_WIDTH];
+
+    for (int j = FONT_HEIGHT - 2 ; j < FONT_HEIGHT; j++) {
+        int pos = (y + j) * state->width + x;
+        for (int i = 0; i < FONT_WIDTH; i++) {
+
+            if (!clear) {
+                row[i] = state->foreground_color;
+            } else {
+                row[i] = fg[pos + i];
+
+                if (row[i] == 0) {
+                    row[i] = bg[pos + i];
+                }
+            }
+        }
+
+        fast_memcpy_d(&fb[pos], row, sizeof(row));
+        
     }
 }
 
@@ -253,6 +290,13 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
     case TXIOERSLIN:       
         clear_line(state, (int)argp);
         break;
+    case TXIOCURSON:
+        state->enable_cursor = true;
+        break;
+    case TXIOCURSOFF:
+        state->enable_cursor = false;
+        fb_draw_cursor(state, state->last_position, true);
+        break;
     }
 
     spinlock_unlock(&state->lock);
@@ -301,9 +345,32 @@ lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
         } 
     }
 
+    fb_draw_cursor(state, state->last_position, true);
+
     spinlock_unlock(&state->lock);
 
     return nbyte;
+}
+
+static void
+lfb_tick(struct timer *timer, void *argp)
+{
+    struct lfb_state *state = (struct lfb_state*)argp;
+
+    if (!state->enable_cursor) {
+        timer_renew(timer, 1000);
+        return;
+    }
+
+    if (state->position != state->last_position) {
+        fb_draw_cursor(state, state->last_position, true);
+    }
+
+    fb_draw_cursor(state, state->position, state->show_cursor_next_tick);
+    state->last_position = state->position;
+    state->show_cursor_next_tick = !state->show_cursor_next_tick;
+
+    timer_renew(timer, 500);
 }
 
 __attribute__((constructor))
@@ -331,6 +398,8 @@ _init_lfb()
     spinlock_unlock(&state.lock);
     lfb_device.state = &state;
     device_register(&lfb_device);
+
+    timer_new(lfb_tick, 300, &state);
 }
 
 

@@ -8,6 +8,8 @@
 #define TXIOSETCUR        0x0003
 #define TXIOGETCUR        0x0004
 #define TXIOERSLIN        0x0005
+#define TXIOCURSOFF       0x0006
+#define TXIOCURSON        0x0007
 
 #define FBIOBUFRQ         0x0200
 
@@ -22,7 +24,6 @@ struct winsize {
     unsigned short ws_xpixel; /* horizontal size, pixels */
     unsigned short ws_ypixel; /* vertical size, pixels */
 };
-
 
 int ioctl(int fd, unsigned long request, void *arg);
 
