@@ -51,18 +51,6 @@ fpathconf(int file, int name)
     return 0;
 }
 
-char *
-getcwd(char *buf, size_t size)
-{
-    return "/";
-}
-
-char *
-getwd(char *buf)
-{
-    return getcwd(buf, 256);
-}
-
 int
 utime(const char *filename, const struct utimbuf *times)
 {
@@ -304,6 +292,27 @@ ftruncate(int file, off_t length)
     }
 
     return ret;
+}
+
+char *
+getcwd(char *buf, size_t size)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETCWD), "b"(buf), "c"(size));
+
+    if (ret < 0) {
+        errno = -ret;
+        return NULL;
+    }
+
+    return buf;
+}
+
+char *
+getwd(char *buf)
+{
+    return getcwd(buf, 256);
 }
 
 int

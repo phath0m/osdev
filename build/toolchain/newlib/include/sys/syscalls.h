@@ -57,5 +57,5 @@
 #define SYS_TRUNCATE    0x37
 #define SYS_FTRUNCATE   0x38
 #define SYS_SLEEP       0x39
-
+#define SYS_GETCWD      0x3A
 #endif
