@@ -343,6 +343,18 @@ builtin_exit(const char *name, int argc, const char *argv[])
 }
 
 int
+builtin_pwd(const char *name, int argc, const char *argv[])
+{
+    char cwd[512];
+
+    getcwd(cwd, 512);
+
+    puts(cwd);
+
+    return 0;
+}
+
+int
 builtin_setenv(const char *name, int argc, const char *argv[])
 {
     if (argc == 1) {
@@ -409,6 +421,7 @@ main(int argc, const char *argv[])
     dict_set(&builtin_commands, "cd", builtin_cd);
     dict_set(&builtin_commands, "clear", builtin_clear);
     dict_set(&builtin_commands, "exit", builtin_exit);
+    dict_set(&builtin_commands, "pwd", builtin_pwd);
     dict_set(&builtin_commands, "setenv", builtin_setenv);
     dict_set(&builtin_commands, "source", builtin_source);
 
