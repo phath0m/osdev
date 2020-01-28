@@ -1,7 +1,9 @@
 #include <pwd.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/utsname.h>
 
@@ -16,6 +18,8 @@ do_login(struct passwd *pwd)
     
     setuid(pwd->pw_uid);
     setgid(pwd->pw_gid);
+
+    setenv("HOME", pwd->pw_dir, true);
 
     execv(pwd->pw_shell, sh_argv);
 
