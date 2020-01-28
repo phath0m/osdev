@@ -59,7 +59,8 @@ kmain()
     const char *envp[] = {
         "CONSOLE=/dev/ttyS1",
         "TERM=xterm",
-        NULL,
+        "HOME=/root",
+        NULL
     };
 
     printf("kernel: invoke /sbin/doit\n");
