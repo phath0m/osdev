@@ -17,6 +17,8 @@ extern int mkpty();
 #define KEY_DOWN_ARROW      80
 #define KEY_LEFT_ARROW      75
 #define KEY_RIGHT_ARROW     77
+#define KEY_PAGE_UP         73
+#define KEY_PAGE_DOWN       81
 
 struct termstate {
     int     textscreen; /* file descriptor to output device */
@@ -287,14 +289,14 @@ input_loop(int ptm, int kbd, int vga)
             continue;
         }
 
-        if (!key_up) {
-            continue;
-        }
-
         if (shift_pressed) {
             ch = kbdus_shift[key];
         } else {
             ch = kbdus[key];
+        }
+
+        if (key_up) {
+            continue;
         }
 
         if (control_pressed) {
@@ -321,6 +323,12 @@ input_loop(int ptm, int kbd, int vga)
             case KEY_RIGHT_ARROW:
                 write(ptm, "\x1B[C", 3);
                 break;
+            case KEY_PAGE_UP:
+                write(ptm, "\x1B[5~", 3);
+                break;
+            case KEY_PAGE_DOWN:
+                write(ptm, "\x1B[6~", 3);
+                break;    
             default:
                 if (ch) {
                     write(ptm, &ch, 1);
