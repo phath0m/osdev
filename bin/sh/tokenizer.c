@@ -67,6 +67,25 @@ scan_symbol(struct tokenizer *scanner)
 }
 
 static struct token *
+scan_string_literal(struct tokenizer *scanner)
+{
+    read_char(scanner);
+
+    int start = scanner->position;
+    const char *value = &scanner->text[start];
+
+    while (peek_char(scanner) != '\"') {
+        read_char(scanner);
+    }
+
+    int size = scanner->position - start;
+
+    read_char(scanner);
+
+    return token_new(TOKEN_SYMBOL, value, size);
+}
+
+static struct token *
 scan_token(struct tokenizer *scanner)
 {
     while (isspace(peek_char(scanner))) {
@@ -82,6 +101,8 @@ scan_token(struct tokenizer *scanner)
         case '>':
             read_char(scanner);
             return token_new(TOKEN_FILE_WRITE, ">", 1);
+        case '\"':
+            return scan_string_literal(scanner);
         default:
             break;
     }

@@ -387,21 +387,92 @@ builtin_source(const char *name, int argc, const char *argv[])
     return 0;
 }
 
+static void
+print_prompt_escape(char ch)
+{
+    switch (ch) {
+        case 'e': {
+            putchar('\x1B');
+            break;              
+        }              
+        case 'u': {
+            fputs(getlogin(), stdout);
+            break;
+        }              
+        case 'w': {
+            char cwd[512];
+            getcwd(cwd, 512);
+            fputs(cwd, stdout);
+            break;
+        }
+        case '$': {
+            if (getuid() == 0) putchar('#');
+            else putchar('$');          
+            break;
+        }
+        case '\\': {
+            break;
+        }
+
+    }
+}
+
+void
+print_prompt(const char *prompt)
+{
+    bool escaped = false;
+
+    for (int i =0; i < strlen(prompt); i++) {
+        
+        char ch = prompt[i];
+
+
+        if (ch == '\\' && !escaped) {
+            escaped = true;
+            continue;
+        }
+        
+        if (!escaped) {
+            putchar(ch);
+        } else {
+            print_prompt_escape(ch);
+            escaped = false;
+        }
+    }
+}
+
+
+static void
+load_rc()
+{
+    char *home = getenv("HOME");
+
+    if (!home) {
+        return;
+    }
+
+    char rc_path[512];
+
+    printf("HOME=%s\n", rc_path);
+
+    sprintf(rc_path, "%s/.shrc", home);
+
+    if (access(rc_path, R_OK) == 0) {
+        run_file(rc_path);
+    }
+}
+
 void
 shell_repl()
 {
-    uid_t uid = getuid();
+    setenv("PS1", "\\$ ", false);
+    load_rc();
 
     for (;;) {
         char buffer[512];
         memset(buffer, 0, 512);
 
-        if (uid == 0) {
-            fputs("# ", stdout);
-        } else {
-            fputs("$ ", stdout);
-        }
-
+        print_prompt(getenv("PS1"));
         fflush(stdout);
 
         while (fgets(buffer, 512, stdin) == NULL);
