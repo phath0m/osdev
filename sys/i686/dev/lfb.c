@@ -32,6 +32,7 @@ struct lfb_state {
     int             buffer_size;
     int             textscreen_width;
     int             textscreen_height;
+    int             textscreen_size;
     int             position;
     int             last_position;
     int             background_color;
@@ -357,7 +358,7 @@ lfb_tick(struct timer *timer, void *argp)
 {
     struct lfb_state *state = (struct lfb_state*)argp;
 
-    if (!state->enable_cursor) {
+    if (!state->enable_cursor || state->position >= state->textscreen_size) {
         timer_renew(timer, 1000);
         return;
     }
@@ -387,6 +388,7 @@ _init_lfb()
     state.frame_buffer = (uint8_t*)state.vbe->physbase;
     state.textscreen_width = state.vbe->Xres / FONT_WIDTH;
     state.textscreen_height = state.vbe->Yres / FONT_HEIGHT;
+    state.textscreen_size = state.textscreen_width * state.textscreen_height;
     state.width = state.vbe->Xres;
     state.height = state.vbe->Yres;
     state.buffer_size = state.vbe->Xres * state.vbe->Yres * 4;
