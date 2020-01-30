@@ -9,6 +9,7 @@ SUBDIRS += cat
 SUBDIRS += chmod
 SUBDIRS += chown
 SUBDIRS += echo
+SUBDIRS += kill
 SUBDIRS += ls
 SUBDIRS += sh
 SUBDIRS += ps
