@@ -108,7 +108,7 @@ change_background(struct fbctl_options *options)
  
     if (!buf) {
         printf("fbctl: could not load image\n");
-        return NULL;
+        return 0;
     }
 
     /* write to background buffer */
