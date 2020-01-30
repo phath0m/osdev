@@ -72,6 +72,24 @@ list_get_iter(struct list *listp, list_iter_t *iterp)
     iterp->iteration = 0;
 }
 
+void *
+list_peek_back(struct list *listp)
+{
+    void *ret = NULL;
+
+    spinlock_lock(&listp->lock);
+
+    struct list_elem *tail = listp->tail;
+
+    if (tail) {
+        ret = tail->data;
+    }
+
+    spinlock_unlock(&listp->lock);
+
+    return ret;
+}
+
 bool
 list_remove_front(struct list *listp, void **item)
 {

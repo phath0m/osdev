@@ -31,6 +31,7 @@ typedef struct {
 void list_append(struct list *listp, void *ptr);
 void list_destroy(struct list *listp, bool free_children);
 void list_get_iter(struct list *listp, list_iter_t *iterp);
+void *list_peek_back(struct list *listp);
 bool list_remove(struct list *listp, void *item);
 bool list_remove_front(struct list *listp, void **item);
 bool list_remove_back(struct list *listp, void **item);

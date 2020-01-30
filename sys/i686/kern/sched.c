@@ -128,6 +128,37 @@ sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t
 }
 
 void
+thread_interrupt_enter(struct thread *thread, struct regs *regs)
+{
+}
+
+void
+thread_interrupt_leave(struct thread *thread, struct regs *regs)
+{
+    if (LIST_SIZE(&thread->pending_signals) > 0 && regs->eip < 0xC0000000) {
+        struct sigcontext *ctx;
+
+        list_remove_back(&thread->pending_signals, (void**)&ctx);
+
+        ctx->regs = calloc(1, sizeof(struct regs));
+
+        memcpy(ctx->regs, regs, sizeof(struct regs));
+
+        regs->eip = ctx->handler_func;
+
+
+        uint32_t *esp = (uint32_t*)regs->uesp;
+
+        *(--esp) = ctx->arg;
+        *(--esp) = ctx->restorer_func;
+
+        regs->uesp = (uintptr_t)esp;
+
+        list_append(&thread->signal_stack, ctx);
+    }
+}
+
+void
 thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 {
     struct thread *thread = (struct thread*)calloc(0, sizeof(struct thread));

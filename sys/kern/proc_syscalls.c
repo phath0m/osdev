@@ -2,6 +2,7 @@
 #include <sys/fcntl.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
+#include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/string.h>
 #include <sys/syscall.h>
@@ -254,6 +255,25 @@ sys_fork(syscall_args_t argv)
 }
 
 static int
+sys_kill(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, sig, 1, argv);
+        
+    TRACE_SYSCALL("kill", "%d, %d", pid, sig);
+
+    struct proc *proc = proc_getbypid(pid);
+
+    if (!proc) {
+        return -(ESRCH);
+    }
+
+    proc_kill(proc, sig);
+
+    return 0;
+}
+
+static int
 sys_setgid(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(gid_t, gid, 0, argv);
@@ -378,6 +398,31 @@ sys_sbrk(syscall_args_t argv)
     proc->brk += increment;
 
     return old_brk;
+}
+
+static int
+sys_sigaction(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, sig, 0, argv);
+    DEFINE_SYSCALL_PARAM(struct sigaction *, act, 1, argv);
+
+    proc_sigaction(current_proc, sig, act);
+
+    return 0;
+}
+
+static int
+sys_sigrestore(syscall_args_t argv)
+{
+    struct thread *curr_thread = current_proc->thread;
+
+    struct sigcontext *ctx;
+
+    list_remove_front(&curr_thread->signal_stack, (void**)&ctx);
+
+    thread_restore_signal_state(ctx, SYSCALL_REGS(argv));
+    
+    return 0;
 }
 
 static int
@@ -543,4 +588,7 @@ _init_proc_syscalls()
     register_syscall(SYS_GETSID, 0, sys_getsid);
     register_syscall(SYS_SLEEP, 1, sys_sleep);
     register_syscall(SYS_GETCWD, 2, sys_getcwd);
+    register_syscall(SYS_KILL, 2, sys_kill);
+    register_syscall(SYS_SIGACTION, 2, sys_sigaction);
+    register_syscall(SYS_SIGRESTORE, 0, sys_sigrestore);
 }

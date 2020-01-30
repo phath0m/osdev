@@ -4,6 +4,7 @@
 #include <ds/list.h>
 #include <sys/types.h>
 #include <sys/proc.h>
+#include <sys/signal.h>
 #include <sys/vm.h>
 #include <sys/wait.h>
 
@@ -19,6 +20,7 @@ typedef int (*kthread_entry_t)(void *state);
 
 struct regs;
 struct proc;
+struct sighandler;
 
 struct cred {
     uid_t   uid;
@@ -52,6 +54,7 @@ struct proc {
     struct vm_space *   address_space;
     struct wait_queue   waiters;
     struct pgrp *       group;
+    struct sighandler * sighandlers[64];
     mode_t              umask;
     char                name[256];
     time_t              start_time;
@@ -64,9 +67,12 @@ struct proc {
 
 struct thread {
     struct list         joined_queues;
+    struct list         pending_signals; /* list of signals to jump to when we return from kernel space */
+    struct list         signal_stack; /* list of signals currently "in-progress" */
     struct regs *       regs;
     struct proc *       proc;
     struct vm_space *   address_space;
+    uint8_t             interrupt_in_progress;
     uint8_t             state;
     uintptr_t           stack;
     uintptr_t           u_stack_bottom;
@@ -78,97 +84,50 @@ struct thread {
  */
 extern struct proc *current_proc;
 
-/*
- * proc_leave_session
- * Removes a group from a session, freeing the session if empty
- */
 void pgrp_leave_session(struct pgrp *group, struct session *session);
 
-/*
- * allocates new process group
- */
 struct pgrp *pgrp_new(struct proc *leader, struct session *session);
 
-/*
- * proc_execve
- * Loads an executable into the current address space and invokes the main entry point
- */
 int proc_execve(const char *path, const char **argv, const char **envp);
 
-/*
- * proc_fork
- * Forks the current process
- */
 int proc_fork(struct regs *regs);
 
-/*
- * proc_getctty
- * Gets the controlling terminal name for a given process
- */
 char *proc_getctty(struct proc *proc);
 
 void proc_getcwd(struct proc *proc, char *buf, int bufsize);
 
-/*
- * proc_destroy
- * Frees a proc struct, killing any running threads and freeing all memory
- */
 void proc_destroy(struct proc *);
 
-/*
- * Remove a process from a particular group; freeing the group if empty
- */
+int proc_kill(struct proc *proc, int sig);
+
 void proc_leave_group(struct proc *proc, struct pgrp *group);
 
-/*
- * proc_getbypid
- * Gets a proc pointer from a specified PID
- */
 struct proc *proc_getbypid(int pid);
 
-/*
- * proc_getfile
- * Obtains a struct file pointer from a given file descriptor
- */
 struct file * proc_getfile(int fildes);
 
-/*
- * proc_getfildes
- * Returns a free file descriptor
- */
 int proc_getfildes();
 
-/*
- * proc_new
- * Creates a new proc struct
- */
 struct proc *proc_new();
 
-/*
- * proc_newfildes
- * Creates a new file descriptor from a given file
- */
 int proc_newfildes(struct file *file);
 
-/*
- * proc_dup
- * Duplicates a file descriptor
- */
+int proc_sigaction(struct proc *proc, int sig, struct sigaction *sa);
+
 int proc_dup(int oldfd);
 
-/*
- * proc_dup2
- * Duplicates a file descriptor
- */
 int proc_dup2(int oldfd, int newfd);
 
-/*
- * session_new()
- * allocates a new session
- */
 struct session *session_new(struct proc *leader);
 
 uintptr_t sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg);
+
+void thread_call_sa_handler(struct thread *thread, struct sigcontext *ctx);
+
+void thread_interrupt_enter(struct thread *thread, struct regs *regs);
+void thread_interrupt_leave(struct thread *thread, struct regs *regs);
+
+void thread_restore_signal_state(struct sigcontext *ctx, struct regs *regs);
 
 void thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg);
 

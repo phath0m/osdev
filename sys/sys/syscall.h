@@ -62,12 +62,17 @@
 #define SYS_FTRUNCATE   0x38
 #define SYS_SLEEP       0x39
 #define SYS_GETCWD      0x3A
+#define SYS_KILL        0x3B
+#define SYS_SIGACTION   0x3C
+#define SYS_SIGRESTORE  0x3D
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
 
 
 #define TRACE_SYSCALL(name, fmt, ...)  // printf("pid=%d   %s(" fmt ")\n", current_proc->pid, name, ## __VA_ARGS__);
+
+#define SYSCALL_REGS(s) ((struct regs*)s->state)
 
 struct syscall_args {
     void *      state;

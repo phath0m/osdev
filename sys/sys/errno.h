@@ -3,6 +3,7 @@
 
 #define EPERM       1
 #define ENOENT      2
+#define ESRCH       3
 #define EBADF       9
 #define EACCES      13
 #define ENODEV      19
@@ -17,4 +18,5 @@
 #define EROFS       30
 #define ENOTEMPTY   39
 #define ENOTSUP     129
+
 #endif

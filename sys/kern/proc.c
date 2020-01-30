@@ -87,6 +87,26 @@ proc_destroy(struct proc *proc)
     free(proc);
 }
 
+struct proc *
+proc_getbypid(int pid)
+{
+    list_iter_t iter;
+
+    list_get_iter(&process_list, &iter);
+
+    struct proc *proc;
+    struct proc *ret;
+    while (iter_move_next(&iter, (void**)&proc)) {
+        if (proc && proc->pid == pid) {
+            ret = proc;
+            break;
+        }
+    }
+
+    iter_close(&iter);
+
+    return ret;
+}
 static int
 getcwd_r(struct vfs_node *child, struct vfs_node *parent, char **components, int depth)
 {
