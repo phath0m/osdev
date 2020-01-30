@@ -145,14 +145,8 @@ thread_interrupt_leave(struct thread *thread, struct regs *regs)
         memcpy(ctx->regs, regs, sizeof(struct regs));
 
         regs->eip = ctx->handler_func;
-
-
-        uint32_t *esp = (uint32_t*)regs->uesp;
-
-        *(--esp) = ctx->arg;
-        *(--esp) = ctx->restorer_func;
-
-        regs->uesp = (uintptr_t)esp;
+        regs->edx = ctx->arg;
+        regs->ecx = ctx->signo;
 
         list_append(&thread->signal_stack, ctx);
     }

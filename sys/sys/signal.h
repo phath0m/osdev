@@ -13,9 +13,14 @@ struct sigaction {
     uintptr_t   sa_restorer;
 };
 
+struct signal_args {
+    uintptr_t       handler;
+    uintptr_t       arg;
+};
+
 struct sighandler {
     uintptr_t   handler;
-    uintptr_t   restorer;
+    uintptr_t   arg;
     int         mask;
     int         flags;
 };
@@ -27,6 +32,7 @@ struct sigcontext {
     uintptr_t       handler_func;
     uintptr_t       restorer_func;
     uintptr_t       arg;
+    int             signo;
     struct regs *   regs;
 };
 

@@ -404,9 +404,9 @@ static int
 sys_sigaction(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, sig, 0, argv);
-    DEFINE_SYSCALL_PARAM(struct sigaction *, act, 1, argv);
+    DEFINE_SYSCALL_PARAM(struct signal_args *, sargs, 1, argv);
 
-    proc_sigaction(current_proc, sig, act);
+    proc_signal(current_proc, sig, sargs);
 
     return 0;
 }

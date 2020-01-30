@@ -1,4 +1,5 @@
 #include <sys/interrupt.h>
+#include <sys/proc.h>
 #include <sys/systm.h>
 #include <sys/i686/interrupt.h>
 
@@ -83,9 +84,13 @@ handle_page_fault(int inum, struct regs *regs)
 
     asm volatile("movl %%cr2, %%edx": "=d"(fault_addr));
 
-    if (present && user) {
+    if (user) {
         /* send SIGSEGV to program */
         //panic("user page fault not implemented (fault at %p\n)", fault_addr);
+        extern struct proc *current_proc;
+
+        proc_kill(current_proc, 11);
+        return 0;
     }
     
     printf("\n");

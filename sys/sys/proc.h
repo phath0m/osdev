@@ -112,7 +112,7 @@ struct proc *proc_new();
 
 int proc_newfildes(struct file *file);
 
-int proc_sigaction(struct proc *proc, int sig, struct sigaction *sa);
+int proc_signal(struct proc *proc, int sig, struct signal_args *sargs);
 
 int proc_dup(int oldfd);
 

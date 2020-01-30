@@ -28,6 +28,23 @@ struct irq_regs {
     uint32_t    ss;
 };
 
+static uintptr_t *
+open_stack(struct thread *thread, uintptr_t esp)
+{
+    extern struct vm_space *sched_curr_address_space;
+
+    uintptr_t stackp = (uintptr_t)vm_share(sched_curr_address_space,
+            thread->address_space, NULL,
+            (void*)(esp & 0xFFFFF000), 0x1000,
+            PROT_READ | PROT_WRITE | PROT_KERN
+    );
+    
+    stackp &= 0xFFFFF000;
+    stackp |= (esp & 0xFFF);
+
+    return (uintptr_t*)stackp;
+}
+
 void
 thread_call_sa_handler(struct thread *thread, struct sigcontext *ctx)
 {
@@ -35,10 +52,7 @@ thread_call_sa_handler(struct thread *thread, struct sigcontext *ctx)
 
     ctx->invoked = true;
 
-    uintptr_t stackp = (uintptr_t)vm_share(sched_curr_address_space, thread->address_space, NULL, (void*)(thread->stack & 0xFFFFF000), 0x1000, PROT_READ | PROT_WRITE | PROT_KERN);
-
-    struct irq_regs *regs = (struct irq_regs*)((stackp + (thread->stack & 0xFFF)));
-
+    struct irq_regs *regs = (struct irq_regs*)open_stack(thread, thread->stack);
     ctx->regs = calloc(1, sizeof(struct regs));
 
     ctx->regs->ds = regs->ds;
@@ -56,11 +70,19 @@ thread_call_sa_handler(struct thread *thread, struct sigcontext *ctx)
     ctx->regs->uesp = regs->uesp;
     ctx->regs->ss = regs->ss;
 
+    /* 
+     * so this is kind of a stupid way to pass arguments (fastcall)
+     * but basically I was having issues trying to push arguments
+     * onto the usermode stack so I opted for this approach instead
+     *
+     * this will probably just be temporary until I can be arsed to
+     * implement sane signals
+     */
     regs->eip = ctx->handler_func; 
-    regs->eax = ctx->signo;
-    regs->ebx = ctx->arg;
+    regs->ecx = ctx->signo;
+    regs->edx = ctx->arg;
 
-    vm_unmap(sched_curr_address_space, (void*)stackp, 0x1000);
+    vm_unmap(sched_curr_address_space, (void*)regs, 0x1000);
 }
 
 void
