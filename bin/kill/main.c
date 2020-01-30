@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <signal.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdlib.h>
@@ -30,7 +31,7 @@ main(int argc, const char *argv[])
 
         const char *opt = &argv[1][1];
 
-        sig = atoi(&argv[1][1]);
+        sig = atoi(opt);
     }
 
     int pid = atoi(argv[argc - 1]);
