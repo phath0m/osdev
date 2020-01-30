@@ -13,6 +13,7 @@ SUBDIRS += kill
 SUBDIRS += ls
 SUBDIRS += sh
 SUBDIRS += ps
+SUBDIRS += pwd
 SUBDIRS += mkdir
 SUBDIRS += rmdir
 
