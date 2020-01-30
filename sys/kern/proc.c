@@ -159,9 +159,12 @@ proc_getcwd(struct proc *proc, char *buf, int bufsize)
         size_t component_size = strlen(components[i]);
         strcpy(buf, components[i]);
         buf += component_size;
-        printf("Subcomponent: %s\n", components[i]);
     }
-    
+   
+    if (ncomponents == 0) {
+        *(buf++) = '/';
+    }
+
     *(buf++) = 0;
 }
 
