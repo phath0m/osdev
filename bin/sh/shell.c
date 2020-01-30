@@ -453,8 +453,6 @@ load_rc()
 
     char rc_path[512];
 
-    printf("HOME=%s\n", rc_path);
-
     sprintf(rc_path, "%s/.shrc", home);
 
     if (access(rc_path, R_OK) == 0) {
