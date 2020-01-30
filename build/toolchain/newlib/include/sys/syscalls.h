@@ -58,4 +58,8 @@
 #define SYS_FTRUNCATE   0x38
 #define SYS_SLEEP       0x39
 #define SYS_GETCWD      0x3A
+#define SYS_KILL        0x3B
+#define SYS_SIGACTION   0x3C
+#define SYS_SIGRESTORE  0x3D
+
 #endif

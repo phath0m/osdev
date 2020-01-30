@@ -5,6 +5,7 @@
 #include <sys/times.h>
 #include <sys/time.h>
 #include <sys/errno.h>
+#include <sys/signal.h>
 #include <sys/socket.h>
 #include <sys/syscalls.h>
 #include <sys/utsname.h>
@@ -31,6 +32,7 @@ sysconf(int name)
 int
 fcntl(int fd, int cmd, ...)
 {
+    printf("fcntl() %d, %d\n", fd, cmd);
     if (cmd == F_GETFD || cmd == F_SETFD) {
         return 0;
     }
@@ -476,7 +478,16 @@ isatty(int file)
 int
 kill(int pid, int sig)
 {
-    return -1;
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_KILL), "b"(pid), "c"(sig));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 int
@@ -712,6 +723,21 @@ setuid(uid_t uid)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETUID), "b"(uid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+sigrestore()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SIGRESTORE));
 
     if (ret < 0) {
         errno = -ret;
