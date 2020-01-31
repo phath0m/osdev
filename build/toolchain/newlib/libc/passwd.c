@@ -21,85 +21,144 @@ count_char(const char *str, int len, char ch)
 }
 
 static int
-parse_passwd_line(struct passwd *pwd, FILE *fp)
+parse_passwd_line(struct passwd *pwd, char *buf, size_t bufsize, FILE *fp)
 {
-    static char line[1024];
-    
-    if (fgets(line, 1024, fp) <= 0) {
+    if (fgets(buf, bufsize, fp) <= 0) {
         return -1;
     }
 
-    if (count_char(line, 1024, ':') != 6) {
+    if (count_char(buf, bufsize, ':') != 6) {
         return -1;
     }
 
-    line[strcspn(line, "\n")] = 0;    
+    char *cur = buf;
 
-    pwd->pw_name = strtok(line, ":");
-    pwd->pw_passwd = strtok(NULL, ":");
-    pwd->pw_uid = atoi(strtok(NULL, ":"));
-    pwd->pw_gid = atoi(strtok(NULL, ":"));
-    pwd->pw_gecos = strtok(NULL, ":");
-    pwd->pw_dir = strtok(NULL, ":");
-    pwd->pw_shell = strtok(NULL, ":");
+    buf[strcspn(buf, "\n")] = 0;    
+
+    pwd->pw_name = strsep(&cur, ":");
+    pwd->pw_passwd = strsep(&cur, ":");
+    pwd->pw_uid = atoi(strsep(&cur, ":"));
+    pwd->pw_gid = atoi(strsep(&cur, ":"));
+    pwd->pw_gecos = strsep(&cur, ":");
+    pwd->pw_dir = strsep(&cur, ":");
+    pwd->pw_shell = strsep(&cur, ":");
     
-    return NULL;
+    return 0;
+}
+
+int
+getpwuid_r(uid_t uid, struct passwd *passwd, char *buf, size_t bufsize, struct passwd **result)
+{
+    FILE *fp = fopen("/etc/passwd", "r");
+
+    if (!fp) {
+        return -1;
+    }
+
+    int ret = -1;
+
+    while (parse_passwd_line(passwd, buf, bufsize, fp) == 0) {
+        if (passwd->pw_uid == uid) {
+            ret = 0;
+            break;
+        }
+    }
+
+    fclose(fp);
+
+    if (ret == 0 && result) {
+        *result = passwd;
+    }
+
+    return ret;
 }
 
 struct passwd *
 getpwuid(uid_t uid)
 {
     static struct passwd passwd;
+    static char buf[1024];
 
-    FILE *fp = fopen("/etc/passwd", "r");
-
-    if (!fp) {
-        return NULL;
-    }
-
-    int found = 0;
-
-    while (parse_passwd_line(&passwd, fp) == 0) {
-        if (passwd.pw_uid == uid) {
-            found = 1;
-            break;
-        }
-    }
-
-    fclose(fp);
-
-    if (found) {
+    if (getpwuid_r(uid, &passwd, buf, 1024, NULL) == 0) {
         return &passwd;
     }
 
     return NULL;
 }
 
-struct passwd *
-getpwnam(const char * name)
+int
+getpwnam_r(const char *name, struct passwd *passwd, char *buf, size_t bufsize, struct passwd **result)
 {
-    static struct passwd passwd;
-
     FILE *fp = fopen("/etc/passwd", "r");
 
     if (!fp) {
-        return NULL;
+        return -1;
     }
 
-    int found = 0;
+    int ret = -1;
 
-    while (parse_passwd_line(&passwd, fp) == 0) {
-        if (strcmp(passwd.pw_name, name) == 0) {
-            found = 1;
+    while (parse_passwd_line(passwd, buf, bufsize, fp) == 0) {
+        if (strcmp(passwd->pw_name, name) == 0) {
+            ret = 0;
             break;
         }
     }
 
     fclose(fp);
 
-    if (found) {
+    if (ret == 0 && result) {
+        *result = passwd;
+    }
+
+    return ret;
+}
+
+struct passwd *
+getpwnam(const char *name)
+{
+    static struct passwd passwd;
+    static char buf[1024];
+
+    if (getpwnam_r(name, &passwd, buf, 1024, NULL) == 0) {
         return &passwd;
     }
 
-    return NULL; 
+    return NULL;
+}
+
+static FILE *passwd_fp;
+
+struct passwd *
+getpwent(void)
+{
+    static struct passwd passwd;
+
+    if (!passwd_fp) {
+        passwd_fp = fopen("/etc/passwd", "r");
+    }
+
+    if (!passwd_fp) {
+        return NULL;
+    }
+
+    char buf[1024];
+
+    if (parse_passwd_line(&passwd, buf, 1024, passwd_fp) != 0) {
+        return NULL;
+    }
+
+    return &passwd;
+}
+
+void
+endpwent(void)
+{
+    fclose(passwd_fp);
+    passwd_fp = NULL;
+}
+
+void
+setpwent(void)
+{
+    fseek(passwd_fp, 0, SEEK_SET);
 }
