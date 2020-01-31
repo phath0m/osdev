@@ -25,7 +25,6 @@ KERNEL_OBJECTS += i686/dev/vga_textscreen.o
 KERNEL_OBJECTS += i686/kern/context_switch.o
 KERNEL_OBJECTS += i686/kern/preinit.o
 KERNEL_OBJECTS += i686/kern/boot.o
-KERNEL_OBJECTS += i686/kern/exceptions.o
 KERNEL_OBJECTS += i686/kern/gdt.o
 KERNEL_OBJECTS += i686/kern/halt.o
 KERNEL_OBJECTS += i686/kern/interrupt.o
@@ -38,6 +37,7 @@ KERNEL_OBJECTS += i686/kern/signal.o
 KERNEL_OBJECTS += i686/kern/stacktrace.o
 KERNEL_OBJECTS += i686/kern/syscall_dispatch.o
 KERNEL_OBJECTS += i686/kern/time.o
+KERNEL_OBJECTS += i686/kern/traps.o
 KERNEL_OBJECTS += i686/kern/usermode.o
 KERNEL_OBJECTS += i686/kern/vm.o
 
