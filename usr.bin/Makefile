@@ -5,6 +5,7 @@ export PREFIX
 
 MAKE = make
 
+SUBDIRS += env
 SUBDIRS += fbctl
 SUBDIRS += kstat
 SUBDIRS += unlink
