@@ -12,6 +12,7 @@ SUBDIRS += unlink
 SUBDIRS += grep
 SUBDIRS += login
 SUBDIRS += sleep
+SUBDIRS += uname
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
