@@ -501,7 +501,7 @@ fops_stat(struct file *file, struct stat *stat)
         return ops->stat(node, stat);
     }
 
-    return -1;
+    return -(ENOTSUP);
 }
 
 uint64_t

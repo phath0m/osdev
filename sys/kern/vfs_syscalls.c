@@ -312,9 +312,9 @@ sys_stat(syscall_args_t argv)
 
     struct file *file;
 
-    int res = 0;
+    int res = fops_open_r(current_proc, &file, path, O_RDONLY);
 
-    if (fops_open_r(current_proc, &file, path, O_RDONLY) == 0) {
+    if (res == 0) {
         res = fops_stat(file, buf);
 
         fops_close(file);
