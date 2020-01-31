@@ -81,7 +81,7 @@ ls_print_color(struct ls_dirent *entry)
             printf("\033[0;33m");
             return;
         case DT_DIR:
-            printf("\033[1;34m");
+            printf("\033[0;34m");
             return;
         /*
         case DT_LNK:
