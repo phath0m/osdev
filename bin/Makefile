@@ -15,6 +15,7 @@ SUBDIRS += sh
 SUBDIRS += ps
 SUBDIRS += pwd
 SUBDIRS += mkdir
+SUBDIRS += rm
 SUBDIRS += rmdir
 
 all: $(SUBDIRS)
