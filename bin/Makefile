@@ -8,6 +8,7 @@ MAKE = make
 SUBDIRS += cat
 SUBDIRS += chmod
 SUBDIRS += chown
+SUBDIRS += cp
 SUBDIRS += echo
 SUBDIRS += kill
 SUBDIRS += ls
