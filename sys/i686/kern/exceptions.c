@@ -86,10 +86,13 @@ handle_page_fault(int inum, struct regs *regs)
 
     if (user) {
         /* send SIGSEGV to program */
-        //panic("user page fault not implemented (fault at %p\n)", fault_addr);
         extern struct proc *current_proc;
 
+        printf("%s[%d] segfault ip: %p sp %p\n", current_proc->name,
+                current_proc->pid, regs->eip, regs->uesp);
+
         proc_kill(current_proc, 11);
+
         return 0;
     }
     

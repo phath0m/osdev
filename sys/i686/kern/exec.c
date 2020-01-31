@@ -190,11 +190,15 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
         list_append(&proc->threads, sched_curr_thread);
 
-        vm_map(space, (void*)0xBFFFFFFF, 1, PROT_READ | PROT_WRITE);
-        vm_map(space, (void*)0xBFFFEFFF, 1, PROT_READ | PROT_WRITE);
-
-        sched_curr_thread->u_stack_bottom = 0xBFFFE000;
         sched_curr_thread->u_stack_top = 0xC0000000;
+
+        uintptr_t stack_bottom;
+
+        for (stack_bottom = 0xBFFFF000; stack_bottom > 0xBFFFA000; stack_bottom -= 0x1000) {
+            vm_map(space, (void*)stack_bottom, 0x1000, PROT_READ | PROT_WRITE);
+        }
+
+        sched_curr_thread->u_stack_bottom = stack_bottom + 0x1000;
 
         /*
          * This is kind of messy, but this is pushing argv and envp onto the stack so it can be accessed from userland
