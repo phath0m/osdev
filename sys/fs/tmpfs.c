@@ -141,7 +141,11 @@ tmpfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root)
 {
     struct vfs_node *node = vfs_node_new(parent, dev, &tmpfs_file_ops);
 
-    node->state = tmpfs_node_new();
+    struct tmpfs_node *root_node = tmpfs_node_new();
+    root_node->mode = 0755;
+
+    node->state = root_node;
+    node->mode = 0755;
 
     *root = node;
 

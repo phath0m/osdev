@@ -1,4 +1,5 @@
 #include <ds/list.h>
+#include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
@@ -138,115 +139,112 @@ proc_execve(const char *path, const char **argv, const char **envp)
 {
     asm volatile("cli");
 
-    // /* defined in sys/i686/sched.c */
+    /* defined in sys/i686/sched.c */
     struct proc *proc = current_proc;
-    struct thread *sched_curr_thread = proc->thread;
+
+    /* defined in sys/i686/kern/sched.c */
+    extern struct thread *sched_curr_thread;
 
     struct vm_space *space = sched_curr_thread->address_space;
     struct vfs_node *root = proc->root;
 
     struct file *exe;
 
-    if (fops_open(proc, &exe, path, O_RDONLY) == 0) {
-        fops_seek(exe, 0, SEEK_END);
-
-        size_t size = fops_tell(exe);
-
-        fops_seek(exe, 0, SEEK_SET);
-
-        struct elf32_ehdr *elf = (struct elf32_ehdr*)malloc(size);
-
-        fops_read(exe, (char*)elf, size);
-
-        int argc;
-        int envc;
-        size_t argv_size;
-        size_t envp_size;
-
-        const char **cp_argv = copy_strings(argv, &argv_size, &argc);
-        const char **cp_envp = copy_strings(envp, &envp_size, &envc);
-
-        unload_userspace(space);
-
-        uintptr_t prog_low;
-        uintptr_t prog_high;
-
-        elf_load_image(space, elf, &prog_low, &prog_high);
-        elf_zero_sections(space, elf);
-
-        fops_close(exe);
-
-        /* defined in sys/i686/kern/sched.c */
-        extern struct thread *sched_curr_thread;
-
-        if (sched_curr_thread && sched_curr_thread->proc) {
-            //proc_destroy(sched_curr_thread->proc);
-        }
-
-        proc->base = prog_low;
-        proc->brk = prog_high;
-        proc->root = root;
-        proc->thread = sched_curr_thread;
-
-        list_append(&proc->threads, sched_curr_thread);
-
-        sched_curr_thread->u_stack_top = 0xC0000000;
-
-        uintptr_t stack_bottom;
-
-        for (stack_bottom = 0xBFFFF000; stack_bottom > 0xBFFFA000; stack_bottom -= 0x1000) {
-            vm_map(space, (void*)stack_bottom, 0x1000, PROT_READ | PROT_WRITE);
-        }
-
-        sched_curr_thread->u_stack_bottom = stack_bottom + 0x1000;
-
-        /*
-         * This is kind of messy, but this is pushing argv and envp onto the stack so it can be accessed from userland
-         */
-        uintptr_t stackp = (uintptr_t)0xBFFFFFFF;
-        stackp -= envp_size;
-        memcpy((void*)stackp, cp_envp, envp_size);
-        uintptr_t u_envp = stackp;
-        realign_pointers((uintptr_t*)stackp, (uintptr_t)cp_envp - stackp);
-        stackp -= argv_size;
-        memcpy((void*)stackp, cp_argv, argv_size);
-        uintptr_t u_argv = stackp;
-        realign_pointers((uintptr_t*)stackp, (uintptr_t)cp_argv - stackp);
-
-        *((uint32_t*)(stackp - 4)) = u_envp;
-        *((uint32_t*)(stackp - 8)) = envc;
-        *((uint32_t*)(stackp - 12)) = u_argv;
-        *((uint32_t*)(stackp - 16)) = argc;
-
-        stackp -= 20;
-
-        strncpy(proc->name, cp_argv[0], 256);
-
-        free(cp_argv);
-        free(cp_envp);
-
-        // now just make sure we close any private files
-
-        for (int i = 0; i < 4096; i++) {
-            struct file *fp = proc->files[i];
-
-            if (fp && (fp->flags & O_CLOEXEC)) {
-                proc->files[i] = NULL;
-                fops_close(fp);
-            }
-        }
-
-        uintptr_t entrypoint = elf->e_entry;
-
-        free(elf);
-
-        asm volatile("sti");
-
-        /* defined in sys/i686/kern/usermode.asm */
-        extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t ebp, uintptr_t eax);
-    
-        return_to_usermode(entrypoint, stackp, stackp, 0);
+    if (fops_open(proc, &exe, path, O_RDONLY) != 0) {
+        return -(ENOENT);
     }
+
+    fops_seek(exe, 0, SEEK_END);
+
+    size_t size = fops_tell(exe);
+
+    fops_seek(exe, 0, SEEK_SET);
+
+    struct elf32_ehdr *elf = (struct elf32_ehdr*)malloc(size);
+
+    fops_read(exe, (char*)elf, size);
+
+    int argc;
+    int envc;
+    size_t argv_size;
+    size_t envp_size;
+
+    const char **cp_argv = copy_strings(argv, &argv_size, &argc);
+    const char **cp_envp = copy_strings(envp, &envp_size, &envc);
+
+    unload_userspace(space);
+
+    uintptr_t prog_low;
+    uintptr_t prog_high;
+
+    elf_load_image(space, elf, &prog_low, &prog_high);
+    elf_zero_sections(space, elf);
+
+    fops_close(exe);
+
+    proc->base = prog_low;
+    proc->brk = prog_high;
+    proc->root = root;
+    proc->thread = sched_curr_thread;
+
+    list_append(&proc->threads, sched_curr_thread);
+
+    sched_curr_thread->u_stack_top = 0xC0000000;
+
+    uintptr_t stack_bottom;
+
+    for (stack_bottom = 0xBFFFF000; stack_bottom > 0xBFFFA000; stack_bottom -= 0x1000) {
+        vm_map(space, (void*)stack_bottom, 0x1000, PROT_READ | PROT_WRITE);
+    }
+
+    sched_curr_thread->u_stack_bottom = stack_bottom + 0x1000;
+
+    /*
+     * This is kind of messy, but this is pushing argv and envp onto the stack so it can be accessed from userland
+     */
+    uintptr_t stackp = (uintptr_t)0xBFFFFFFF;
+    stackp -= envp_size;
+    memcpy((void*)stackp, cp_envp, envp_size);
+    uintptr_t u_envp = stackp;
+    realign_pointers((uintptr_t*)stackp, (uintptr_t)cp_envp - stackp);
+    stackp -= argv_size;
+    memcpy((void*)stackp, cp_argv, argv_size);
+    uintptr_t u_argv = stackp;
+    realign_pointers((uintptr_t*)stackp, (uintptr_t)cp_argv - stackp);
+
+    *((uint32_t*)(stackp - 4)) = u_envp;
+    *((uint32_t*)(stackp - 8)) = envc;
+    *((uint32_t*)(stackp - 12)) = u_argv;
+    *((uint32_t*)(stackp - 16)) = argc;
+
+    stackp -= 20;
+
+    strncpy(proc->name, cp_argv[0], 256);
+
+    free(cp_argv);
+    free(cp_envp);
+
+    // now just make sure we close any private files
+
+    for (int i = 0; i < 4096; i++) {
+        struct file *fp = proc->files[i];
+
+        if (fp && (fp->flags & O_CLOEXEC)) {
+            proc->files[i] = NULL;
+            fops_close(fp);
+        }
+    }
+
+    uintptr_t entrypoint = elf->e_entry;
+
+    free(elf);
+
+    asm volatile("sti");
+
+    /* defined in sys/i686/kern/usermode.asm */
+    extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t ebp, uintptr_t eax);
+    
+    return_to_usermode(entrypoint, stackp, stackp, 0);
 
     return 0;
 }

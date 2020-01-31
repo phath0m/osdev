@@ -17,31 +17,24 @@ kmain()
 {
     struct vfs_node *root;
 
-    if (fops_openfs(NULL, &root, "tmpfs", 0) == 0) {
-        printf("kernel: mounted initramfs to /\n");
-
-        extern void *start_initramfs;
-        extern void tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive);
-
-        root->mode = 755;
-        current_proc->cwd = root;
-        current_proc->root = root;
-        
-        tar_extract_archive(root, NULL, start_initramfs);
-
-        if (vfs_mount(root, NULL, "devfs", "/dev", 0) == 0) {
-            printf("kernel: mounted devfs to /dev\n");
-        }
-
-        /*
-        if (vfs_mount(root, NULL, "tmpfs", "/tmp", 0) == 0) {
-            printf("kernel: mounted tmpfs to /tmp\n");
-        }*/
-
-    } else {
-        panic("could not mount initramfs!\n");
+    if (fops_openfs(NULL, &root, "tmpfs", 0) != 0) {
+        panic("could not mount tmpfs!");
     }
-    
+
+    extern void *start_initramfs;
+    extern void tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive);
+
+    root->mode = 755;
+    current_proc->cwd = root;
+    current_proc->root = root;
+        
+    tar_extract_archive(root, NULL, start_initramfs);
+
+    if (vfs_mount(root, NULL, "devfs", "/dev", 0) != 0) {
+        panic("could not mount devfs!");
+        printf("kernel: mounted devfs to /dev\n");
+    }
+
     extern struct vm_space *sched_curr_address_space;
 
     vm_map(sched_curr_address_space, (void*)0xFFFFF000, 0x1000, PROT_KERN | PROT_WRITE | PROT_READ);
@@ -59,7 +52,6 @@ kmain()
     const char *envp[] = {
         "CONSOLE=/dev/ttyS1",
         "TERM=xterm",
-        "HOME=/root",
         NULL
     };
 
