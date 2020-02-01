@@ -266,7 +266,7 @@ tmpfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
 
     *cur_pos = new_pos;
 
-    return 0;
+    return new_pos;
 }
 
 static int
