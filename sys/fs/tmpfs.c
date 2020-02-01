@@ -253,7 +253,7 @@ tmpfs_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
             new_pos = *cur_pos + off;
             break;
         case SEEK_END:
-            new_pos = MEMBUF_SIZE(file->content) - (off + 1);
+            new_pos = MEMBUF_SIZE(file->content) - off;
             break;
         case SEEK_SET:
             new_pos = off;
