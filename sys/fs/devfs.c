@@ -98,6 +98,7 @@ devfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root)
     node->inode = 0;
     node->gid = 0;
     node->uid = 0;
+    node->mode = 0755 | IFDIR;
 
     *root = node;
 
@@ -147,7 +148,7 @@ defops_seek(struct vfs_node *node, uint64_t *cur_pos, off_t off, int whence)
 {
     if (whence == SEEK_SET) {
         *cur_pos = off;
-        return 0;
+        return *cur_pos;
     }
 
     return -(ESPIPE);
@@ -157,15 +158,17 @@ static int
 defops_stat(struct vfs_node *node, struct stat *stat)
 {
     if (node->inode == 0) {
-        stat->st_mode = 0751;
+        stat->st_mode = 0755 | IFDIR;
         return 0;
     }
 
     struct device *dev = (struct device*)node->state;
 
-    if (dev) {
-        stat->st_mode = dev->mode;
+    if (!dev) {
+        return -1;    
     }
+
+    stat->st_mode = dev->mode | IFCHR;
 
     return 0;
 }
@@ -175,11 +178,11 @@ defops_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
 {
     struct device *dev = (struct device*)node->state;
 
-    if (dev) {
-        return device_write(dev, buf, nbyte, pos);
+    if (!dev) {
+        return -1;
     }
 
-    return 0;
+    return device_write(dev, buf, nbyte, pos);
 }
 
 __attribute__((constructor))
