@@ -177,7 +177,7 @@ fops_open_r(struct proc *proc, struct file **result, const char *path, int flags
 
     if (vfs_get_node(root, cwd, &child, path) == 0) {
         bool will_write = (flags & O_WRONLY);
-        bool will_read = (flags == O_RDWR || flags == O_RDONLY);
+        bool will_read = true; // this is a hack. 
 
         if ((child->mount_flags & MS_RDONLY) && will_write) {
             return -(EROFS);

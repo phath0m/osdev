@@ -24,7 +24,7 @@ kmain()
     extern void *start_initramfs;
     extern void tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive);
 
-    root->mode = 755;
+    root->mode = 0755;
     current_proc->cwd = root;
     current_proc->root = root;
         
@@ -34,8 +34,6 @@ kmain()
         panic("could not mount devfs!");
         printf("kernel: mounted devfs to /dev\n");
     }
-
-    root->mode = 755;
 
     extern struct vm_space *sched_curr_address_space;
 
