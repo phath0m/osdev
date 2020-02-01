@@ -16,6 +16,8 @@ clean:
 userland:
 	mkdir -p ./build/initrd/dev
 	mkdir -p ./build/initrd/tmp
+	mkdir -p ./build/initrd/var/run
+	mkdir -p ./build/initrd/var/adm
 	make -C bin
 	make -C sbin
 	make -C usr.bin
