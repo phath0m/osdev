@@ -1,6 +1,8 @@
 #ifndef _SYS_UTMP_H
 #define _SYS_UTMP_H
 
+#include <time.h>
+
 #define _PATH_UTMP      "/var/run/utmp"
 
 /* I love you Solaris <3 */
