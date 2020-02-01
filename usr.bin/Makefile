@@ -13,6 +13,7 @@ SUBDIRS += grep
 SUBDIRS += login
 SUBDIRS += sleep
 SUBDIRS += uname
+SUBDIRS += w
 SUBDIRS += which
 
 all: $(SUBDIRS)
