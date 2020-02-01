@@ -96,17 +96,33 @@ search_for_binary(const char *name, char *resolved)
         return true;
     }
 
-    const char *path[] = {"/bin", "/sbin", "/usr/bin", "/usr/games", NULL};
+    char *path = getenv("PATH");
 
-    for (int i = 0; path[i]; i++) {
+    if (!path) {
+        return false;
+    }
+
+    static char path_copy[1024];
+
+    strncpy(path_copy, path, 1024);
+
+    char *searchdir = strtok(path_copy, ":");
+    
+    while (searchdir != NULL) {
         bool succ = false;
-        DIR *dirp = opendir(path[i]);
+
+        DIR *dirp = opendir(searchdir);
+
+        if (!dirp) {
+            searchdir = strtok(NULL, ":");
+            continue;
+        }
 
         struct dirent *dirent;
 
         while ((dirent = readdir(dirp))) { 
             if (strcmp(dirent->d_name, name) == 0) {
-                sprintf(resolved, "%s/%s", path[i], name);
+                sprintf(resolved, "%s/%s", searchdir, name);
                 succ = true;
                 break;
             }
@@ -117,6 +133,8 @@ search_for_binary(const char *name, char *resolved)
         if (succ) {
             return true;
         }
+
+        searchdir = strtok(NULL, ":");
     }
 
     return false;
