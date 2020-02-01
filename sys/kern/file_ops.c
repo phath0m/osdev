@@ -9,6 +9,9 @@
 #include <sys/unistd.h>
 #include <sys/vfs.h>
 
+// delete me
+#include <sys/systm.h>
+
 int vfs_file_count = 0;
 
 static bool
@@ -173,7 +176,7 @@ fops_open_r(struct proc *proc, struct file **result, const char *path, int flags
     struct vfs_node *child = NULL;
 
     if (vfs_get_node(root, cwd, &child, path) == 0) {
-        bool will_write = (flags == O_RDWR || flags == O_WRONLY);
+        bool will_write = (flags & O_WRONLY);
         bool will_read = (flags == O_RDWR || flags == O_RDONLY);
 
         if ((child->mount_flags & MS_RDONLY) && will_write) {
