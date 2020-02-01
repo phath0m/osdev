@@ -13,6 +13,7 @@ SUBDIRS += grep
 SUBDIRS += login
 SUBDIRS += sleep
 SUBDIRS += uname
+SUBDIRS += which
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
