@@ -25,6 +25,11 @@ main (int argc, char *argv[])
     int c;
     int mask = 0;
 
+    /* I'm not sure why I have to do this, it isn't nessicary on glibc but it is on newlib*/
+    if (argc == 1) {
+        optind = argc;
+    }
+
     while (optind < argc) {
         if ((c = getopt(argc, argv, "asrvm")) != -1) {
             switch (c) {
