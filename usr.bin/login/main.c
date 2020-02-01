@@ -3,6 +3,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <termios.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,12 +111,24 @@ main(int argc, char *argv[])
     uname(&uname_buf);
     printf("%s/%s (%s)\n\n", uname_buf.sysname, uname_buf.machine, tty_name);
 
+    struct termios termios;
+
+    tcgetattr(STDIN_FILENO, &termios);
+
     for (;;) {
         fputs("login: ", stderr);
         fgets(login, 512, stdin);
 
         fputs("Password: ", stderr);
+        
+        /* disable echo for password */
+        termios.c_lflag &= ~(ECHO);
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios);
         fgets(password, 512, stdin);
+
+        /* renable echo */
+        termios.c_lflag |= ECHO;
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios);
 
         login[strcspn(login, "\n")] = 0;
         password[strcspn(password, "\n")] = 0;
