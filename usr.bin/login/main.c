@@ -1,3 +1,4 @@
+#include <authlib.h>
 #include <pwd.h>
 #include <time.h>
 #include <unistd.h>
@@ -5,7 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 
 static int
 do_login(struct passwd *pwd)
@@ -15,17 +18,24 @@ do_login(struct passwd *pwd)
         NULL
     };
 
-    
-    setuid(pwd->pw_uid);
-    setgid(pwd->pw_gid);
+ 
+    pid_t child = fork();
 
-    setenv("HOME", pwd->pw_dir, true);
+    if (child == 0) {   
+        setuid(pwd->pw_uid);
+        setgid(pwd->pw_gid);
 
-    execv(pwd->pw_shell, sh_argv);
+        setenv("HOME", pwd->pw_dir, true);
 
-    perror("execv");
+        execv(pwd->pw_shell, sh_argv);
 
-    return -1;
+        perror("execv");
+        exit(-1);
+    } else {
+        wait(NULL);
+    }
+
+    return 0;
 }
 
 static void
@@ -56,12 +66,23 @@ attempt_login(const char *login, const char *passwd)
         return -1;
     }
 
+    int login_flags = AUTH_UPDATE_UTMP | AUTH_UPDATE_WTMP | AUTH_UPDATE_LASTLOG | AUTH_UPDATE_BTMP;
+
+    struct login login_buf;
+    
+    if (authlib_login(&login_buf, login, passwd, login_flags) != 0) {
+        return -1;
+    } 
+
     puts("");
     show_motd();
     puts("");
 
-    return do_login(pwd);
-
+    do_login(pwd);
+    
+    authlib_logout(&login_buf);
+    
+    return 0;
 }
 
 int
