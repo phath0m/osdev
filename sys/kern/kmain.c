@@ -35,6 +35,8 @@ kmain()
         printf("kernel: mounted devfs to /dev\n");
     }
 
+    root->mode = 755;
+
     extern struct vm_space *sched_curr_address_space;
 
     vm_map(sched_curr_address_space, (void*)0xFFFFF000, 0x1000, PROT_KERN | PROT_WRITE | PROT_READ);
