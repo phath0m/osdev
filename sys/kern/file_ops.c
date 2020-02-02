@@ -516,7 +516,16 @@ fops_rmdir(struct proc *proc, const char *path)
     struct file_ops *ops = parent->ops;
 
     if (ops && ops->rmdir) {
-        return ops->rmdir(parent, dirname);
+        int res = ops->rmdir(parent, dirname);
+        
+        struct vfs_node *child;
+
+        if (res == 0 && dict_get(&parent->children, dirname, (void**)&child)) {
+            dict_remove(&parent->children, dirname);
+            DEC_NODE_REF(child);
+        }
+
+        return res;
     }
 
     return -(ENOTSUP);
@@ -614,7 +623,16 @@ fops_unlink(struct proc *proc, const char *path)
     struct file_ops *ops = parent->ops;
 
     if (ops && ops->unlink) {
-        return ops->unlink(parent, filename);
+        int res = ops->unlink(parent, filename);
+        
+        struct vfs_node *child; 
+
+        if (res == 0 && dict_get(&parent->children, filename, (void**)&child)) {
+            dict_remove(&parent->children, filename);
+            DEC_NODE_REF(child);
+        }
+        
+        return res;
     }
 
     return -(ENOTSUP);

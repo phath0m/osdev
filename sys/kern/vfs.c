@@ -7,6 +7,8 @@
 #include <sys/mount.h>
 #include <sys/string.h>
 #include <sys/vfs.h>
+// remove me
+#include <sys/systm.h>
 
 int vfs_node_count = 0;
 
@@ -190,7 +192,7 @@ vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name)
         res = 0;
     } else if (parent->ops->lookup(parent, &node, name) == 0) {
         dict_set(&parent->children, name, node);
-        
+
         node->mount_flags = parent->mount_flags;
 
         INC_NODE_REF(node);

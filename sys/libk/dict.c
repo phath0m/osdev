@@ -146,12 +146,17 @@ dict_remove(struct dict *dict, const char *key)
     } else if (entry) {
         kvp = (struct key_value_pair*)LIST_FIRST(&entry->values);
         succ = (strcmp(key, kvp->key) == 0);
+        
+        if (succ) {
+            dict->entries[hash] = NULL;
+        }
     }
 
     if (succ) {
         list_remove(&entry->values, kvp);
         list_remove(&dict->keys, kvp->key);
         free(kvp);
+        free(entry);   
     }
     
     return succ;
