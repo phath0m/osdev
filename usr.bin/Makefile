@@ -11,6 +11,7 @@ SUBDIRS += kstat
 SUBDIRS += unlink
 SUBDIRS += grep
 SUBDIRS += login
+SUBDIRS += mkfifo
 SUBDIRS += sleep
 SUBDIRS += uname
 SUBDIRS += w
