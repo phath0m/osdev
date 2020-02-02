@@ -81,11 +81,41 @@ _exit(int status)
 }
 
 int
+accept(int fd, struct sockaddr *address, socklen_t *address_size)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_ACCEPT), "b"(fd), "c"(address), "d"(address_size));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 access(const char *path, int mode)
 {
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_ACCESS), "b"(path), "c"(mode));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+bind(int fd, const struct sockaddr *address, socklen_t address_size)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_BIND), "b"(fd), "c"(address), "d"(address_size));
 
     if (ret < 0) {
         errno = -ret;
@@ -176,6 +206,11 @@ connect(int fd, const struct sockaddr *address, socklen_t address_size)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_CONNECT), "b"(fd), "c"(address), "d"(address_size));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
