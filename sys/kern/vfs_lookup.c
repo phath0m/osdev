@@ -12,63 +12,6 @@
 
 int vfs_node_count = 0;
 
-struct list fs_list;
-
-static struct filesystem *
-getfsbyname(const char *name)
-{
-    list_iter_t iter;
-
-    list_get_iter(&fs_list, &iter);
-
-    struct filesystem *fs;
-    struct filesystem *res = NULL;
-
-    while (iter_move_next(&iter, (void**)&fs)) {
-        if (strcmp(name, fs->name) == 0) {
-            res = fs;
-            break;
-        }
-    }
-    
-    iter_close(&iter);
-
-    return res;
-}
-
-int
-fops_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int flags)
-{
-    struct filesystem *fs = getfsbyname(fsname);
-
-    if (fs) {
-        struct vfs_node *node = NULL;
-
-        int result = fs->ops->mount(NULL, dev, &node);
-
-        if (node) {
-            node->mount_flags = flags;
-            *root = node;
-        }
-
-        return result;
-    }
-
-    return -1;
-}
-
-struct vfs_mount *
-vfs_mount_new(struct device *dev, struct filesystem *fs, uint64_t flags)
-{
-    struct vfs_mount *mount = (struct vfs_mount*)calloc(1, sizeof(struct vfs_mount));
-
-    mount->device = dev;
-    mount->filesystem = fs;
-    mount->flags = flags;
-
-    return mount;
-}
-
 static void
 free_vfs_node_child(void *p)
 {
@@ -167,17 +110,6 @@ vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **resu
     return -(ENOENT);
 }
 
-void
-register_filesystem(char *name, struct fs_ops *ops)
-{
-    struct filesystem *fs = (struct filesystem*)malloc(sizeof(struct filesystem));
-
-    fs->name = name;
-    fs->ops = ops;
-
-    list_append(&fs_list, fs);
-}
-
 int
 vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name)
 {
@@ -207,26 +139,4 @@ vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name)
     }
 
     return res;
-}
-
-int
-vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const char *path, int flags)
-{
-    struct vfs_node *mount;
-    struct file *file;
-
-    if (fops_openfs(dev, &mount, fsname, flags) == 0) {
-        if (fops_open(current_proc, &file, path, O_RDONLY) == 0) {
-            struct vfs_node *mount_point = file->node;
-            
-            mount_point->ismount = true;
-            mount_point->mount = mount;
-
-            INC_NODE_REF(mount);
-
-            return 0;
-        }
-    }
-
-    return -1;
 }

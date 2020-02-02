@@ -17,7 +17,7 @@ kmain()
 {
     struct vfs_node *root;
 
-    if (fops_openfs(NULL, &root, "tmpfs", 0) != 0) {
+    if (fs_open(NULL, &root, "tmpfs", 0) != 0) {
         panic("could not mount tmpfs!");
     }
 
@@ -30,7 +30,7 @@ kmain()
         
     tar_extract_archive(root, NULL, start_initramfs);
 
-    if (vfs_mount(root, NULL, "devfs", "/dev", 0) != 0) {
+    if (fs_mount(root, NULL, "devfs", "/dev", 0) != 0) {
         panic("could not mount devfs!");
         printf("kernel: mounted devfs to /dev\n");
     }

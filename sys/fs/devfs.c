@@ -3,6 +3,7 @@
 #include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/string.h>
 #include <sys/types.h>
@@ -189,5 +190,5 @@ __attribute__((constructor))
 void
 _init_devfs()
 {
-    register_filesystem("devfs", &devfs_ops);
+    fs_register("devfs", &devfs_ops);
 }

@@ -19,8 +19,6 @@
 
 struct dirent;
 struct file;
-struct filesystem;
-struct fs_mount;
 struct fs_ops;
 struct stat;
 struct vfs_node;
@@ -37,7 +35,6 @@ typedef int (*fs_ioctl_t)(struct vfs_node *node, uint64_t request, void *arg);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
 typedef int (*fs_mkdir_t)(struct vfs_node *parent, const char *name, mode_t mode); 
 typedef int (*fs_mknod_t)(struct vfs_node *parent, const char *name, mode_t mode, dev_t dev);
-typedef int (*fs_mount_t)(struct vfs_node *parent, struct device *dev, struct vfs_node **root);
 typedef int (*fs_readdirent_t)(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 typedef int (*fs_rmdir_t)(struct vfs_node *node, const char *path);
@@ -76,30 +73,6 @@ struct file_ops {
     fs_write_t              write;
 };
 
-struct filesystem {
-    char *          name;
-    struct fs_ops * ops;
-};
-
-struct fs_ops {
-    fs_node_destroy_t       destroy;
-    fs_creat_t              creat;
-    fs_lookup_t             lookup;
-    fs_mount_t              mount;
-    fs_read_t               read;
-    fs_readdirent_t         readdirent;
-    fs_rmdir_t              rmdir;
-    fs_mkdir_t              mkdir;
-    fs_unlink_t             unlink;
-    fs_write_t              write;
-};
-
-struct vfs_mount {
-    struct device *     device;
-    struct filesystem * filesystem;
-    uint64_t            flags;
-};
-
 struct vfs_node {
     struct device *     device;
     struct dict         children;
@@ -126,8 +99,6 @@ int fops_close(struct file *file);
 
 struct file *vfs_duplicate_file(struct file *file);
 
-int fops_openfs(struct device *dev, struct vfs_node **root, const char *fsname, int flags);
-
 void vfs_node_destroy(struct vfs_node *node);
 
 struct vfs_node *vfs_node_new(struct vfs_node *parent, struct device *dev, struct file_ops *ops);
@@ -137,8 +108,6 @@ int vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **
 int fops_open(struct proc *proc, struct file **result, const char *path, int flags);
 
 int fops_open_r(struct proc *proc, struct file **result, const char *path, int flags);
-
-void register_filesystem(char *name, struct fs_ops *ops);
 
 int fops_access(struct proc *proc, const char *path, int mode);
 
@@ -159,8 +128,6 @@ int fops_creat(struct proc *proc, struct file **result, const char *path, mode_t
 int fops_ioctl(struct file *fp, uint64_t request, void *arg);
 
 int vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name); 
-
-int vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const char *path, int flags);
 
 int fops_mkdir(struct proc *proc, const char *path, mode_t mode);
 

@@ -50,12 +50,13 @@ KERNEL_OBJECTS += fs/tmpfs.o
 
 KERNEL_OBJECTS += kern/device.o
 KERNEL_OBJECTS += kern/interrupt.o
-KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/fifo.o
 KERNEL_OBJECTS += kern/file_ops.o
 KERNEL_OBJECTS += kern/kmain.o
+KERNEL_OBJECTS += kern/vfs_lookup.o
 KERNEL_OBJECTS += kern/kputs.o
 KERNEL_OBJECTS += kern/misc_syscalls.o
+KERNEL_OBJECTS += kern/mount.o
 KERNEL_OBJECTS += kern/net.o
 KERNEL_OBJECTS += kern/net_syscalls.o
 KERNEL_OBJECTS += kern/panic.o
