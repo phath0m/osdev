@@ -9,6 +9,7 @@ static int fifo_close(struct vfs_node *node, struct file *fp);
 static int fifo_destroy(struct vfs_node *node);
 static int fifo_duplicate(struct vfs_node *node, struct file *newfile);
 static int fifo_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
+static int fifo_stat(struct vfs_node *node, struct stat *stat);
 static int fifo_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct file_ops fifo_ops = {
@@ -16,6 +17,7 @@ struct file_ops fifo_ops = {
     .destroy    = fifo_destroy,
     .duplicate  = fifo_duplicate,
     .read       = fifo_read,
+    .stat       = fifo_stat,
     .write      = fifo_write
 };
 
@@ -123,6 +125,20 @@ fifo_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
     struct fifo *fifo = (struct fifo*)node->state;
 
     return fops_read(fifo->pipe[0], buf, nbyte);
+}
+
+static int
+fifo_stat(struct vfs_node *node, struct stat *stat)
+{
+    struct fifo *fifo = (struct fifo*)node->state;
+    struct vfs_node *host = fifo->host;
+    struct file_ops *ops = host->ops;
+
+    if (ops->stat) {
+        return ops->stat(host, stat);
+    }
+
+    return -(ENOTSUP);
 }
 
 static int

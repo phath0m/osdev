@@ -43,8 +43,8 @@ struct ramfs_node {
     size_t              size;
     uid_t               uid;
     gid_t               gid;
-    uint8_t             mode;
-    uint8_t             type;
+    uint32_t            mode;
+    uint32_t            type;
     uint64_t            mtime;
 };
 

@@ -98,7 +98,7 @@ devfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root)
     node->inode = 0;
     node->gid = 0;
     node->uid = 0;
-    node->mode = 0755 | IFDIR;
+    node->mode = 0755 | S_IFDIR;
 
     *root = node;
 
@@ -158,7 +158,7 @@ static int
 defops_stat(struct vfs_node *node, struct stat *stat)
 {
     if (node->inode == 0) {
-        stat->st_mode = 0755 | IFDIR;
+        stat->st_mode = 0755 | S_IFDIR;
         return 0;
     }
 
@@ -168,7 +168,7 @@ defops_stat(struct vfs_node *node, struct stat *stat)
         return -1;    
     }
 
-    stat->st_mode = dev->mode | IFCHR;
+    stat->st_mode = dev->mode | S_IFCHR;
 
     return 0;
 }

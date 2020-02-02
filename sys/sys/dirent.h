@@ -2,16 +2,18 @@
 #define SYS_DIRENT_H
 
 #include <sys/limits.h>
+#include <sys/stat.h>
 
-#define DT_REG      0x01
+#define DT_REG      S_IFREG
 /* There are no block devices */
-#define DT_CHR      0x02
-#define DT_DIR      0x04
+#define DT_CHR      S_IFCHR
+#define DT_DIR      S_IFDIR
+#define DT_FIFO     S_IFIFO
 
 struct dirent {
-    ino_t   inode;
-    uint8_t type;
-    char    name[PATH_MAX];
+    ino_t       inode;
+    uint32_t    type;
+    char        name[PATH_MAX];
 };
 
 #endif

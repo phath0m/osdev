@@ -63,7 +63,6 @@ struct tmpfs_node {
     uid_t               uid;
     gid_t               gid;
     uint16_t            mode;
-    uint8_t             type;
     uint64_t            mtime;
 };
 
@@ -103,10 +102,9 @@ tmpfs_creat(struct vfs_node *parent, struct vfs_node **child, const char *name, 
 
     node->content = membuf_new();
     node->gid = 0;
-    node->mode = mode;
+    node->mode = mode | S_IFREG;
     node->uid = 0;
     node->mtime = 0;
-    node->type = DT_REG;
 
     struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
 
@@ -162,7 +160,7 @@ tmpfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
     uint64_t start = pos;
     uint64_t end = start + nbyte;
 
-    if (file->type != DT_REG) {
+    if (!S_ISREG(file->mode)) {
         return -(EISDIR);
     }
 
@@ -195,7 +193,7 @@ tmpfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry)
 
         if (i == entry && name && dict_get(&dir->children, name, (void**)&node)) {
             strncpy(dirent->name, name, PATH_MAX);
-            dirent->type = node->type;
+            dirent->type = (node->mode & S_IFMT);
             res = 0;
             break;
         }
@@ -231,10 +229,9 @@ tmpfs_mkdir(struct vfs_node *parent, const char *name, mode_t mode)
     struct tmpfs_node *node = tmpfs_node_new();
 
     node->gid = 0;
-    node->mode = mode;
+    node->mode = mode | S_IFDIR;
     node->uid = 0;
     node->mtime = 0;
-    node->type = DT_DIR;
 
     struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
 
@@ -252,7 +249,6 @@ tmpfs_mknod(struct vfs_node *parent, const char *name, mode_t mode, dev_t dev)
     node->mode = mode;
     node->uid = 0;
     node->mtime = 0;
-    node->type = DT_REG;
 
     struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
 
@@ -297,15 +293,6 @@ tmpfs_stat(struct vfs_node *node, struct stat *stat)
     stat->st_dev = (dev_t)0;
     stat->st_gid = file->gid;
     stat->st_mode = file->mode;
-
-    switch (file->type) {
-        case DT_REG:
-            stat->st_mode |= IFREG;
-            break;
-        case DT_DIR:
-            stat->st_mode |= IFDIR;
-            break;
-    }
 
     if (file->content) {
         stat->st_size = MEMBUF_SIZE(file->content);
@@ -357,7 +344,7 @@ tmpfs_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
 {
     struct tmpfs_node *file = (struct tmpfs_node*)node->state;
 
-    if (file->type != DT_REG) {
+    if (!S_ISREG(file->mode)) {
         return -(EISDIR);
     }
 

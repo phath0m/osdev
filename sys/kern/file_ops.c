@@ -191,7 +191,7 @@ fops_open_r(struct proc *proc, struct file **result, const char *path, int flags
             return -(EACCES);
         }
 
-        if ((child->mode & IFIFO)) {
+        if ((child->mode & S_IFIFO)) {
             child = fifo_open(child, flags);
         }
 

@@ -2,17 +2,19 @@
 #define DIRENT_H
 
 #include <stdint.h>
+#include <sys/stat.h>
 
-#define DT_REG      0x01
+#define DT_REG      S_IFREG
 /* There are no block devices */
-#define DT_BLK      0x08
-#define DT_CHR      0x02
-#define DT_DIR      0x04
-#define DT_LNK      0x05
+#define DT_BLK      S_IFBLK
+#define DT_CHR      S_IFCHR
+#define DT_DIR      S_IFDIR
+#define DT_LNK      S_IFLNK
+#define DT_FIFO     S_IFIFO
 
 struct dirent {
     uint32_t    d_ino;
-    uint8_t     d_type;
+    uint32_t    d_type;
     char        d_name[256];
 };
 

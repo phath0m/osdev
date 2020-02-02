@@ -17,11 +17,19 @@
 #define S_IWOTH     0000002
 #define S_IXOTH     0000001
 
-#define IFDIR  0040000 /* directory */
-#define IFCHR  0020000 /* character special */
-#define IFBLK  0060000 /* block special */
-#define IFREG  0100000 /* regular */
-#define IFIFO  0010000 /* named pipe */
+#define S_IFMT      0170000 /* file type mask */
+
+#define S_IFDIR     0040000 /* directory */
+#define S_IFCHR     0020000 /* character special */
+#define S_IFBLK     0060000 /* block special */
+#define S_IFREG     0100000 /* regular */
+#define S_IFIFO     0010000 /* named pipe */
+
+#define S_ISBLK(m)  (((m)&S_IFMT) == S_IFBLK)
+#define S_ISCHR(m)  (((m)&S_IFMT) == S_IFCHR)
+#define S_ISDIR(m)  (((m)&S_IFMT) == S_IFDIR)
+#define S_ISFIFO(m) (((m)&S_IFMT) == S_IFIFO)
+#define S_ISREG(m)  (((m)&S_IFMT) == S_IFREG)
 
 struct stat {
     dev_t           st_dev;
