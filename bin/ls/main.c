@@ -53,6 +53,9 @@ get_mode_string(struct ls_dirent *ent, char *buf)
         case DT_CHR:
             *(buf++) = 'c';
             break;
+        case DT_FIFO:
+            *(buf++) = 'p';
+            break;
         default:
             *(buf++) = '-';
             break;
@@ -82,6 +85,9 @@ ls_print_color(struct ls_dirent *entry)
             return;
         case DT_DIR:
             printf("\033[0;34m");
+            return;
+        case DT_FIFO:
+            printf("\033[0;36m");
             return;
         /*
         case DT_LNK:
