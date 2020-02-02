@@ -543,6 +543,27 @@ mkdir(const char *path, mode_t mode)
 }
 
 int
+mknod(const char *path, mode_t mode, dev_t dev)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MKNOD), "b"(path), "c"(mode), "d"(dev));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+mkfifo(const char *path, mode_t mode)
+{
+    return mknod(path, mode | S_IFIFO, 0);
+}
+
+int
 mkpty()
 {
     int ret;
