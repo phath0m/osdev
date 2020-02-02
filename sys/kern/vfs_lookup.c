@@ -7,8 +7,6 @@
 #include <sys/mount.h>
 #include <sys/string.h>
 #include <sys/vfs.h>
-// remove me
-#include <sys/systm.h>
 
 int vfs_node_count = 0;
 
