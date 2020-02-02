@@ -88,7 +88,7 @@ set_sgr_parameter(struct termstate *state, int param)
 }
 
 static void
-eval_sgr_command(struct termstate *state, int args[], int argc)
+select_graphic_rendition(struct termstate *state, int args[], int argc)
 {
     for (int i = 0; i < argc; i++) {
         set_sgr_parameter(state, args[i]);
@@ -96,7 +96,7 @@ eval_sgr_command(struct termstate *state, int args[], int argc)
 }
 
 static void
-eval_set_cursor_pos(struct termstate *state, int args[], int argc)
+cursor_position(struct termstate *state, int args[], int argc)
 {
 
     struct curpos new_pos;
@@ -113,21 +113,21 @@ eval_set_cursor_pos(struct termstate *state, int args[], int argc)
 }
 
 static void
-eval_status_command(struct termstate *state, int args[], int argc)
+device_status_report(struct termstate *state, int args[], int argc)
 {
     if (argc == 1 && args[0] == 6) {
         struct curpos curpos;
         ioctl(state->textscreen, TXIOGETCUR, &curpos);
 
         char buf[16];
-        sprintf(buf, "\x1B[%d;%dR", curpos.c_row, curpos.c_col);
+        sprintf(buf, "\x1B[%d;%dR", curpos.c_row+1, curpos.c_col+1);
 
         write(state->ptm, buf, strlen(buf));
     }
 }
 
 static void
-eval_K_command(struct termstate *state, int args[], int argc)
+erase_in_line(struct termstate *state, int args[], int argc)
 {
     if (argc == 1) {
         ioctl(state->textscreen, TXIOERSLIN, (void*)args[0]);
@@ -137,17 +137,36 @@ eval_K_command(struct termstate *state, int args[], int argc)
 }
 
 static void
+erase_in_display(struct termstate *state, int args[], int argc)
+{
+    int param = 0;
+
+    if (argc > 0) {
+        param = 0;
+    }
+
+    switch (param) {
+        case 2:
+            ioctl(state->textscreen, TXIOCLRSCR, NULL);
+            break;
+    }
+}
+
+static void
 eval_csi_parameter(struct termstate *state, char command, int args[], int argc)
 {
     switch (command) {
         case 'm':
-            eval_sgr_command(state, args, argc);
+            select_graphic_rendition(state, args, argc);
             break;
         case 'n':
-            eval_status_command(state, args, argc);
+            device_status_report(state, args, argc);
+            break;
+        case 'J':
+            erase_in_display(state, args, argc);
             break;
         case 'K':
-            eval_K_command(state, args, argc);
+            erase_in_line(state, args, argc);
             break;
         case 'h':
             ioctl(state->textscreen, TXIOCURSOFF, NULL);
@@ -156,7 +175,7 @@ eval_csi_parameter(struct termstate *state, char command, int args[], int argc)
             ioctl(state->textscreen, TXIOCURSON, NULL);
             break;
         case 'H':
-            eval_set_cursor_pos(state, args, argc);
+            cursor_position(state, args, argc);
             break;
         default:
             printf("unknown CSI command %c\n", command);
@@ -324,10 +343,10 @@ input_loop(int ptm, int kbd, int vga)
                 write(ptm, "\x1B[C", 3);
                 break;
             case KEY_PAGE_UP:
-                write(ptm, "\x1B[5~", 3);
+                write(ptm, "\x1B[5~", 4);
                 break;
             case KEY_PAGE_DOWN:
-                write(ptm, "\x1B[6~", 3);
+                write(ptm, "\x1B[6~", 4);
                 break;    
             default:
                 if (ch) {
