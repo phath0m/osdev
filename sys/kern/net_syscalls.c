@@ -1,26 +1,79 @@
 #include <sys/errno.h>
-#include <sys/net.h>
 #include <sys/proc.h>
+#include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 
-int
-sys_connect(int fd, void *address, size_t address_len)
+static int
+sys_accept(syscall_args_t argv)
 {
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
+    DEFINE_SYSCALL_PARAM(size_t*, address_len, 2, argv);
+
     struct file *fp = proc_getfile(fd);
-    
+
+    if (!fp) {
+        return -(EBADF);
+    }
+
+    struct socket *sock = file_to_sock(fp);
+    struct socket *client;
+
+    int res = sock_accept(sock, &client, address, address_len);
+
+    if (res == 0) {
+        struct file *file = sock_to_file(client);
+
+        return proc_newfildes(file);
+    }
+
+    return res;
+}
+
+static int
+sys_bind(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
+    DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
+
+    struct file *fp = fp = proc_getfile(fd);
+
+    if (!fp) {
+        return -(EBADF); 
+    }   
+
+    struct socket *sock = file_to_sock(fp);
+
+    return sock_bind(sock, address, address_len);
+}
+
+static int
+sys_connect(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
+    DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
+
+    struct file *fp = proc_getfile(fd);
+
     if (fp) {
         struct socket *sock = file_to_sock(fp);
 
         return sock_connect(sock, address, address_len);
     }
-    
+
     return -(EBADF);
 }
 
-int
-sys_socket(int domain, int type, int protocol)
+static int
+sys_socket(syscall_args_t argv)
 {
+    DEFINE_SYSCALL_PARAM(int, domain, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, type, 1, argv);
+    DEFINE_SYSCALL_PARAM(int, protocol, 2, argv);
+
     struct socket *sock;
 
     int ret = sock_new(&sock, domain, type, protocol);
@@ -34,30 +87,12 @@ sys_socket(int domain, int type, int protocol)
     return proc_newfildes(file);
 }
 
-static int
-sys_connect_handler(syscall_args_t argv)
-{
-    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
-    DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
-    DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
-
-    return sys_connect(fd, address, address_len);
-}
-
-static int
-sys_socket_handler(syscall_args_t argv)
-{
-    DEFINE_SYSCALL_PARAM(int, domain, 0, argv);
-    DEFINE_SYSCALL_PARAM(int, type, 1, argv);
-    DEFINE_SYSCALL_PARAM(int, protocol, 2, argv);
-
-    return sys_socket(domain, type, protocol);
-}
-
 __attribute__((constructor))
 void
 _init_net_syscalls()
 {
-    register_syscall(SYS_CONNECT, 3, sys_connect_handler);
-    register_syscall(SYS_SOCKET, 3, sys_socket_handler);
+    register_syscall(SYS_ACCEPT, 3, sys_accept);
+    register_syscall(SYS_BIND, 3, sys_bind);
+    register_syscall(SYS_CONNECT, 3, sys_connect);
+    register_syscall(SYS_SOCKET, 3, sys_socket);
 }

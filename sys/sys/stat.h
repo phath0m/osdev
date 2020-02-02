@@ -24,7 +24,7 @@
 #define S_IFBLK     0060000 /* block special */
 #define S_IFREG     0100000 /* regular */
 #define S_IFIFO     0010000 /* named pipe */
-
+#define S_IFSOCK    0140000 /* unix socket */
 #define S_ISBLK(m)  (((m)&S_IFMT) == S_IFBLK)
 #define S_ISCHR(m)  (((m)&S_IFMT) == S_IFCHR)
 #define S_ISDIR(m)  (((m)&S_IFMT) == S_IFDIR)

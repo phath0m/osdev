@@ -72,6 +72,7 @@ KERNEL_OBJECTS += kern/vfs_syscalls.o
 KERNEL_OBJECTS += kern/wait_queue.o
 
 KERNEL_OBJECTS += net/klink.o
+KERNEL_OBJECTS += net/un.o
 
 # Kernel runtime library
 KERNEL_OBJECTS += libk/dict.o

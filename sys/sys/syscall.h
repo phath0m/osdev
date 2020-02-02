@@ -66,6 +66,8 @@
 #define SYS_SIGACTION   0x3C
 #define SYS_SIGRESTORE  0x3D
 #define SYS_MKNOD       0x3E
+#define SYS_ACCEPT      0x3F
+#define SYS_BIND        0x40
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

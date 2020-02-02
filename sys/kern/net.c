@@ -2,7 +2,7 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/malloc.h>
-#include <sys/net.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/vfs.h>
 
@@ -67,6 +67,39 @@ void
 register_protocol(struct protocol *protocol)
 {
     list_append(&protocol_list, protocol);
+}
+
+
+int
+sock_accept(struct socket *sock, struct socket **result, void *address, size_t *address_len)
+{
+    if (!sock) {
+        return -(EINVAL);
+    }
+
+    struct protocol *prot = sock->protocol;
+
+    if (!prot->ops || !prot->ops->accept) {
+        return -(ENOTSUP);
+    }
+
+    return prot->ops->accept(sock, result, address, address_len);
+}
+
+int
+sock_bind(struct socket *sock, void *address, size_t address_len)
+{
+    if (!sock) {
+        return -(EINVAL);
+    }
+
+    struct protocol *prot = sock->protocol;
+
+    if (!prot->ops || !prot->ops->bind) {
+        return -(ENOTSUP);
+    }
+
+    return prot->ops->bind(sock, address, address_len);
 }
 
 int

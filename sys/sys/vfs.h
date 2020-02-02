@@ -80,6 +80,7 @@ struct vfs_node {
     struct vfs_node *   mount;
     struct vfs_node *   parent;
     struct list         fifo_readers;
+    struct list         un_connections;
     int                 mount_flags;
     bool                ismount;
     ino_t               inode;

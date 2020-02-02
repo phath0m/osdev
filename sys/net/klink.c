@@ -1,7 +1,7 @@
 #include <ds/list.h>
-#include <sys/net.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
+#include <sys/socket.h>
 #include <sys/string.h>
 #include <sys/types.h>
 
