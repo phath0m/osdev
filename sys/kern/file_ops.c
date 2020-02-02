@@ -191,6 +191,10 @@ fops_open_r(struct proc *proc, struct file **result, const char *path, int flags
             return -(EACCES);
         }
 
+        if ((child->mode & IFIFO)) {
+            child = fifo_open(child, flags);
+        }
+
         struct file *file = file_new(child);
         
         file->flags = flags;
@@ -399,6 +403,43 @@ fops_mkdir(struct proc *proc, const char *path, mode_t mode)
 
     if (ops && ops->mkdir) {
         return ops->mkdir(parent, dirname, mode);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
+fops_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev)
+{
+    struct vfs_node *root = proc->root;
+    struct vfs_node *cwd = proc->cwd;
+
+    char path_buf[PATH_MAX+1];
+
+    strncpy(path_buf, path, PATH_MAX);
+
+    char *nodename;
+    char *parent_path;
+    struct vfs_node *parent;
+
+    if (!split_path(path_buf, &parent_path, &nodename)) {
+        parent = cwd;
+    } else if (vfs_get_node(root, cwd, &parent, parent_path) != 0) {
+        return -(ENOENT);
+    }
+
+    if ((parent->mount_flags & MS_RDONLY)) {
+        return -(EROFS);
+    }
+
+    if (!can_write(parent, &proc->creds)) {
+        return -(EACCES);
+    }
+
+    struct file_ops *ops = parent->ops;
+
+    if (ops && ops->mknod) {
+        return ops->mknod(parent, nodename, mode, dev);
     }
 
     return -(ENOTSUP);

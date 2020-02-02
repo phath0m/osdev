@@ -21,7 +21,7 @@
 #define IFCHR  0020000 /* character special */
 #define IFBLK  0060000 /* block special */
 #define IFREG  0100000 /* regular */
-
+#define IFIFO  0010000 /* named pipe */
 
 struct stat {
     dev_t           st_dev;

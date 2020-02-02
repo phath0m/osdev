@@ -36,6 +36,7 @@ typedef int (*fs_duplicate_t)(struct vfs_node *node, struct file *fp);
 typedef int (*fs_ioctl_t)(struct vfs_node *node, uint64_t request, void *arg);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
 typedef int (*fs_mkdir_t)(struct vfs_node *parent, const char *name, mode_t mode); 
+typedef int (*fs_mknod_t)(struct vfs_node *parent, const char *name, mode_t mode, dev_t dev);
 typedef int (*fs_mount_t)(struct vfs_node *parent, struct device *dev, struct vfs_node **root);
 typedef int (*fs_readdirent_t)(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
@@ -67,6 +68,7 @@ struct file_ops {
     fs_readdirent_t         readdirent;
     fs_rmdir_t              rmdir;
     fs_mkdir_t              mkdir;
+    fs_mknod_t              mknod;
     fs_seek_t               seek;
     fs_stat_t               stat;
     fs_truncate_t           truncate;
@@ -104,6 +106,7 @@ struct vfs_node {
     struct file_ops *   ops;
     struct vfs_node *   mount;
     struct vfs_node *   parent;
+    struct list         fifo_readers;
     int                 mount_flags;
     bool                ismount;
     ino_t               inode;
@@ -114,6 +117,8 @@ struct vfs_node {
     void *              state;
     int                 refs;
 };
+
+struct vfs_node *fifo_open(struct vfs_node *parent, mode_t mode);
 
 struct file *file_new(struct vfs_node *node);
 
@@ -158,6 +163,8 @@ int vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *na
 int vfs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const char *path, int flags);
 
 int fops_mkdir(struct proc *proc, const char *path, mode_t mode);
+
+int fops_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev);
 
 int fops_read(struct file *file, char *buf, size_t nbyte);
 

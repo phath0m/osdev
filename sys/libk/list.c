@@ -150,6 +150,7 @@ list_remove(struct list *listp, void *item)
             } else if (iter == listp->tail) {
                 listp->tail = prev;
             }
+
             free(iter);
             list_elem_count--;
             listp->count--;

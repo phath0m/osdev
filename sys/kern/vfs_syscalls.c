@@ -303,6 +303,22 @@ sys_mkdir(syscall_args_t argv)
 }
 
 static int
+sys_mknod(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
+    DEFINE_SYSCALL_PARAM(dev_t, dev, 2, argv);
+    
+    TRACE_SYSCALL("mknod", "\"%s\", %x, %d", path, mode, dev);
+
+    mode_t extra = mode & ~(0777);
+    mode &= current_proc->umask;
+    mode |= extra;
+
+    return fops_mknod(current_proc, path, mode, dev);
+}
+
+static int
 sys_stat(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
@@ -389,4 +405,5 @@ _init_vfs_syscalls()
     register_syscall(SYS_TRUNCATE, 2, sys_truncate);
     register_syscall(SYS_FTRUNCATE, 2, sys_ftruncate);
     register_syscall(SYS_ACCESS, 2, sys_access);
+    register_syscall(SYS_MKNOD, 3, sys_mknod);
 }

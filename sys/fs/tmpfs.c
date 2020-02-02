@@ -29,6 +29,7 @@ static int tmpfs_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t p
 static int tmpfs_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 static int tmpfs_rmdir(struct vfs_node *parent, const char *dirname); 
 static int tmpfs_mkdir(struct vfs_node *parent, const char *name, mode_t mode);
+static int tmpfs_mknod(struct vfs_node *parent, const char *name, mode_t mode, dev_t dev);
 static int tmpfs_seek(struct vfs_node *node, uint64_t *pos, off_t off, int whence);
 static int tmpfs_stat(struct vfs_node *node, struct stat *stat);
 static int tmpfs_truncate(struct vfs_node *node, off_t length);
@@ -44,6 +45,7 @@ struct file_ops tmpfs_file_ops = {
     .readdirent = tmpfs_readdirent,
     .rmdir      = tmpfs_rmdir,
     .mkdir      = tmpfs_mkdir,
+    .mknod      = tmpfs_mknod,
     .seek       = tmpfs_seek,
     .stat       = tmpfs_stat,
     .truncate   = tmpfs_truncate,
@@ -238,6 +240,24 @@ tmpfs_mkdir(struct vfs_node *parent, const char *name, mode_t mode)
 
     dict_set(&parent_dir->children, name, node);
     
+    return 0;
+}
+
+static int
+tmpfs_mknod(struct vfs_node *parent, const char *name, mode_t mode, dev_t dev)
+{
+    struct tmpfs_node *node = tmpfs_node_new();
+
+    node->gid = 0;
+    node->mode = mode;
+    node->uid = 0;
+    node->mtime = 0;
+    node->type = DT_REG;
+
+    struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
+
+    dict_set(&parent_dir->children, name, node);
+
     return 0;
 }
 
