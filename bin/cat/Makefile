@@ -19,4 +19,4 @@ install:
 	cp $(CAT) "$(DESTDIR)/$(PREFIX)/bin/cat"
 
 clean:
-	rm -f $(CAT_OBJECTS)
+	rm -f $(CAT_OBJECTS) $(CAT)

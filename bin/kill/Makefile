@@ -17,4 +17,4 @@ $(KILL): $(KILL_OBJECTS)
 install:
 	cp $(KILL) "$(DESTDIR)/$(PREFIX)/bin/kill"
 clean:
-	rm -f $(KILL_OBJECTS)
+	rm -f $(KILL_OBJECTS) $(KILL)

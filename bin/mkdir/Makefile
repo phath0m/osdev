@@ -17,4 +17,4 @@ $(MKDIR): $(MKDIR_OBJECTS)
 install:
 	cp $(MKDIR) "$(DESTDIR)/$(PREFIX)/bin/mkdir"
 clean:
-	rm -f $(MKDIR_OBJECTS)
+	rm -f $(MKDIR_OBJECTS) $(MKDIR)

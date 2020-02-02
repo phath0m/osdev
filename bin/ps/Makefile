@@ -17,4 +17,4 @@ $(PS): $(PS_OBJECTS)
 install:
 	cp $(PS) "$(DESTDIR)/$(PREFIX)/bin/ps"
 clean:
-	rm -f $(PS_OBJECTS)
+	rm -f $(PS_OBJECTS) $(PS)

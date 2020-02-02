@@ -17,4 +17,4 @@ $(MKFIFO): $(MKFIFO_OBJECTS)
 install:
 	cp $(MKFIFO) "$(DESTDIR)/$(PREFIX)/bin/mkfifo"
 clean:
-	rm -f $(MKFIFO_OBJECTS)
+	rm -f $(MKFIFO_OBJECTS) $(MKFIFO)

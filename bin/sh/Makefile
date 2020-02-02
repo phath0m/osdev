@@ -19,4 +19,4 @@ $(SH): $(SHELL_OBJECTS)
 install:
 	cp $(SH) "$(DESTDIR)/$(PREFIX)/bin/sh"
 clean:
-	rm -f $(SHELL_OBJECTS)
+	rm -f $(SHELL_OBJECTS) $(SH)

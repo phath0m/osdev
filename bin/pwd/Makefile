@@ -17,4 +17,4 @@ $(PWD): $(PWD_OBJECTS)
 install:
 	cp $(PWD) "$(DESTDIR)/$(PREFIX)/bin/pwd"
 clean:
-	rm -f $(PWD_OBJECTS)
+	rm -f $(PWD_OBJECTS) $(PWD)

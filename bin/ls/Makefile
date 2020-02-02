@@ -17,4 +17,4 @@ $(LS): $(LS_OBJECTS)
 install:
 	cp $(LS) "$(DESTDIR)/$(PREFIX)/bin/ls"
 clean:
-	rm -f $(LS_OBJECTS)
+	rm -f $(LS_OBJECTS) $(LS)

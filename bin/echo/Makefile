@@ -17,4 +17,4 @@ $(ECHO): $(ECHO_OBJECTS)
 install:
 	cp $(ECHO) "$(DESTDIR)/$(PREFIX)/bin/echo"
 clean:
-	rm -f $(ECHO_OBJECTS)
+	rm -f $(ECHO_OBJECTS) $(ECHO)

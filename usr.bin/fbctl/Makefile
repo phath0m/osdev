@@ -17,4 +17,4 @@ $(FBCTL): $(FBCTL_OBJECTS)
 install:
 	cp $(FBCTL) "$(DESTDIR)/$(PREFIX)/bin/fbctl"
 clean:
-	rm -f $(FBCTL_OBJECTS)
+	rm -f $(FBCTL_OBJECTS) $(FBCTL)
