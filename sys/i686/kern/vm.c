@@ -14,6 +14,14 @@
 
 #define PHYSICAL_START_ADDR 0x20000000
 
+#define PHYSICAL_START_ADDR 0x20000000
+#define BITMAP_INDEX(n) ((n) >> 3)
+#define BITMAP_BIT(n) ((n) & 7)
+#define BITMAP_SIZE(n) (((n) >> 3) + 1)
+#define BITMAP_SET(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] |= (1 << BITMAP_BIT(n)))
+#define BITMAP_CLEAR(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] &= ~(1 << BITMAP_BIT(n)))
+#define BITMAP_GET(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] & (1 << BITMAP_BIT(n)))
+
 struct page_block {
     uintptr_t   addr;
     uint32_t    ref_count;
@@ -146,6 +154,53 @@ page_directory_free(struct page_directory *directory)
     free(directory);
 }
 
+uintptr_t
+vm_find_vsegment(struct vm_space *space, size_t length)
+{
+    size_t required_pages = ((length - 1) >> 12) + 1;
+
+    int free_page_count = 0;
+
+    for (int i = 1; i < 0xC0000; i++) {
+
+        if (free_page_count == required_pages) {
+            return (i - free_page_count) * 4096;
+        }
+
+        if (BITMAP_GET(space->va_map, i)) {
+            free_page_count = 0;
+        } else {
+            free_page_count++;
+        }
+    }
+
+    return 0;
+}
+
+void
+vm_alloc_vsegment(struct vm_space *space, uintptr_t addr, size_t length)
+{
+    size_t required_pages = ((length - 1) >> 12) + 1;
+
+    int start_page = addr / 4096;
+
+    for (int i = 0; i < required_pages; i++) {
+        BITMAP_SET(space->va_map, start_page + i);
+    }
+}
+
+void
+vm_free_vsegment(struct vm_space *space, uintptr_t addr, size_t length)
+{
+    size_t required_pages = ((length - 1) >> 12) + 1;
+
+    int start_page = addr / 4096;
+
+    for (int i = 0; i < required_pages; i++) {
+        BITMAP_CLEAR(space->va_map, start_page + i);
+    }
+}
+
 struct vm_block *
 vm_find_block(struct vm_space *space, uintptr_t vaddr)
 {
@@ -171,7 +226,7 @@ vm_find_block(struct vm_space *space, uintptr_t vaddr)
 struct vm_block *
 vm_block_new()
 {
-    struct vm_block *block = (struct vm_block*)calloc(0, sizeof(struct vm_block));
+    struct vm_block *block = (struct vm_block*)calloc(1, sizeof(struct vm_block));
     vm_block_count++;
     return block;
 }
@@ -188,8 +243,11 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
         addr1 = (void*)space1->kernel_brk;
         space1->kernel_brk += (PAGE_SIZE * required_pages);
     } else if (addr1 == NULL) {
-        addr1 = (void*)space1->user_brk;
-        space1->user_brk += (PAGE_SIZE * required_pages);
+        addr1 = (void*)vm_find_vsegment(space1, length);
+    }
+
+    if (user) {
+        vm_alloc_vsegment(space1, (uintptr_t)addr1, length);
     }
 
     uint32_t offset = (uint32_t)addr2 & 0x0000FFF;
@@ -228,12 +286,18 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 {
     int required_pages = ((length - 1) >> 12) + 1;
 
-    if (addr == NULL && (prot & PROT_KERN)) {
+    bool write = (prot & PROT_WRITE) != 0;
+    bool user = (prot & PROT_KERN) == 0;
+
+    if (addr == NULL && !user) {
         addr = (void*)space->kernel_brk;
         space->kernel_brk += (PAGE_SIZE * required_pages);
     } else if (addr == NULL) {
-        addr = (void*)space->user_brk;
-        space->user_brk += (PAGE_SIZE * required_pages);
+        addr = (void*)vm_find_vsegment(space, length);
+    }
+
+    if (user) {
+        vm_alloc_vsegment(space, (uintptr_t)addr, length);
     }
 
     struct page_directory *directory = (struct page_directory*)space->state_virtual;
@@ -253,9 +317,6 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 
         list_append(&space->map, block);
 
-        bool write = (prot & PROT_WRITE) != 0;
-        bool user = (prot & PROT_KERN) == 0;
-
         page_map_entry(directory, block->start_virtual, block->start_physical, write, user);
     }
 
@@ -268,6 +329,8 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
     int required_pages = ((length - 1) >> 12) + 1;
     
     addr = (void*)((uintptr_t)addr & 0xFFFFF000);
+
+    vm_free_vsegment(space, (uintptr_t)addr, length);
 
     for (int i = 0; i < required_pages; i++) {
         struct vm_block *block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
@@ -314,7 +377,10 @@ vm_space_destroy(struct vm_space *space)
 
     list_destroy(&to_remove, false);
     list_destroy(&space->map, false);
+
     page_directory_free((struct page_directory*)space->state_virtual);
+
+    free(space->va_map);
     free(space);
 }
 
@@ -364,11 +430,10 @@ vm_space_new()
 
     map_vbe_data(directory);
 
+    vm_space->va_map = calloc(1, 0xC0000);
     vm_space->kernel_brk = KERNEL_VIRTUAL_BASE + 0x1FC00000;
-    vm_space->user_brk = 0x8000000;
     vm_space->state_physical = (void*)((uint32_t)directory - KERNEL_VIRTUAL_BASE);
     vm_space->state_virtual = (void*)directory;
-
 
     return vm_space;
 }
@@ -384,3 +449,4 @@ _init_vm()
     pages_physical_brk -= KERNEL_VIRTUAL_BASE;
     pages_physical_brk &= 0xFFFFF000;
 }
+

@@ -20,9 +20,9 @@ struct vm_block {
 
 struct vm_space {
     struct list map;
-    uintptr_t   user_brk;
     uintptr_t   kernel_brk;
     uintptr_t   stack;
+    uint8_t *   va_map;
     /* used for the architecture specific virtual memory implementation */
     void *      state_physical;
     void *      state_virtual;
