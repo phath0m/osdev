@@ -1,6 +1,18 @@
 # Prerequisites
 *.d
 
+# Swap files (vim)
+*.swp
+
+# tar.gz
+*.tar.gz
+
+*.bin
+
+# *.img
+*.img
+*.iso
+
 # Object files
 *.o
 *.ko
