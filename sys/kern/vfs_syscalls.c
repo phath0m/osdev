@@ -1,6 +1,5 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
-#include <sys/mman.h>
 #include <sys/proc.h>
 #include <sys/syscall.h>
 #include <sys/systm.h>
@@ -320,22 +319,6 @@ sys_mknod(syscall_args_t argv)
 }
 
 static int
-sys_mmap(syscall_args_t argv)
-{
-    DEFINE_SYSCALL_PARAM(struct mmap_args*, args, 0, argv);
-
-    TRACE_SYSCALL("mmap", "0x%p, %d, 0x%p, 0x%p, %d, %d", args->addr, args->length, args->prot, args->flags, args->fd, args->offset);
-
-    struct file *file = proc_getfile(args->fd);
-
-    if (!file) {
-        return -(EBADF);
-    }
-
-    return fops_mmap(file, args->addr, args->length, args->prot, args->offset);
-}
-
-static int
 sys_stat(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
@@ -423,5 +406,4 @@ _init_vfs_syscalls()
     register_syscall(SYS_FTRUNCATE, 2, sys_ftruncate);
     register_syscall(SYS_ACCESS, 2, sys_access);
     register_syscall(SYS_MKNOD, 3, sys_mknod);
-    register_syscall(SYS_MMAP, 6, sys_mmap);
 }

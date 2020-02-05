@@ -55,6 +55,7 @@ KERNEL_OBJECTS += kern/file_ops.o
 KERNEL_OBJECTS += kern/kmain.o
 KERNEL_OBJECTS += kern/vfs_lookup.o
 KERNEL_OBJECTS += kern/kputs.o
+KERNEL_OBJECTS += kern/mem_syscalls.o
 KERNEL_OBJECTS += kern/misc_syscalls.o
 KERNEL_OBJECTS += kern/mount.o
 KERNEL_OBJECTS += kern/net.o
