@@ -12,9 +12,7 @@
 #include <sys/i686/vm.h>
 #include <sys/i686/multiboot.h>
 
-#define PHYSICAL_START_ADDR 0x20000000
-
-#define PHYSICAL_START_ADDR 0x20000000
+/* bitmap macros */
 #define BITMAP_INDEX(n) ((n) >> 3)
 #define BITMAP_BIT(n) ((n) & 7)
 #define BITMAP_SIZE(n) (((n) >> 3) + 1)
@@ -22,7 +20,9 @@
 #define BITMAP_CLEAR(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] &= ~(1 << BITMAP_BIT(n)))
 #define BITMAP_GET(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] & (1 << BITMAP_BIT(n)))
 
-struct page_block {
+#define ALIGN_ADDRESS(addr) (((uintptr_t)addr) & 0xFFFFF000)
+
+struct frame {
     uintptr_t   addr;
     uint32_t    ref_count;
 };
@@ -34,15 +34,15 @@ uintptr_t   pages_physical_brk;
 /*
  * track allocations for kstat
  */
-int page_block_count = 0;
+int frame_count = 0;
 int page_table_count = 0;
 int vm_block_count = 0;
 int vm_space_count = 0;
 
-static struct page_block *
+static struct frame *
 page_find_free_block()
 {
-    struct page_block *result = NULL;
+    struct frame *result = NULL;
     
     if (list_remove_front(&pages_free, (void**)&result)) {
         return result;
@@ -52,15 +52,15 @@ page_find_free_block()
 }
 
 static uintptr_t
-page_alloc(struct page_block **res)
+frame_alloc(struct frame **res)
 {
-    struct page_block *block = page_find_free_block();
+    struct frame *block = page_find_free_block();
 
     if (!block) {
-        block = (struct page_block*)calloc(1, sizeof(struct page_block));
+        block = (struct frame*)calloc(1, sizeof(struct frame));
         block->addr = pages_physical_brk;
         pages_physical_brk += PAGE_SIZE;
-        page_block_count++;
+        frame_count++;
     }
 
     list_append(&pages_allocated, block);
@@ -71,14 +71,14 @@ page_alloc(struct page_block **res)
 }
 
 static void
-page_free(void *addr)
+frame_free(void *addr)
 {
     list_iter_t iter;
 
     list_get_iter(&pages_allocated, &iter);
 
-    struct page_block *block = NULL;
-    struct page_block *to_remove = NULL;
+    struct frame *block = NULL;
+    struct frame *to_remove = NULL;
 
     while (iter_move_next(&iter, (void**)&block)) {
         if (block->addr == (uintptr_t)addr) {
@@ -90,7 +90,7 @@ page_free(void *addr)
     iter_close(&iter);
 
     if (to_remove) {
-        page_block_count--;
+        frame_count--;
         list_remove(&pages_allocated, to_remove);
         free(to_remove);
     }
@@ -252,15 +252,15 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
 
     uint32_t offset = (uint32_t)addr2 & 0x0000FFF;
     
-    addr1 = (void*)((uintptr_t)addr1 & 0xFFFFF000);
-    addr2 = (void*)((uintptr_t)addr2 & 0xFFFFF000);
+    addr1 = (void*)ALIGN_ADDRESS(addr1);
+    addr2 = (void*)ALIGN_ADDRESS(addr2);
 
     struct page_directory *directory = (struct page_directory*)space1->state_virtual;
 
     for (int i = 0; i < required_pages; i++) {
         struct vm_block *src_block = vm_find_block(space2, (uintptr_t)addr2 + (i * PAGE_SIZE));
         struct vm_block *block = vm_block_new();
-        struct page_block *frame = (struct page_block*)src_block->state;
+        struct frame *frame = (struct frame*)src_block->state;
 
         uintptr_t paddr = src_block->start_physical;
         uintptr_t vaddr = (uintptr_t)addr1 + (PAGE_SIZE * i);
@@ -303,13 +303,13 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
     struct page_directory *directory = (struct page_directory*)space->state_virtual;
 
     for (int i = 0; i < required_pages; i++) {
-        struct page_block *frame;
+        struct frame *frame;
 
         struct vm_block *block = vm_block_new();
 
         block->size = PAGE_SIZE;
-        block->start_physical = page_alloc(&frame);
-        block->start_virtual = ((uintptr_t)addr + (PAGE_SIZE * i)) & 0xFFFFF000;
+        block->start_physical = frame_alloc(&frame);
+        block->start_virtual = ALIGN_ADDRESS((uintptr_t)addr + (PAGE_SIZE * i));
         block->prot = prot;
         block->state = frame;
 
@@ -348,8 +348,8 @@ vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t l
         struct vm_block *block = vm_block_new();
 
         block->size = PAGE_SIZE;
-        block->start_physical = (physical + (PAGE_SIZE * i)) & 0xFFFFF000;
-        block->start_virtual = ((uintptr_t)addr + (PAGE_SIZE * i)) & 0xFFFFF000;
+        block->start_physical = ALIGN_ADDRESS(physical + (PAGE_SIZE * i));
+        block->start_virtual = ALIGN_ADDRESS((uintptr_t)addr + (PAGE_SIZE * i));
         block->prot = prot;
         block->state = NULL;
 
@@ -366,20 +366,20 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
 {
     int required_pages = ((length - 1) >> 12) + 1;
     
-    addr = (void*)((uintptr_t)addr & 0xFFFFF000);
+    addr = (void*)ALIGN_ADDRESS(addr);
 
     vm_free_vsegment(space, (uintptr_t)addr, length);
 
     for (int i = 0; i < required_pages; i++) {
         struct vm_block *block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
-        struct page_block *frame = (struct page_block*)block->state;
+        struct frame *frame = (struct frame*)block->state;
 
         if (frame) {
             frame->ref_count--;
         }
 
         if (frame && frame->ref_count <= 0) {
-            page_free((void*)block->start_physical);
+            frame_free((void*)block->start_physical);
         }
 
         list_remove(&space->map, block);
