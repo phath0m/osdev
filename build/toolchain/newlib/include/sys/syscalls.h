@@ -64,5 +64,6 @@
 #define SYS_MKNOD       0x3E
 #define SYS_ACCEPT      0x3F
 #define SYS_BIND        0x40
+#define SYS_MMAP        0x41
 
 #endif

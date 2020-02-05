@@ -14,6 +14,14 @@
 
 char **environ;
 
+struct mmap_args {
+    uintptr_t   addr;
+    size_t      length;
+    int         prot;
+    int         flags;
+    int         fd;
+    off_t       offset;
+};
 
 /* Begin things that I've been too lazy to implement */
 long
@@ -611,6 +619,31 @@ mkpty()
     }
 
     return ret;
+}
+
+void *
+mmap(void *addr, size_t length, int prot, int flags,
+        int fd, off_t offset)
+{
+    struct mmap_args args;
+
+    args.addr = addr;
+    args.length = length;
+    args.prot = prot;
+    args.flags = flags;
+    args.fd = fd;
+    args.offset = offset;
+
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MMAP), "b"(&args));
+
+    if (ret < 0) {
+        errno = -ret;
+        return NULL;
+    }
+
+    return (void*)ret;
 }
 
 int
