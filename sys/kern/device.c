@@ -42,6 +42,16 @@ device_isatty(struct device *dev)
 }
 
 int
+device_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset)
+{
+    if (dev->mmap) {
+        return dev->mmap(dev, addr, size, prot, offset);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
 device_open(struct device *dev)
 {
     if (dev->open) {

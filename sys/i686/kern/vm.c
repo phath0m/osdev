@@ -323,6 +323,44 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
     return addr;
 }
 
+void *
+vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t length, int prot)
+{
+    int required_pages = ((length - 1) >> 12) + 1;
+
+    bool write = (prot & PROT_WRITE) != 0;
+    bool user = (prot & PROT_KERN) == 0;
+
+    if (addr == NULL && !user) {
+        addr = (void*)space->kernel_brk;
+        space->kernel_brk += (PAGE_SIZE * required_pages);
+    } else if (addr == NULL) {
+        addr = (void*)vm_find_vsegment(space, length);
+    }
+
+    if (user) {
+        vm_alloc_vsegment(space, (uintptr_t)addr, length);
+    }
+
+    struct page_directory *directory = (struct page_directory*)space->state_virtual;
+
+    for (int i = 0; i < required_pages; i++) {
+        struct vm_block *block = vm_block_new();
+
+        block->size = PAGE_SIZE;
+        block->start_physical = (physical + (PAGE_SIZE * i)) & 0xFFFFF000;
+        block->start_virtual = ((uintptr_t)addr + (PAGE_SIZE * i)) & 0xFFFFF000;
+        block->prot = prot;
+        block->state = NULL;
+
+        list_append(&space->map, block);
+
+        page_map_entry(directory, block->start_virtual, block->start_physical, write, user);
+    }
+
+    return addr;
+}
+
 void
 vm_unmap(struct vm_space *space, void *addr, size_t length)
 {
@@ -336,7 +374,9 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
         struct vm_block *block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
         struct page_block *frame = (struct page_block*)block->state;
 
-        frame->ref_count--;
+        if (frame) {
+            frame->ref_count--;
+        }
 
         if (frame && frame->ref_count <= 0) {
             page_free((void*)block->start_physical);
@@ -449,4 +489,5 @@ _init_vm()
     pages_physical_brk -= KERNEL_VIRTUAL_BASE;
     pages_physical_brk &= 0xFFFFF000;
 }
+
 

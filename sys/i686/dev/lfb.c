@@ -6,15 +6,19 @@
  */
 
 #include <sys/device.h>
+#include <sys/errno.h>
 #include <sys/ioctl.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/timer.h>
 #include <sys/types.h>
+#include <sys/vm.h>
 #include <sys/dev/textscreen.h>
 #include <sys/i686/multiboot.h>
+#include <sys/i686/vm.h>
 
 #include "./lfb_font.h"
 
@@ -47,6 +51,7 @@ static int default_color_palette[] = {0x0, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698
 static int lfb_close(struct device *dev);
 static int lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
 static int lfb_isatty(struct device *dev);
+static int lfb_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset);
 static int lfb_open(struct device *dev);
 static int lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
@@ -56,6 +61,7 @@ struct device lfb_device = {
     .close  =   lfb_close,
     .ioctl  =   lfb_ioctl,
     .isatty =   lfb_isatty,
+    .mmap   =   lfb_mmap,
     .open   =   lfb_open,
     .read   =   NULL,
     .write  =   lfb_write,
@@ -308,6 +314,31 @@ static int
 lfb_isatty(struct device *dev)
 {
     return 1;
+}
+
+static intptr_t
+lfb_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset)
+{
+    /* defined in sys/i686/kern/preinit.c */
+    extern multiboot_info_t *multiboot_header;
+
+    struct lfb_state *state = (struct lfb_state*)dev->state;
+
+    if (addr != 0) {
+        return -(EINVAL);
+    }
+
+    if (size != state->buffer_size) {
+        return -(EINVAL);
+    }
+
+    vbe_info_t *info = (vbe_info_t*)(KERNEL_VIRTUAL_BASE + multiboot_header->vbe_mode_info);
+
+    extern struct vm_space *sched_curr_address_space;
+
+    void *buf = vm_map_physical(sched_curr_address_space, NULL, info->physbase, state->buffer_size, prot);
+
+    return (intptr_t)buf;
 }
 
 static int

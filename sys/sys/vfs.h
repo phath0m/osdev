@@ -35,6 +35,7 @@ typedef int (*fs_ioctl_t)(struct vfs_node *node, uint64_t request, void *arg);
 typedef int (*fs_lookup_t)(struct vfs_node *parent, struct vfs_node **result, const char *name);
 typedef int (*fs_mkdir_t)(struct vfs_node *parent, const char *name, mode_t mode); 
 typedef int (*fs_mknod_t)(struct vfs_node *parent, const char *name, mode_t mode, dev_t dev);
+typedef int (*fs_mmap_t)(struct vfs_node *node, uintptr_t addr, size_t size, int prot, off_t offset);
 typedef int (*fs_readdirent_t)(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
 typedef int (*fs_read_t)(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 typedef int (*fs_rmdir_t)(struct vfs_node *node, const char *path);
@@ -66,6 +67,7 @@ struct file_ops {
     fs_rmdir_t              rmdir;
     fs_mkdir_t              mkdir;
     fs_mknod_t              mknod;
+    fs_mmap_t               mmap;
     fs_seek_t               seek;
     fs_stat_t               stat;
     fs_truncate_t           truncate;
@@ -133,6 +135,8 @@ int vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *na
 int fops_mkdir(struct proc *proc, const char *path, mode_t mode);
 
 int fops_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev);
+
+int fops_mmap(struct file *file, uintptr_t addr, size_t size, int prot, off_t offset);
 
 int fops_read(struct file *file, char *buf, size_t nbyte);
 

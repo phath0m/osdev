@@ -446,6 +446,19 @@ fops_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev)
 }
 
 int
+fops_mmap(struct file *file, uintptr_t addr, size_t size, int prot, off_t offset)
+{
+    struct vfs_node *node = file->node;
+    struct file_ops *ops = node->ops;
+
+    if (ops->mmap) {
+        return ops->mmap(node, addr, size, prot, offset);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
 fops_read(struct file *file, char *buf, size_t nbyte)
 {
     if (file->flags == O_WRONLY) {

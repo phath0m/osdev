@@ -14,6 +14,7 @@ static int devfs_destroy(struct vfs_node *node);
 static int devfs_ioctl(struct vfs_node *node, uint64_t mode, void *arg);
 
 static int devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name);
+static int devfs_mmap(struct vfs_node *node, uintptr_t addr, size_t size, int prot, off_t offset);
 static int devfs_mount(struct vfs_node *parent, struct device *dev, struct vfs_node **root);
 static int defops_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
 static int defops_readdirent(struct vfs_node *node, struct dirent *dirent, uint64_t entry);
@@ -25,6 +26,7 @@ struct file_ops devfs_file_ops = {
     .destroy    = devfs_destroy,
     .ioctl      = devfs_ioctl,
     .lookup     = devfs_lookup,
+    .mmap       = devfs_mmap,
     .read       = defops_read,
     .readdirent = defops_readdirent,
     .seek       = defops_seek,
@@ -89,6 +91,18 @@ devfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name
     iter_close(&iter);
 
     return res;
+}
+
+int
+devfs_mmap(struct vfs_node *node, uintptr_t addr, size_t size, int prot, off_t offset)
+{
+    struct device *dev = (struct device*)node->state;
+
+    if (dev && node->inode != 0) {
+        return device_mmap(dev, addr, size, prot, offset);
+    }
+
+    return -(ENOTSUP); 
 }
 
 static int
