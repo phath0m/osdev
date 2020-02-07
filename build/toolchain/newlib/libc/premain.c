@@ -21,12 +21,15 @@ default_exit_handler(int sig)
     exit(-1);
 }
 
+
 void
 _premain(int argc, const char **argv, int envc, const char **envp)
 {
     int i;
 
     extern char **environ;
+    extern void _init();
+    extern void _fini();
     
     environ = (char**)calloc(1, sizeof(char*) * 128);
 
@@ -39,7 +42,11 @@ _premain(int argc, const char **argv, int envc, const char **envp)
     signal(SIGSEGV, default_exit_handler);
     signal(SIGTERM, default_exit_handler);
 
+    _init();
+
     int ex = main(argc, argv, envc, envp);
+
+    _fini();
 
     exit(ex);
 }
