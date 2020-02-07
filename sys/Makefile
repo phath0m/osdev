@@ -1,47 +1,10 @@
-AS=nasm
-#CC=i686-pc-elysium-gcc
-#LD=i686-pc-elysium-gcc
-CC=i686-elysium-gcc
-LD=i686-elysium-gcc
-AFLAGS= -f elf32
-CFLAGS = -c -std=gnu99 --freestanding -g -Wall -Werror -nostartfiles -nodefaultlibs -DELYSIUM_TARGET="\"i686\"" -I ./
-LDFLAGS = -T i686/linker.ld --freestanding -O2 -nostdlib
+ARCH=i686
+MAKE=gmake
 
-# TODO: Make this conditional (for different arch)
-# i686 specific things....
-#
-CRTBEGIN_OBJECT := $(shell $(CC) $(CFLAGS) -print-file-name=crtbegin.o)
-CRTEND_OBJECT   := $(shell $(CC) $(CFLAGS) -print-file-name=crtend.o)
+include $(shell realpath "$(ARCH)/config.mk")
 
-KERNEL_OBJECTS += i686/rtl/crti.o
-KERNEL_OBJECTS += i686/rtl/crtbegin.o
+CFLAGS += -I "$(shell realpath ./)"
 
-KERNEL_OBJECTS += i686/rtl/malloc.o
-KERNEL_OBJECTS += i686/dev/serial_tty.o
-KERNEL_OBJECTS += i686/dev/lfb.o
-KERNEL_OBJECTS += i686/dev/ps2_keyboard.o
-KERNEL_OBJECTS += i686/dev/mouse.o
-KERNEL_OBJECTS += i686/dev/vga_textscreen.o
-KERNEL_OBJECTS += i686/kern/context_switch.o
-KERNEL_OBJECTS += i686/kern/preinit.o
-KERNEL_OBJECTS += i686/kern/boot.o
-KERNEL_OBJECTS += i686/kern/gdt.o
-KERNEL_OBJECTS += i686/kern/halt.o
-KERNEL_OBJECTS += i686/kern/interrupt.o
-KERNEL_OBJECTS += i686/kern/interrupt_dispatch.o
-KERNEL_OBJECTS += i686/kern/interrupt_handler.o
-KERNEL_OBJECTS += i686/kern/exec.o
-KERNEL_OBJECTS += i686/kern/fork.o
-KERNEL_OBJECTS += i686/kern/sched.o
-KERNEL_OBJECTS += i686/kern/signal.o
-KERNEL_OBJECTS += i686/kern/stacktrace.o
-KERNEL_OBJECTS += i686/kern/syscall_dispatch.o
-KERNEL_OBJECTS += i686/kern/time.o
-KERNEL_OBJECTS += i686/kern/traps.o
-KERNEL_OBJECTS += i686/kern/usermode.o
-KERNEL_OBJECTS += i686/kern/vm.o
-
-# non i686 things here
 KERNEL_OBJECTS += dev/pseudo_device.o
 
 KERNEL_OBJECTS += fs/devfs.o
@@ -85,22 +48,22 @@ KERNEL_OBJECTS += libk/printf.o
 KERNEL_OBJECTS += libk/string.o
 KERNEL_OBJECTS += libk/membuf.o
 
-# end CRT
-KERNEL_OBJECTS += i686/rtl/crtend.o
-KERNEL_OBJECTS += i686/rtl/crtn.o
+KERNEL_OBJECT = $(shell realpath kernel.o)
 
+KERNEL_ARCH = $(ARCH)/kernel.$(ARCH).bin
 KERNEL = kernel.bin
 
-all: $(KERNEL)
+export KERNEL_OBJECT
 
-$(KERNEL): $(KERNEL_OBJECTS)
-	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
-i686/rtl/crtbegin.o i686/rtl/crtend.o:
-	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
+all: $(KERNEL)
+$(KERNEL): $(KERNEL_OBJECT)
+	$(MAKE) -C $(ARCH)
+	mv $(KERNEL_ARCH) $(KERNEL)
+$(KERNEL_OBJECT): $(KERNEL_OBJECTS)
+	$(LD) -r -o $@ $^
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
-%.o: %.asm
-	$(AS) $(AFLAGS) $^ -o $@
 
 clean:
-	rm -f $(KERNEL_OBJECTS)
+	rm -f $(KERNEL) $(KERNEL_OBJECT) $(KERNEL_OBJECTS)
+	$(MAKE) -C $(ARCH) clean
