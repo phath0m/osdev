@@ -24,6 +24,7 @@ KERNEL_OBJECTS += kern/net.o
 KERNEL_OBJECTS += kern/net_syscalls.o
 KERNEL_OBJECTS += kern/panic.o
 KERNEL_OBJECTS += kern/pipe.o
+KERNEL_OBJECTS += kern/printf.o
 KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
 KERNEL_OBJECTS += kern/pty.o
@@ -44,7 +45,6 @@ KERNEL_OBJECTS += libk/dict.o
 KERNEL_OBJECTS += libk/fifo.o
 KERNEL_OBJECTS += libk/list.o
 KERNEL_OBJECTS += libk/mutex.o
-KERNEL_OBJECTS += libk/printf.o
 KERNEL_OBJECTS += libk/string.o
 KERNEL_OBJECTS += libk/membuf.o
 

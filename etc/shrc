@@ -1,0 +1,2 @@
+setenv PATH "/bin:/sbin:/usr/bin:/usr/sbin:/usr/games"
+setenv PS1 "\e[34m\u\e[0m \w \$ "

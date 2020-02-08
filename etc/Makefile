@@ -2,6 +2,7 @@ SUBDIRS = doit.d
 FILES += motd
 FILES += passwd
 FILES += shadow
+FILES += shrc
 
 install: $(SUBDIRS) $(FILES)
 	mkdir -p $(DESTDIR)$(PREFIX)/etc
