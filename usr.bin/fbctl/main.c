@@ -71,7 +71,7 @@ open_tga_image(const char *image_path)
 
     fread(&header, 1, sizeof(header), fp);
 
-    if (header.width != 600 || header.height != 800) {
+    if (header.width != 800 || header.height != 600) {
         return NULL;
     }
 
