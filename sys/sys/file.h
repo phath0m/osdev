@@ -7,7 +7,7 @@ struct file {
     struct vnode *      node;
     int                 flags;
     int                 refs;
-    uint64_t            position;
+    off_t               position;
 };
 
 struct file *file_new(struct vnode *node);

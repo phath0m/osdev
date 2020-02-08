@@ -571,7 +571,7 @@ vops_stat(struct file *file, struct stat *stat)
     return -(ENOTSUP);
 }
 
-uint64_t
+off_t
 vops_tell(struct file *file)
 {
     return file->position;

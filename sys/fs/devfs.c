@@ -16,22 +16,22 @@ static int devfs_ioctl(struct vnode *node, uint64_t mode, void *arg);
 static int devn_lookup(struct vnode *parent, struct vnode **result, const char *name);
 static int devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset);
 static int devfs_mount(struct vnode *parent, struct device *dev, struct vnode **root);
-static int devops_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
-static int devops_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry);
-static int devops_seek(struct vnode *node, uint64_t *cur_pos, off_t off, int whence);
-static int devops_stat(struct vnode *node, struct stat *stat);
-static int devops_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
+static int devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
+static int devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry);
+static int devfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence);
+static int devfs_stat(struct vnode *node, struct stat *stat);
+static int devfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct vops devfs_file_ops = {
     .destroy    = devfs_destroy,
     .ioctl      = devfs_ioctl,
     .lookup     = devn_lookup,
     .mmap       = devfs_mmap,
-    .read       = devops_read,
-    .readdirent = devops_readdirent,
-    .seek       = devops_seek,
-    .stat       = devops_stat,
-    .write      = devops_write
+    .read       = devfs_read,
+    .readdirent = devfs_readdirent,
+    .seek       = devfs_seek,
+    .stat       = devfs_stat,
+    .write      = devfs_write
 };
 
 struct fs_ops devfs_ops = {
@@ -121,7 +121,7 @@ devfs_mount(struct vnode *parent, struct device *dev, struct vnode **root)
 }
 
 static int
-devops_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
+devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
 
     struct device *dev = (struct device*)node->state;
@@ -134,7 +134,7 @@ devops_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-devops_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
+devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 {
     list_iter_t iter;
 
@@ -159,7 +159,7 @@ devops_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 }
 
 static int
-devops_seek(struct vnode *node, uint64_t *cur_pos, off_t off, int whence)
+devfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 {
     if (whence == SEEK_SET) {
         *cur_pos = off;
@@ -170,7 +170,7 @@ devops_seek(struct vnode *node, uint64_t *cur_pos, off_t off, int whence)
 }
 
 static int
-devops_stat(struct vnode *node, struct stat *stat)
+devfs_stat(struct vnode *node, struct stat *stat)
 {
     if (node->inode == 0) {
         stat->st_mode = 0755 | S_IFDIR;
@@ -189,7 +189,7 @@ devops_stat(struct vnode *node, struct stat *stat)
 }
 
 static int
-devops_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
+devfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 {
     struct device *dev = (struct device*)node->state;
 

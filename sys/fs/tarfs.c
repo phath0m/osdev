@@ -22,7 +22,7 @@ static int ramfs_mount(struct vnode *parent, struct device *dev, struct vnode **
 static struct ramfs_node *ramfs_node_new();
 static int ramfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
 static int ramfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry);
-static int ramfs_seek(struct vnode *node, uint64_t *pos, off_t off, int whence);
+static int ramfs_seek(struct vnode *node, off_t *pos, off_t off, int whence);
 static int ramfs_stat(struct vnode *node, struct stat *stat);
 
 struct vops ramfs_file_ops = {
@@ -272,7 +272,7 @@ ramfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 }
 
 static int
-ramfs_seek(struct vnode *node, uint64_t *cur_pos, off_t off, int whence)
+ramfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 {
     struct ramfs_node *file = (struct ramfs_node*)node->state;
 

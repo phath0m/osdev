@@ -37,7 +37,7 @@ typedef int (*vn_mmap_t)(struct vnode *node, uintptr_t addr, size_t size, int pr
 typedef int (*vn_readdirent_t)(struct vnode *node, struct dirent *dirent, uint64_t entry);
 typedef int (*vn_read_t)(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
 typedef int (*vn_rmdir_t)(struct vnode *node, const char *path);
-typedef int (*vn_seek_t)(struct vnode *node, uint64_t *pos, off_t off, int whence);
+typedef int (*vn_seek_t)(struct vnode *node, off_t *pos, off_t off, int whence);
 typedef int (*vn_stat_t)(struct vnode *node, struct stat *stat);
 typedef int (*vn_truncate_t)(struct vnode *node, off_t length);
 typedef int (*vn_unlink_t)(struct vnode *parent, const char *name);
@@ -139,7 +139,7 @@ int vops_seek(struct file *file, off_t off, int whence);
 
 int vops_stat(struct file *file, struct stat *stat);
 
-uint64_t vops_tell(struct file *file);
+off_t vops_tell(struct file *file);
 
 int vops_truncate(struct proc *proc, const char *path, off_t length);
 

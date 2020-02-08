@@ -31,7 +31,7 @@ static int tmpfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t 
 static int tmpfs_rmdir(struct vnode *parent, const char *dirname); 
 static int tmpfs_mkdir(struct vnode *parent, const char *name, mode_t mode);
 static int tmpfs_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev);
-static int tmpfs_seek(struct vnode *node, uint64_t *pos, off_t off, int whence);
+static int tmpfs_seek(struct vnode *node, off_t *pos, off_t off, int whence);
 static int tmpfs_stat(struct vnode *node, struct stat *stat);
 static int tmpfs_truncate(struct vnode *node, off_t length);
 static int tmpfs_unlink(struct vnode *parent, const char *dirname);
@@ -259,7 +259,7 @@ tmpfs_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev)
 }
 
 static int
-tmpfs_seek(struct vnode *node, uint64_t *cur_pos, off_t off, int whence)
+tmpfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 {
     struct tmpfs_node *file = (struct tmpfs_node*)node->state;
 
