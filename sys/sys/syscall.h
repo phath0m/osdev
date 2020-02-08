@@ -70,6 +70,7 @@
 #define SYS_BIND        0x40
 #define SYS_MMAP        0x41
 #define SYS_MUNMAP      0x42
+#define SYS_UTIMES      0x43
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

@@ -4,6 +4,7 @@
 #include <ds/dict.h>
 #include <sys/dirent.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/device.h>
 #include <sys/limits.h>
@@ -41,6 +42,7 @@ typedef int (*vn_seek_t)(struct vnode *node, off_t *pos, off_t off, int whence);
 typedef int (*vn_stat_t)(struct vnode *node, struct stat *stat);
 typedef int (*vn_truncate_t)(struct vnode *node, off_t length);
 typedef int (*vn_unlink_t)(struct vnode *parent, const char *name);
+typedef int (*vn_utimes_t)(struct vnode *node, struct timeval times[2]);
 typedef int (*vn_write_t)(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct vops {
@@ -62,6 +64,7 @@ struct vops {
     vn_stat_t                stat;
     vn_truncate_t            truncate;
     vn_unlink_t              unlink;
+    vn_utimes_t              utimes;
     vn_write_t               write;
 };
 
@@ -144,6 +147,8 @@ off_t vops_tell(struct file *file);
 int vops_truncate(struct proc *proc, const char *path, off_t length);
 
 int vops_unlink(struct proc *proc, const char *path);
+
+int vops_utimes(struct proc *proc, const char *path, struct timeval times[2]);
 
 int vops_write(struct file *file, const char *buf, size_t nbyte);
 

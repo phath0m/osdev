@@ -35,6 +35,7 @@ static int tmpfs_seek(struct vnode *node, off_t *pos, off_t off, int whence);
 static int tmpfs_stat(struct vnode *node, struct stat *stat);
 static int tmpfs_truncate(struct vnode *node, off_t length);
 static int tmpfs_unlink(struct vnode *parent, const char *dirname);
+static int tmpfs_utime(struct vnode *node, struct timeval tv[2]);
 static int tmpfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
 
 struct vops tmpfs_file_ops = {
@@ -51,6 +52,7 @@ struct vops tmpfs_file_ops = {
     .stat       = tmpfs_stat,
     .truncate   = tmpfs_truncate,
     .unlink     = tmpfs_unlink,
+    .utimes     = tmpfs_utime,
     .write      = tmpfs_write
 };
 
@@ -64,7 +66,8 @@ struct tmpfs_node {
     uid_t               uid;
     gid_t               gid;
     uint16_t            mode;
-    uint64_t            mtime;
+    time_t              atime;
+    time_t              mtime;
 };
 
 static struct tmpfs_node *
@@ -336,6 +339,17 @@ tmpfs_unlink(struct vnode *parent, const char *dirname)
     dict_clear(&result->children);
     membuf_destroy(result->content);
     free(result);
+
+    return 0;
+}
+
+static int
+tmpfs_utime(struct vnode *node, struct timeval tv[2])
+{
+    struct tmpfs_node *file = (struct tmpfs_node*)node->state;
+
+    file->atime = tv[0].tv_sec;
+    file->mtime = tv[1].tv_sec;
 
     return 0;
 }

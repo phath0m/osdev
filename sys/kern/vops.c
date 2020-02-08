@@ -653,6 +653,36 @@ vops_unlink(struct proc *proc, const char *path)
 }
 
 int
+vops_utimes(struct proc *proc, const char *path, struct timeval times[2])
+{
+    struct vnode *root = proc->root;
+    struct vnode *cwd = proc->cwd;
+
+    struct vnode *child = NULL;
+
+    if (vn_open(root, cwd, &child, path) != 0) {
+        return -(ENOENT);
+    }
+    
+    if (child->mount_flags & MS_RDONLY) {
+        return -(EROFS);
+    }
+
+    if (!can_write(child, &proc->creds)) {
+        return -(EACCES);
+    }
+
+    struct vops *ops = child->ops;
+
+    if (ops && ops->utimes) {
+        return ops->utimes(child, times);
+    }
+
+    return -(ENOTSUP);
+
+}
+
+int
 vops_write(struct file *file, const char *buf, size_t nbyte)
 {
     if (file->flags == O_RDONLY) {

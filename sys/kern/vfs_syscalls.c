@@ -361,6 +361,15 @@ sys_unlink(syscall_args_t argv)
 }
 
 static int
+sys_utimes(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(struct timeval *, tv, 1, argv);
+
+    return vops_utimes(current_proc, path, tv);
+}
+
+static int
 sys_write(syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
@@ -406,4 +415,5 @@ _init_vfs_syscalls()
     register_syscall(SYS_FTRUNCATE, 2, sys_ftruncate);
     register_syscall(SYS_ACCESS, 2, sys_access);
     register_syscall(SYS_MKNOD, 3, sys_mknod);
+    register_syscall(SYS_UTIMES, 2, sys_utimes);
 }
