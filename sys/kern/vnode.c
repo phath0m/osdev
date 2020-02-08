@@ -6,31 +6,25 @@
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/string.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 
 int vfs_node_count = 0;
 
 static void
 free_vfs_node_child(void *p)
 {
-    DEC_NODE_REF((struct vfs_node*)p);
+    DEC_NODE_REF((struct vnode*)p);
 }
 
 void
-vfs_node_destroy(struct vfs_node *node)
+vn_destroy(struct vnode *node)
 {
-    struct file_ops *ops = node->ops;
+    struct vops *ops = node->ops;
 
     if (ops && ops->destroy) {
         ops->destroy(node);
     }    
 
-    /*
-     * Note: this should actually attempt to free each item in children
-     * That being said, this will not get called as the reference counting
-     * is sort of broken atm
-     */
-    //dict_clear(&node->children);
     dict_clear_f(&node->children, free_vfs_node_child);
     
     vfs_node_count--;
@@ -38,10 +32,10 @@ vfs_node_destroy(struct vfs_node *node)
     free(node);
 }
 
-struct vfs_node *
-vfs_node_new(struct vfs_node *parent, struct device *dev, struct file_ops *ops)
+struct vnode *
+vn_new(struct vnode *parent, struct device *dev, struct vops *ops)
 {
-    struct vfs_node *node = (struct vfs_node*)calloc(0, sizeof(struct vfs_node));
+    struct vnode *node = (struct vnode*)calloc(0, sizeof(struct vnode));
     
     if (parent) {
         INC_NODE_REF(parent);
@@ -56,7 +50,7 @@ vfs_node_new(struct vfs_node *parent, struct device *dev, struct file_ops *ops)
 }
 
 int
-vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **result, const char *path)
+vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char *path)
 {
     if (*path == 0) {
         return -(ENOENT);
@@ -65,8 +59,8 @@ vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **resu
     char dir[PATH_MAX];
     char *nextdir = NULL;
 
-    struct vfs_node *parent = root;
-    struct vfs_node *child = NULL;
+    struct vnode *parent = root;
+    struct vnode *child = NULL;
 
     if (cwd && *path != '/') {
         parent = cwd;
@@ -89,7 +83,7 @@ vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **resu
             strcpy(dir, path);
         }
 
-        int res = vfs_lookup(parent, &child, dir);
+        int res = vn_lookup(parent, &child, dir);
 
         if (res != 0) {
             return res;
@@ -109,9 +103,9 @@ vfs_get_node(struct vfs_node *root, struct vfs_node *cwd, struct vfs_node **resu
 }
 
 int
-vfs_lookup(struct vfs_node *parent, struct vfs_node **result, const char *name)
+vn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 {
-    struct vfs_node *node = NULL;
+    struct vnode *node = NULL;
 
     int res = ENOENT;
 

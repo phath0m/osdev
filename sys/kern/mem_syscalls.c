@@ -28,7 +28,7 @@ sys_mmap(syscall_args_t argv)
         return -(EBADF);
     }
 
-    return fops_mmap(file, args->addr, args->length, args->prot, args->offset);
+    return vops_mmap(file, args->addr, args->length, args->prot, args->offset);
 }
 
 static int

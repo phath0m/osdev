@@ -1,18 +1,21 @@
+/*
+ * fifo.c - named pipe implementation
+ */
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/malloc.h>
 #include <sys/systm.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 
+static int fifo_close(struct vnode *node, struct file *fp);
+static int fifo_destroy(struct vnode *node);
+static int fifo_duplicate(struct vnode *node, struct file *newfile);
+static int fifo_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
+static int fifo_stat(struct vnode *node, struct stat *stat);
+static int fifo_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
 
-static int fifo_close(struct vfs_node *node, struct file *fp);
-static int fifo_destroy(struct vfs_node *node);
-static int fifo_duplicate(struct vfs_node *node, struct file *newfile);
-static int fifo_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
-static int fifo_stat(struct vfs_node *node, struct stat *stat);
-static int fifo_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
-
-struct file_ops fifo_ops = {
+struct vops fifo_ops = {
     .close      = fifo_close,
     .destroy    = fifo_destroy,
     .duplicate  = fifo_duplicate,
@@ -23,19 +26,19 @@ struct file_ops fifo_ops = {
 
 struct fifo {
     struct file *       pipe[2];
-    struct vfs_node *   host;
+    struct vnode *   host;
     int                 write_refs;
     int                 read_refs;
 };
 
-static struct vfs_node *
-fifo_open_write(struct vfs_node *parent)
+static struct vnode *
+fifo_open_write(struct vnode *parent)
 {
     while (LIST_SIZE(&parent->un.fifo_readers) == 0) {
         thread_yield();
     }
 
-    struct vfs_node *reader = list_peek_back(&parent->un.fifo_readers);
+    struct vnode *reader = list_peek_back(&parent->un.fifo_readers);
 
     struct fifo *fifo = (struct fifo*)reader->state;
 
@@ -44,8 +47,8 @@ fifo_open_write(struct vfs_node *parent)
     return reader;
 }
 
-static struct vfs_node *
-fifo_open_read(struct vfs_node *parent)
+static struct vnode *
+fifo_open_read(struct vnode *parent)
 {
     struct fifo *fifo = calloc(1, sizeof(struct fifo));
 
@@ -54,7 +57,7 @@ fifo_open_read(struct vfs_node *parent)
 
     create_pipe(fifo->pipe);
 
-    struct vfs_node *node = vfs_node_new(NULL, NULL, &fifo_ops);
+    struct vnode *node = vn_new(NULL, NULL, &fifo_ops);
 
     node->state = fifo;
 
@@ -63,8 +66,8 @@ fifo_open_read(struct vfs_node *parent)
     return node;
 }
 
-struct vfs_node *
-fifo_open(struct vfs_node *parent, mode_t mode)
+struct vnode *
+fifo_open(struct vnode *parent, mode_t mode)
 {
     if ((mode & O_WRONLY)) {
         return fifo_open_write(parent);
@@ -74,10 +77,10 @@ fifo_open(struct vfs_node *parent, mode_t mode)
 }
 
 static int
-fifo_close(struct vfs_node *node, struct file *fp)
+fifo_close(struct vnode *node, struct file *fp)
 {
     struct fifo *fifo = (struct fifo*)node->state;
-    struct vfs_node *host = fifo->host;
+    struct vnode *host = fifo->host;
 
     if ((fp->flags & O_WRONLY)) {
         fifo->write_refs--; 
@@ -86,12 +89,12 @@ fifo_close(struct vfs_node *node, struct file *fp)
     }
 
     if (fifo->write_refs == 0) {
-        fops_close(fifo->pipe[1]);
+        vops_close(fifo->pipe[1]);
         fifo->write_refs--;
     }
 
     if (fifo->read_refs == 0) {
-        fops_close(fifo->pipe[0]);
+        vops_close(fifo->pipe[0]);
         list_remove(&host->un.fifo_readers, node);
         fifo->read_refs--;
     }
@@ -100,13 +103,13 @@ fifo_close(struct vfs_node *node, struct file *fp)
 }
 
 static int
-fifo_destroy(struct vfs_node *node)
+fifo_destroy(struct vnode *node)
 {
     return 0;
 }
 
 static int
-fifo_duplicate(struct vfs_node *node, struct file *newfile)
+fifo_duplicate(struct vnode *node, struct file *newfile)
 {
     struct fifo *fifo = (struct fifo*)node->state;
 
@@ -120,19 +123,19 @@ fifo_duplicate(struct vfs_node *node, struct file *newfile)
 }
 
 static int
-fifo_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
+fifo_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
     struct fifo *fifo = (struct fifo*)node->state;
 
-    return fops_read(fifo->pipe[0], buf, nbyte);
+    return vops_read(fifo->pipe[0], buf, nbyte);
 }
 
 static int
-fifo_stat(struct vfs_node *node, struct stat *stat)
+fifo_stat(struct vnode *node, struct stat *stat)
 {
     struct fifo *fifo = (struct fifo*)node->state;
-    struct vfs_node *host = fifo->host;
-    struct file_ops *ops = host->ops;
+    struct vnode *host = fifo->host;
+    struct vops *ops = host->ops;
 
     if (ops->stat) {
         return ops->stat(host, stat);
@@ -142,9 +145,9 @@ fifo_stat(struct vfs_node *node, struct stat *stat)
 }
 
 static int
-fifo_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
+fifo_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 {
     struct fifo *fifo = (struct fifo*)node->state;
 
-    return fops_write(fifo->pipe[1], buf, nbyte);
+    return vops_write(fifo->pipe[1], buf, nbyte);
 }

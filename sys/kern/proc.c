@@ -1,13 +1,14 @@
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
+#include <sys/file.h>
 #include <sys/wait.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/time.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 #include <sys/vm.h>
 
 static int next_pid;
@@ -56,7 +57,7 @@ proc_destroy(struct proc *proc)
         struct file *fp = proc->files[i];
 
         if (fp) {
-            fops_close(fp);
+            vops_close(fp);
         }
     }
 
@@ -108,7 +109,7 @@ proc_getbypid(int pid)
     return ret;
 }
 static int
-getcwd_r(struct vfs_node *child, struct vfs_node *parent, char **components, int depth)
+getcwd_r(struct vnode *child, struct vnode *parent, char **components, int depth)
 {
     if (child == NULL) {
         return depth;
@@ -123,7 +124,7 @@ getcwd_r(struct vfs_node *child, struct vfs_node *parent, char **components, int
     char *key;
     
     while (iter_move_next(&iter, (void**)&key)) {
-        struct vfs_node *node;
+        struct vnode *node;
  
         dict_get(&child->children, key, (void**)&node);  
 
@@ -201,7 +202,7 @@ proc_dup2(int oldfd, int newfd)
     struct file *existing_fp = current_proc->files[newfd];
 
     if (existing_fp) {
-        fops_close(existing_fp);   
+        vops_close(existing_fp);   
     }
 
     struct file *fp = current_proc->files[oldfd];

@@ -49,8 +49,8 @@ struct proc {
     struct file *       files[4096];
     struct proc *       parent;
     struct thread *     thread;
-    struct vfs_node *   cwd;
-    struct vfs_node *   root;
+    struct vnode *      cwd;
+    struct vnode *      root;
     struct vm_space *   address_space;
     struct wait_queue   waiters;
     struct pgrp *       group;

@@ -2,7 +2,7 @@
 #define SYS_KERNEL_H
 
 #include <stdarg.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 #include <sys/device.h>
 
 #define ELYSIUM_SYSNAME     "Elysium"

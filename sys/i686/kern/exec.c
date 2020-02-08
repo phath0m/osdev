@@ -1,11 +1,12 @@
 #include <ds/list.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/types.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 #include <sys/vm.h>
 #include <sys/i686/elf32.h>
 
@@ -146,23 +147,23 @@ proc_execve(const char *path, const char **argv, const char **envp)
     extern struct thread *sched_curr_thread;
 
     struct vm_space *space = sched_curr_thread->address_space;
-    struct vfs_node *root = proc->root;
+    struct vnode *root = proc->root;
 
     struct file *exe;
 
-    if (fops_open(proc, &exe, path, O_RDONLY) != 0) {
+    if (vops_open(proc, &exe, path, O_RDONLY) != 0) {
         return -(ENOENT);
     }
 
-    fops_seek(exe, 0, SEEK_END);
+    vops_seek(exe, 0, SEEK_END);
 
-    size_t size = fops_tell(exe);
+    size_t size = vops_tell(exe);
 
-    fops_seek(exe, 0, SEEK_SET);
+    vops_seek(exe, 0, SEEK_SET);
 
     struct elf32_ehdr *elf = (struct elf32_ehdr*)malloc(size);
 
-    fops_read(exe, (char*)elf, size);
+    vops_read(exe, (char*)elf, size);
 
     int argc;
     int envc;
@@ -180,7 +181,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
     elf_load_image(space, elf, &prog_low, &prog_high);
     elf_zero_sections(space, elf);
 
-    fops_close(exe);
+    vops_close(exe);
 
     proc->base = prog_low;
     proc->brk = prog_high;
@@ -231,7 +232,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
         if (fp && (fp->flags & O_CLOEXEC)) {
             proc->files[i] = NULL;
-            fops_close(fp);
+            vops_close(fp);
         }
     }
 

@@ -1,10 +1,11 @@
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/types.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 #include <sys/wait.h>
 
 struct pipe {
@@ -24,13 +25,13 @@ struct pipe {
     int                 write_refs;
 };
 
-static int pipe_close(struct vfs_node *node, struct file *fp);
-static int pipe_destroy(struct vfs_node *node);
-static int pipe_duplicate(struct vfs_node *node, struct file *newfile);
-static int pipe_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos);
-static int pipe_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos);
+static int pipe_close(struct vnode *node, struct file *fp);
+static int pipe_destroy(struct vnode *node);
+static int pipe_duplicate(struct vnode *node, struct file *newfile);
+static int pipe_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
+static int pipe_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
 
-struct file_ops pipe_ops = {
+struct vops pipe_ops = {
     .close      = pipe_close,
     .destroy    = pipe_destroy,
     .duplicate  = pipe_duplicate,
@@ -53,7 +54,7 @@ pipe_new()
 void
 create_pipe(struct file **pipes)
 {
-    struct vfs_node *node = vfs_node_new(NULL, NULL, &pipe_ops);
+    struct vnode *node = vn_new(NULL, NULL, &pipe_ops);
     struct file *read_end = file_new(node);
     struct file *write_end = file_new(node);
    
@@ -67,7 +68,7 @@ create_pipe(struct file **pipes)
 }
 
 static int
-pipe_close(struct vfs_node *node, struct file *file)
+pipe_close(struct vnode *node, struct file *file)
 {
     struct pipe *pipe = (struct pipe*)node->state;
 
@@ -88,7 +89,7 @@ pipe_close(struct vfs_node *node, struct file *file)
 }
 
 static int
-pipe_destroy(struct vfs_node *node)
+pipe_destroy(struct vnode *node)
 {
     struct pipe *pipe = (struct pipe*)node->state;
 
@@ -99,7 +100,7 @@ pipe_destroy(struct vfs_node *node)
 }
 
 static int
-pipe_duplicate(struct vfs_node *node, struct file *newfile)
+pipe_duplicate(struct vnode *node, struct file *newfile)
 {
     struct pipe *pipe = (struct pipe*)node->state;
 
@@ -113,7 +114,7 @@ pipe_duplicate(struct vfs_node *node, struct file *newfile)
 }
 
 static int
-pipe_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
+pipe_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
     struct pipe *pipe = (struct pipe*)node->state;
 
@@ -152,7 +153,7 @@ pipe_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
 
 
 static int
-pipe_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
+pipe_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 {
     struct pipe *pipe = (struct pipe*)node->state;
 

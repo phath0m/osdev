@@ -2,7 +2,7 @@
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 
 #define TAR_REG     '0'
 #define TAR_SYMLINK '2'
@@ -32,22 +32,22 @@ discard_trailing_slash(char *path)
 }
 
 static void
-extract_file(struct vfs_node *root, const char *name, void *data, size_t size, mode_t mode)
+extract_file(struct vnode *root, const char *name, void *data, size_t size, mode_t mode)
 {
     struct file *fp;
 
-    if (fops_creat(current_proc, &fp, name, mode) != 0) {
+    if (vops_creat(current_proc, &fp, name, mode) != 0) {
         printf("error: extracting %s\n", name);
         return;
     }
 
-    fops_write(fp, data, size);
+    vops_write(fp, data, size);
 
-    fops_close(fp);
+    vops_close(fp);
 }
 
 void
-tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive)
+tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive)
 {
     printf("extracting files for initial ramdisk...\n");
 
@@ -86,7 +86,7 @@ tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *arc
                     extract_file(root, name, data, size, mode);
                     break;
                 case TAR_DIR:
-                    fops_mkdir(current_proc, name, mode);
+                    vops_mkdir(current_proc, name, mode);
                     break;
             }
         }

@@ -7,7 +7,7 @@
 #include <sys/string.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 // remove me
 #include <sys/systm.h>
 
@@ -40,7 +40,7 @@ struct un_conn {
     struct proc *       client;
     struct file *       tx_pipe[2];
     struct file *       rx_pipe[2];
-    struct vfs_node *   host;
+    struct vnode *   host;
 };
 
 static int
@@ -57,7 +57,7 @@ un_accept(struct socket *socket, struct socket **result, void *address, size_t *
         return -(EINVAL );
     }
 
-    struct vfs_node *host = server_state->host;
+    struct vnode *host = server_state->host;
 
     while (LIST_SIZE(&host->un.un_connections) == 0) {
         thread_yield();
@@ -90,13 +90,13 @@ un_bind(struct socket *socket, void *address, size_t address_len)
 
     socket->state = state;
 
-    int res = fops_mknod(current_proc, addr_un->sun_path, 0777 | S_IFSOCK, 0);
+    int res = vops_mknod(current_proc, addr_un->sun_path, 0777 | S_IFSOCK, 0);
     
     if (res != 0) {
         return res;
     }
 
-    if (vfs_get_node(current_proc->root, current_proc->cwd, &state->host, addr_un->sun_path)) {
+    if (vn_open(current_proc->root, current_proc->cwd, &state->host, addr_un->sun_path)) {
         panic("this shouldn't have happened. get help please");
     }
 
@@ -111,8 +111,8 @@ un_close(struct socket *sock)
     struct un_conn *conn = (struct un_conn*)sock->state;
 
     if (conn->tx_pipe[1]) {
-        fops_close(conn->tx_pipe[1]);
-        fops_close(conn->rx_pipe[0]);
+        vops_close(conn->tx_pipe[1]);
+        vops_close(conn->rx_pipe[0]);
     }
 
     if (conn->host) {
@@ -128,9 +128,9 @@ static int
 un_connect(struct socket *socket, void *address, size_t address_len)
 {
     struct sockaddr_un *addr_un = (struct sockaddr_un*)address;
-    struct vfs_node *host;
+    struct vnode *host;
 
-    if (vfs_get_node(current_proc->root, current_proc->cwd, &host, addr_un->sun_path) != 0) {
+    if (vn_open(current_proc->root, current_proc->cwd, &host, addr_un->sun_path) != 0) {
         return -1;
     }
 
@@ -159,7 +159,7 @@ un_recv(struct socket *sock, void *buf, size_t size)
 {
     struct un_conn *conn = (struct un_conn*)sock->state;
 
-    return fops_read(conn->rx_pipe[0], buf, size);
+    return vops_read(conn->rx_pipe[0], buf, size);
 }
 
 static size_t
@@ -167,7 +167,7 @@ un_send(struct socket *sock, const void *buf, size_t size)
 {
     struct un_conn *conn = (struct un_conn*)sock->state;
 
-    return fops_write(conn->tx_pipe[1], buf, size);
+    return vops_write(conn->tx_pipe[1], buf, size);
 }
 
 __attribute__((constructor))

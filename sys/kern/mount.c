@@ -2,11 +2,12 @@
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/string.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 
 struct list fs_list;
 
@@ -33,12 +34,12 @@ getfsbyname(const char *name)
 }
 
 int
-fs_open(struct device *dev, struct vfs_node **root, const char *fsname, int flags)
+fs_open(struct device *dev, struct vnode **root, const char *fsname, int flags)
 {
     struct filesystem *fs = getfsbyname(fsname);
 
     if (fs) {
-        struct vfs_node *node = NULL;
+        struct vnode *node = NULL;
 
         int result = fs->ops->mount(NULL, dev, &node);
 
@@ -65,14 +66,14 @@ fs_register(char *name, struct fs_ops *ops)
 }
 
 int
-fs_mount(struct vfs_node *root, struct device *dev, const char *fsname, const char *path, int flags)
+fs_mount(struct vnode *root, struct device *dev, const char *fsname, const char *path, int flags)
 {
-    struct vfs_node *mount;
+    struct vnode *mount;
     struct file *file;
 
     if (fs_open(dev, &mount, fsname, flags) == 0) {
-        if (fops_open(current_proc, &file, path, O_RDONLY) == 0) {
-            struct vfs_node *mount_point = file->node;
+        if (vops_open(current_proc, &file, path, O_RDONLY) == 0) {
+            struct vnode *mount_point = file->node;
             
             mount_point->ismount = true;
             mount_point->mount = mount;

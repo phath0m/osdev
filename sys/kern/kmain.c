@@ -4,7 +4,7 @@
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/vm.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 
 // remove
 #include <sys/i686/vm.h>
@@ -15,14 +15,14 @@ typedef void (*test_t)();
 int
 kmain()
 {
-    struct vfs_node *root;
+    struct vnode *root;
 
     if (fs_open(NULL, &root, "tmpfs", 0) != 0) {
         panic("could not mount tmpfs!");
     }
 
     extern void *start_initramfs;
-    extern void tar_extract_archive(struct vfs_node *root, struct vfs_node *cwd, const void *archive);
+    extern void tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive);
 
     root->mode = 0755;
     current_proc->cwd = root;

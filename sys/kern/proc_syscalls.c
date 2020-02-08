@@ -1,5 +1,6 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/signal.h>
@@ -7,7 +8,7 @@
 #include <sys/string.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 #include <sys/vm.h>
 
 static inline int
@@ -17,11 +18,11 @@ can_execute_file(const char *path)
 
     struct file *file;
 
-    if (fops_open(current_proc, &file, path, O_RDONLY) == 0) {
+    if (vops_open(current_proc, &file, path, O_RDONLY) == 0) {
 
-        fops_stat(file, &buf);
+        vops_stat(file, &buf);
 
-        fops_close(file);
+        vops_close(file);
         
         if ((buf.st_mode & S_IXUSR) && buf.st_uid == current_proc->creds.euid) {
             return 0;
@@ -50,7 +51,7 @@ sys_chdir(syscall_args_t args)
 
     struct file *file;
 
-    int res = fops_open_r(current_proc, &file, path, O_RDONLY);
+    int res = vops_open_r(current_proc, &file, path, O_RDONLY);
 
     if (res == 0) {
         if (current_proc->cwd) {
@@ -59,7 +60,7 @@ sys_chdir(syscall_args_t args)
 
         current_proc->cwd = file->node;
 
-        fops_close(file);
+        vops_close(file);
     }
 
     return res;
@@ -72,9 +73,9 @@ sys_chroot(syscall_args_t args)
 
     TRACE_SYSCALL("chroot", "%s", path);
 
-    struct vfs_node *root;
+    struct vnode *root;
     
-    int res = vfs_get_node(current_proc->root, current_proc->cwd, &root, path);
+    int res = vn_open(current_proc->root, current_proc->cwd, &root, path);
 
     if (res == 0) {
         current_proc->root = root;
@@ -100,13 +101,13 @@ sys_execve(syscall_args_t args)
         return exec_err;
     }
 
-    int status = fops_open(current_proc, &fd, file, O_RDONLY);
+    int status = vops_open(current_proc, &fd, file, O_RDONLY);
 
     if (status == 0) {
         char interpreter[512];
 
-        if (fops_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
-            fops_read(fd, interpreter, 512);
+        if (vops_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
+            vops_read(fd, interpreter, 512);
         
             for (int i = 0; i < 512; i++) {
                 if (interpreter[i] == '\n') {
@@ -124,7 +125,7 @@ sys_execve(syscall_args_t args)
             new_argv[0] = interpreter;
             new_argv[1] = (char*)file;
 
-            fops_close(fd);
+            vops_close(fd);
 
             exec_err = can_execute_file(file);
 
@@ -134,7 +135,7 @@ sys_execve(syscall_args_t args)
             return proc_execve(interpreter, (const char **)new_argv, envp);
 
         } else {
-            fops_close(fd);
+            vops_close(fd);
         }
     }
 

@@ -1,10 +1,11 @@
 #include <ds/list.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/malloc.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 
 static struct list protocol_list;
 
@@ -12,7 +13,7 @@ static struct list protocol_list;
  * Wrapper functions to connect socket API to underlying virtual system
  */
 static int
-sock_file_destroy(struct vfs_node *node)
+sock_file_destroy(struct vnode *node)
 {
     struct socket *sock = (struct socket*)node->state;
 
@@ -20,7 +21,7 @@ sock_file_destroy(struct vfs_node *node)
 }
 
 static int
-sock_file_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
+sock_file_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
     struct socket *sock = (struct socket*)node->state;
 
@@ -28,14 +29,14 @@ sock_file_read(struct vfs_node *node, void *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-sock_file_write(struct vfs_node *node, const void *buf, size_t nbyte, uint64_t pos)
+sock_file_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 {
     struct socket *sock = (struct socket*)node->state;
 
     return sock_send(sock, buf, nbyte);
 }
 
-struct file_ops sock_file_ops = {
+struct vops sock_file_ops = {
     .destroy    = sock_file_destroy,
     .read       = sock_file_read,
     .write      = sock_file_write,
@@ -195,7 +196,7 @@ sock_send(struct socket *sock, const void *buf, size_t nbyte)
 struct file *
 sock_to_file(struct socket *sock)
 {
-    struct vfs_node *node = vfs_node_new(NULL, NULL, &sock_file_ops);
+    struct vnode *node = vn_new(NULL, NULL, &sock_file_ops);
     
     node->state = sock;
 
@@ -209,7 +210,7 @@ sock_to_file(struct socket *sock)
 struct socket *
 file_to_sock(struct file *file)
 {
-    struct vfs_node *node = file->node;
+    struct vnode *node = file->node;
 
     struct socket *sock = (struct socket*)node->state;
 

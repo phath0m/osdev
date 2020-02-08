@@ -1,9 +1,10 @@
 #include <sys/device.h>
 #include <sys/errno.h>
+#include <sys/file.h>
 #include <sys/string.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include <sys/vfs.h>
+#include <sys/vnode.h>
 
 static int
 sys_isatty(syscall_args_t argv)
@@ -18,7 +19,7 @@ sys_isatty(syscall_args_t argv)
         return -(EBADF);
     }
 
-    struct vfs_node *node = file->node;
+    struct vnode *node = file->node;
 
     if (!node) {
         return -(ENOTTY);
@@ -51,7 +52,7 @@ sys_ttyname(syscall_args_t argv)
         return -(EBADF);
     }
 
-    struct vfs_node *node = file->node;
+    struct vnode *node = file->node;
 
     if (!node) {
         return -(ENOTTY);
@@ -92,7 +93,7 @@ sys_mkpty(syscall_args_t argv)
     int fd = proc_getfildes();
 
     if (fd < 0) {
-        fops_close(fp);
+        vops_close(fp);
         return -1;
     } else {
         current_proc->files[fd] = fp;
