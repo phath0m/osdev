@@ -30,7 +30,7 @@ $(INITRD):
 kernel: $(KERNEL)
 
 $(KERNEL):
-	make -C sys
+	PATH=$(PATH) make -C sys
 
 userland: 
 	mkdir -p $(BUILDROOT)/dev
