@@ -13,8 +13,8 @@
 #define SEEK_CUR    0x01
 #define SEEK_END    0x02
 
-#define INC_NODE_REF(p) __sync_fetch_and_add(&(p)->refs, 1)
-#define DEC_NODE_REF(p) if (__sync_fetch_and_sub(&(p)->refs, 1) == 1) vn_destroy(p);
+#define VN_INC_REF(p) __sync_fetch_and_add(&(p)->refs, 1)
+#define VN_DEC_REF(p) if (__sync_fetch_and_sub(&(p)->refs, 1) == 1) vn_destroy(p);
 #define INC_FILE_REF(p) __sync_fetch_and_add(&(p)->refs, 1)
 
 struct dirent;

@@ -78,7 +78,7 @@ fs_mount(struct vnode *root, struct device *dev, const char *fsname, const char 
             mount_point->ismount = true;
             mount_point->mount = mount;
 
-            INC_NODE_REF(mount);
+            VN_INC_REF(mount);
 
             return 0;
         }

@@ -105,8 +105,8 @@ proc_fork(struct regs *regs)
     new_proc->umask = proc->umask;
     new_proc->group = proc->group;
 
-    INC_NODE_REF(proc->root);
-    INC_NODE_REF(proc->cwd);
+    VN_INC_REF(proc->root);
+    VN_INC_REF(proc->cwd);
 
     list_append(&proc->children, new_proc);
 

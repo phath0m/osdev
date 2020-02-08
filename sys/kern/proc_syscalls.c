@@ -55,7 +55,7 @@ sys_chdir(syscall_args_t args)
 
     if (res == 0) {
         if (current_proc->cwd) {
-            DEC_NODE_REF(current_proc->cwd);
+            VN_DEC_REF(current_proc->cwd);
         }
 
         current_proc->cwd = file->node;

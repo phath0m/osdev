@@ -76,7 +76,7 @@ file_new(struct vnode *node)
 {
     struct file *file = (struct file*)calloc(0, sizeof(struct file));
 
-    INC_NODE_REF(node);
+    VN_INC_REF(node);
 
     file->node = node;
     file->refs = 1;
@@ -122,7 +122,7 @@ vops_close(struct file *file)
         return 0;
     }
 
-    DEC_NODE_REF(file->node);
+    VN_DEC_REF(file->node);
 
     struct vops *ops = file->node->ops;
     
@@ -149,7 +149,7 @@ vfs_duplicate_file(struct file *file)
 
     new_file->refs = 1;
 
-    INC_NODE_REF(new_file->node);
+    VN_INC_REF(new_file->node);
 
     vfs_file_count++;
 
@@ -536,7 +536,7 @@ vops_rmdir(struct proc *proc, const char *path)
 
         if (res == 0 && dict_get(&parent->children, dirname, (void**)&child)) {
             dict_remove(&parent->children, dirname);
-            DEC_NODE_REF(child);
+            VN_DEC_REF(child);
         }
 
         return res;
@@ -643,7 +643,7 @@ vops_unlink(struct proc *proc, const char *path)
 
         if (res == 0 && dict_get(&parent->children, filename, (void**)&child)) {
             dict_remove(&parent->children, filename);
-            DEC_NODE_REF(child);
+            VN_DEC_REF(child);
         }
         
         return res;

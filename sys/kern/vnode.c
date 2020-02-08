@@ -13,7 +13,7 @@ int vfs_node_count = 0;
 static void
 free_vfs_node_child(void *p)
 {
-    DEC_NODE_REF((struct vnode*)p);
+    VN_DEC_REF((struct vnode*)p);
 }
 
 void
@@ -38,7 +38,7 @@ vn_new(struct vnode *parent, struct device *dev, struct vops *ops)
     struct vnode *node = (struct vnode*)calloc(0, sizeof(struct vnode));
     
     if (parent) {
-        INC_NODE_REF(parent);
+        VN_INC_REF(parent);
     }
 
     node->parent = parent;   
@@ -119,7 +119,7 @@ vn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 
         node->mount_flags = parent->mount_flags;
 
-        INC_NODE_REF(node);
+        VN_INC_REF(node);
 
         res = 0;
     }

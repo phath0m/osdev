@@ -100,7 +100,7 @@ un_bind(struct socket *socket, void *address, size_t address_len)
         panic("this shouldn't have happened. get help please");
     }
 
-    INC_NODE_REF(state->host);
+    VN_INC_REF(state->host);
 
     return 0;   
 }
@@ -116,7 +116,7 @@ un_close(struct socket *sock)
     }
 
     if (conn->host) {
-        DEC_NODE_REF(conn->host);
+        VN_DEC_REF(conn->host);
     }
 
     free(conn);
