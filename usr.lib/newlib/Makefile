@@ -1,14 +1,12 @@
 NEWLIB=newlib-2.5.0
 NEWLIB_SRC=$(NEWLIB).tar.gz
 NEWLIB_URL=ftp://sourceware.org/pub/newlib/$(NEWLIB_SRC)
-PREFIX=/usr
-SYSROOT=$(shell realpath ../../../sysroot)
 TARGET=i686-elysium
 
 all: $(NEWLIB)
 install:
-	cd build && DESTDIR=${SYSROOT} make install
-	cp -ar ${SYSROOT}${PREFIX}/${TARGET}/* ${SYSROOT}${PREFIX}
+	cd build && DESTDIR=$(DESTDIR) make install
+	cp -ar $(DESTDIR)$(PREFIX)/$(TARGET)/* $(DESTDIR)$(PREFIX)
 clean:
 	rm -rf $(NEWLIB) $(NEWLIB_SRC) build
 $(NEWLIB): $(NEWLIB_SRC)

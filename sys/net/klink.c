@@ -108,7 +108,7 @@ klink_send_heapstat(struct klink_session *session)
     extern int list_elem_count;
 
     /* defined in sys/i686/kern/vm.c */
-    extern int page_block_count;
+    extern int frame_count;
     extern int page_table_count;
     extern int vm_block_count;
     extern int vm_space_count;
@@ -123,7 +123,7 @@ klink_send_heapstat(struct klink_session *session)
     heapstat->proc_count = proc_count;
     heapstat->list_elem_count = list_elem_count;
 
-    heapstat->page_block_count = page_block_count;
+    heapstat->page_block_count = frame_count;
     heapstat->page_table_count = page_table_count;
     heapstat->vm_block_count = vm_block_count;
     heapstat->vm_space_count = vm_space_count;

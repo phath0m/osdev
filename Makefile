@@ -1,36 +1,22 @@
-CC=i686-elysium-gcc
-LD=i686-elysium-gcc
-
-CFLAGS = -c -std=gnu11 -Werror -I ./include
-
 KERNEL = ./sys/kernel.bin
 INITRD = build/iso/boot/initrd.img
 BUILDROOT = $(shell realpath build/initrd)
+TOOLROOT = $(shell realpath build/toolroot)
 ISO_IMAGE = build/os.iso
 
-all: $(KERNEL) $(ISO)
+CC=$(TOOLROOT)/bin/i686-elysium-gcc
+
+all: toolchain userland-libraries userland kernel iso
 
 clean:
 	rm -f $(ISO_IMAGE) $(KERNEL) $(INITRD)
 
-userland:
-	mkdir -p ./build/initrd/dev
-	mkdir -p ./build/initrd/tmp
-	mkdir -p ./build/initrd/var/run
-	mkdir -p ./build/initrd/var/adm
-	make -C bin
-	make -C sbin
-	make -C usr.bin
-	make -C usr.games
-	make -C usr.libexec
-	cp -rp etc ./build/initrd
-
-kernel: $(KERNEL)
-
 iso: $(KERNEL) $(INITRD) $(ISO_IMAGE)
 
-$(KERNEL):
-	make -C sys
+$(ISO_IMAGE):
+	cp -p $(KERNEL) ./build/iso/boot
+	grub2-mkrescue -o $(ISO_IMAGE) build/iso
+
 
 $(INITRD):
 	make -C bin PREFIX=/ DESTDIR=$(BUILDROOT) install
@@ -40,6 +26,29 @@ $(INITRD):
 	make -C usr.libexec PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	tar --owner=root -C $(BUILDROOT) -cvf $(INITRD) .
 
-$(ISO_IMAGE):
-	cp -p $(KERNEL) ./build/iso/boot
-	grub2-mkrescue -o $(ISO_IMAGE) build/iso
+kernel: $(KERNEL)
+
+$(KERNEL):
+	make -C sys
+
+userland: 
+	mkdir -p $(BUILDROOT)/dev
+	mkdir -p $(BUILDROOT)/tmp
+	mkdir -p $(BUILDROOT)/var/run
+	mkdir -p $(BUILDROOT)/var/adm
+	make -C bin
+	make -C sbin
+	make -C usr.bin
+	make -C usr.games
+	make -C usr.libexec
+	cp -rp etc $(BUILDROOT)
+
+userland-libraries:
+	make DESTDIR=$(TOOLROOT) PREFIX=/usr -C usr.lib
+
+toolchain: $(CC)
+
+$(CC):
+	mkdir -p $(TOOLROOT)
+	make -C build/toolchain
+

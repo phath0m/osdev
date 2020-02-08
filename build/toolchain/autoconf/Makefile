@@ -1,7 +1,6 @@
 AUTOCONF=autoconf-2.64
 AUTOCONF_SRC=$(AUTOCONF).tar.gz
 AUTOCONF_URL=https://ftp.gnu.org/gnu/autoconf/$(AUTOCONF_SRC)
-PREFIX=$(shell realpath ../../sysroot)
 
 all: $(AUTOCONF)
 

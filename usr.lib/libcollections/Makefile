@@ -2,7 +2,6 @@ CC=i686-elysium-gcc
 AR=i686-elysium-ar
 
 CFLAGS = -c -std=gnu99 -Wall -Werror
-PREFIX=$(shell realpath ../../sysroot/usr)
 
 LIBCOLLECTIONS_HEADERS += dict.h
 LIBCOLLECTIONS_HEADERS += list.h
@@ -19,8 +18,8 @@ $(LIBCOLLECTIONS): $(LIBCOLLECTIONS_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(LIBCOLLECTIONS) "$(PREFIX)/lib"
-	mkdir -p "$(PREFIX)/include/collections"
-	cp $(LIBCOLLECTIONS_HEADERS) "$(PREFIX)/include/collections"
+	cp $(LIBCOLLECTIONS) "$(DESTDIR)/$(PREFIX)/lib"
+	mkdir -p "$(DESTDIR)/$(PREFIX)/include/collections"
+	cp $(LIBCOLLECTIONS_HEADERS) "$(DESTDIR)/$(PREFIX)/include/collections"
 clean:
 	rm -f $(LIBCOLLECTIONS_OBJECTS)
