@@ -25,6 +25,7 @@ $(INITRD):
 	make -C usr.bin PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	make -C usr.games PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	make -C usr.libexec PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C etc PREFIX=/ DESTDIR=$(BUILDROOT) install
 	make -C usr.share PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	tar --owner=root -C $(BUILDROOT) -cvf $(INITRD) .
 
@@ -43,7 +44,6 @@ userland:
 	PATH=$(PATH) make -C usr.bin
 	PATH=$(PATH) make -C usr.games
 	PATH=$(PATH) make -C usr.libexec
-	cp -rp etc $(BUILDROOT)
 
 userland-libraries:
 	PATH=$(PATH) make DESTDIR=$(TOOLROOT) PREFIX=/usr -C usr.lib

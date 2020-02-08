@@ -2,6 +2,8 @@
 
 This repository contains the source code for a hobbyist 32-bit monolithic kernel inspired by several UNIX like operating systems. Nothing too significant this project at this time.
 
+[screenshot]: https://i.imgur.com/i8qz0TS.png "Screenshot"
+
 ### Goals
 My main goal with this project is simply to develop self-hosted UNIX clone for my own benefit. 
 I would like to minimize the use of third party software as much as possible, however, there are a few exceptions, most notability the use of newlib for the C library as well as GRUB for the bootloader.
