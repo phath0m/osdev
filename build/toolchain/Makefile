@@ -2,7 +2,7 @@ TOOLROOT = $(shell realpath ../toolroot)
 AUTOCONF = $(TOOLROOT)/bin/autoconf
 AUTOMAKE = $(TOOLROOT)/bin/automake
 BINUTILS = $(TOOLROOT)/bin/i686-elysium-as
-GCC = $(TOOLROOT)/bin/i686-elysium-gcc
+GCC = "$(TOOLROOT)/bin/i686-elysium-gcc"
 
 export PREFIX=$(TOOLROOT)
 export TOOLROOT
