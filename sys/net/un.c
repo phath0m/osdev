@@ -59,13 +59,13 @@ un_accept(struct socket *socket, struct socket **result, void *address, size_t *
 
     struct vfs_node *host = server_state->host;
 
-    while (LIST_SIZE(&host->un_connections) == 0) {
+    while (LIST_SIZE(&host->un.un_connections) == 0) {
         thread_yield();
     }
 
     struct un_conn *client_conn;
 
-    list_remove_back(&host->un_connections, (void**)&client_conn);
+    list_remove_back(&host->un.un_connections, (void**)&client_conn);
 
     struct socket *client = calloc(1, sizeof(struct socket*));
 
@@ -143,7 +143,7 @@ un_connect(struct socket *socket, void *address, size_t address_len)
     create_pipe(conn->tx_pipe);
     create_pipe(conn->rx_pipe);
 
-    list_append(&host->un_connections, conn);
+    list_append(&host->un.un_connections, conn);
 
     return 0;
 }

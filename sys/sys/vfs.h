@@ -81,8 +81,10 @@ struct vfs_node {
     struct file_ops *   ops;
     struct vfs_node *   mount;
     struct vfs_node *   parent;
-    struct list         fifo_readers;
-    struct list         un_connections;
+    union {
+        struct list         fifo_readers;
+        struct list         un_connections;
+    } un;
     int                 mount_flags;
     bool                ismount;
     ino_t               inode;

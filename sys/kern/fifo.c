@@ -31,11 +31,11 @@ struct fifo {
 static struct vfs_node *
 fifo_open_write(struct vfs_node *parent)
 {
-    while (LIST_SIZE(&parent->fifo_readers) == 0) {
+    while (LIST_SIZE(&parent->un.fifo_readers) == 0) {
         thread_yield();
     }
 
-    struct vfs_node *reader = list_peek_back(&parent->fifo_readers);
+    struct vfs_node *reader = list_peek_back(&parent->un.fifo_readers);
 
     struct fifo *fifo = (struct fifo*)reader->state;
 
@@ -58,7 +58,7 @@ fifo_open_read(struct vfs_node *parent)
 
     node->state = fifo;
 
-    list_append(&parent->fifo_readers, node);
+    list_append(&parent->un.fifo_readers, node);
 
     return node;
 }
@@ -92,7 +92,7 @@ fifo_close(struct vfs_node *node, struct file *fp)
 
     if (fifo->read_refs == 0) {
         fops_close(fifo->pipe[0]);
-        list_remove(&host->fifo_readers, node);
+        list_remove(&host->un.fifo_readers, node);
         fifo->read_refs--;
     }
 
