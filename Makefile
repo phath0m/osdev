@@ -3,6 +3,7 @@ INITRD = build/iso/boot/initrd.img
 BUILDROOT = $(shell realpath build/initrd)
 TOOLROOT = $(shell realpath build/toolroot)
 ISO_IMAGE = build/os.iso
+PATH := "$(TOOLROOT)/bin:$(PATH)"
 
 CC=$(TOOLROOT)/bin/i686-elysium-gcc
 
@@ -36,19 +37,19 @@ userland:
 	mkdir -p $(BUILDROOT)/tmp
 	mkdir -p $(BUILDROOT)/var/run
 	mkdir -p $(BUILDROOT)/var/adm
-	make -C bin
-	make -C sbin
-	make -C usr.bin
-	make -C usr.games
-	make -C usr.libexec
+	PATH=$(PATH) make -C bin
+	PATH=$(PATH) make -C sbin
+	PATH=$(PATH) make -C usr.bin
+	PATH=$(PATH) make -C usr.games
+	PATH=$(PATH) make -C usr.libexec
 	cp -rp etc $(BUILDROOT)
 
 userland-libraries:
-	make DESTDIR=$(TOOLROOT) PREFIX=/usr -C usr.lib
+	PATH=$(PATH) make DESTDIR=$(TOOLROOT) PREFIX=/usr -C usr.lib
 
 toolchain: $(CC)
 
 $(CC):
 	mkdir -p $(TOOLROOT)
-	make -C build/toolchain
+	PATH=$(PATH) make -C build/toolchain
 
