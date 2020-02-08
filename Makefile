@@ -25,6 +25,7 @@ $(INITRD):
 	make -C usr.bin PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	make -C usr.games PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	make -C usr.libexec PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C usr.share PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	tar --owner=root -C $(BUILDROOT) -cvf $(INITRD) .
 
 kernel: $(KERNEL)
