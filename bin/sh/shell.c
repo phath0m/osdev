@@ -463,6 +463,10 @@ print_prompt(const char *prompt)
 static void
 load_rc()
 {
+    if (access("/etc/shrc", R_OK) == 0) {
+        run_file("/etc/shrc");
+    }
+
     char *home = getenv("HOME");
 
     if (!home) {
