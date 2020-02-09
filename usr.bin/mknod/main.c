@@ -32,27 +32,41 @@ main (int argc, char *argv[])
     }
 
 
-    int file_type = -1;
+    mode_t mode = -1;
 
     switch (filetype[0]) {
         case 'p':
-            file_type = S_IFIFO;
+            mode = S_IFIFO;
             break;
         case 'c':
-            file_type = S_IFCHR;
+            mode = S_IFCHR;
             break;
     }
 
-    if (file_type == -1) {
+    if (mode == -1) {
         fprintf(stderr, "mknod: invalid file type specified!\n");
         return -1;
     }
 
-    
-    int major = atoi(argv[3]);
-    int minor = atoi(argv[4]);
+    if (mode != S_IFIFO && argc != 5) {
+        fprintf(stderr, "mknod: major and minor must be specified if creating a "
+                        "device file!\n");
+        return -1;
+    }
 
-    mknod(filepath, 0777 | file_type, makedev(major, minor));
+    dev_t dev = 0;   
+    mode |= 0777;
+
+    if (!(mode & S_IFIFO)) {
+        int major = atoi(argv[3]);
+        int minor = atoi(argv[4]);
+        dev = makedev(major, minor);
+    }
+
+    if (mknod(filepath, mode, dev) != 0) {
+        perror("mknod");
+        return -1;
+    }
 
     return 0;
 }

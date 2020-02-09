@@ -1,12 +1,12 @@
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
 
-CFLAGS = -c -std=gnu99 -Wall -Werror
+CFLAGS = -c -std=gnu99 -Wall
 LDFLAGS =
 
 MKNOD_OBJECTS += main.o
 
-MKNOD = mkdir
+MKNOD = mknod
 
 all: $(MKNOD)
 
