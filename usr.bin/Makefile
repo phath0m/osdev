@@ -12,6 +12,7 @@ SUBDIRS += unlink
 SUBDIRS += grep
 SUBDIRS += login
 SUBDIRS += mkfifo
+SUBDIRS += mknod
 SUBDIRS += sleep
 SUBDIRS += uname
 SUBDIRS += w

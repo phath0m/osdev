@@ -65,6 +65,7 @@ struct tmpfs_node {
     struct membuf *     content;
     uid_t               uid;
     gid_t               gid;
+    dev_t               devno;
     uint16_t            mode;
     time_t              atime;
     time_t              mtime;
@@ -131,6 +132,7 @@ tmpfs_lookup(struct vnode *parent, struct vnode **result, const char *name)
         node->mode = child->mode;
         node->uid = child->uid;
         node->gid = child->gid;    
+        node->devno = child->devno;
 
         *result = node;
 
@@ -253,6 +255,7 @@ tmpfs_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev)
     node->mode = mode;
     node->uid = 0;
     node->mtime = 0;
+    node->devno = dev;
 
     struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
 

@@ -1,3 +1,0 @@
-[Service]
-Name=devconsole
-ExecStart=/sbin/newtty /dev/ttyS1

@@ -29,6 +29,7 @@ device_file_open(struct vnode *parent, dev_t devno)
     struct vnode *node = vn_new(NULL, NULL, &dev_file_ops);
     struct device_file *file = calloc(1, sizeof(struct device_file));
 
+    node->state = file;
     file->host = parent;
     file->device = device_from_devno(devno);
 
