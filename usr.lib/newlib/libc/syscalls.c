@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <pwd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
@@ -77,7 +78,19 @@ sleep(unsigned int seconds)
 char *
 getlogin(void)
 {
-    return "root";
+    static char login_buf[512];
+
+    uid_t uid = getuid();
+    
+    struct passwd *pwd = getpwuid(uid);
+    
+    if (pwd) {
+        strcpy(login_buf, pwd->pw_name, 512);
+
+        return login_buf;
+    }
+
+    return "unknown";
 }
 
 /* here are the actual syscalls */
