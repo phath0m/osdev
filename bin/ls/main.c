@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <grp.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -175,6 +176,7 @@ ls_long_print(struct ls_dirent **entries, int nentries)
         get_mode_string(entry, mode_str);
 
         struct passwd *pwd = getpwuid(entry->stat.st_uid);
+        struct group *grp = getgrgid(entry->stat.st_gid);
 
         printf("%s ", mode_str);
         
@@ -184,7 +186,12 @@ ls_long_print(struct ls_dirent **entries, int nentries)
             printf("%-8d ", entry->stat.st_uid);
         }
 
-        printf("%-4d ", entry->stat.st_gid);
+        if (grp) {
+            printf("%-8s ", grp->gr_name);
+        } else {
+            printf("%-8d ", entry->stat.st_gid);
+        }
+        
         printf("%8d ", (int)entry->stat.st_size);
         printf("%s ", date_str);
         ls_print_color(entry);
