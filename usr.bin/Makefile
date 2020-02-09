@@ -7,6 +7,7 @@ MAKE = make
 
 SUBDIRS += env
 SUBDIRS += fbctl
+SUBDIRS += id
 SUBDIRS += kstat
 SUBDIRS += unlink
 SUBDIRS += grep
