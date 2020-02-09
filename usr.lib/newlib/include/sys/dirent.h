@@ -11,6 +11,7 @@
 #define DT_DIR      S_IFDIR
 #define DT_LNK      S_IFLNK
 #define DT_FIFO     S_IFIFO
+#define DT_SOCK     S_IFSOCK
 
 struct dirent {
     uint32_t    d_ino;

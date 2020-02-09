@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +56,9 @@ get_mode_string(struct ls_dirent *ent, char *buf)
             break;
         case DT_FIFO:
             *(buf++) = 'p';
+            break;
+        case DT_SOCK:
+            *(buf++) = 's';
             break;
         default:
             *(buf++) = '-';
@@ -170,8 +174,16 @@ ls_long_print(struct ls_dirent **entries, int nentries)
         get_date_string(entry->stat.st_mtime, date_str);
         get_mode_string(entry, mode_str);
 
+        struct passwd *pwd = getpwuid(entry->stat.st_uid);
+
         printf("%s ", mode_str);
-        printf("%-4d ", entry->stat.st_uid);
+        
+        if (pwd) {
+            printf("%-8s ", pwd->pw_name);
+        } else {
+            printf("%-8d ", entry->stat.st_uid);
+        }
+
         printf("%-4d ", entry->stat.st_gid);
         printf("%8d ", (int)entry->stat.st_size);
         printf("%s ", date_str);
