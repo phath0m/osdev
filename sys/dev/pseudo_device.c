@@ -1,4 +1,5 @@
 #include <sys/device.h>
+#include <sys/devices.h>
 #include <sys/errno.h>
 
 static int full_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
@@ -9,34 +10,40 @@ static int zero_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 static int zero_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct device full_device = {
-    .name   =   "full",
-    .mode   =   0666,
-    .close  =   pseudo_close,
-    .ioctl  =   NULL,
-    .open   =   pseudo_open,
-    .read   =   zero_read,
-    .write  =   full_write
+    .name       =   "full",
+    .mode       =   0666,
+    .majorno    =   DEV_MAJOR_PSEUDO,
+    .minorno    =   0,
+    .close      =   pseudo_close,
+    .ioctl      =   NULL,
+    .open       =   pseudo_open,
+    .read       =   zero_read,
+    .write      =   full_write
 };
 
 struct device null_device = {
-    .name   =   "null",
-    .mode   =   0666,
-    .close  =   pseudo_close,
-    .ioctl  =   NULL,
-    .open   =   pseudo_open,
-    .read   =   null_read,
-    .write  =   zero_write
+    .name       =   "null",
+    .mode       =   0666,
+    .majorno    =   DEV_MAJOR_PSEUDO,
+    .minorno    =   1,
+    .close      =   pseudo_close,
+    .ioctl      =   NULL,
+    .open       =   pseudo_open,
+    .read       =   null_read,
+    .write      =   zero_write
 };
 
 struct device zero_device = {
-    .name   =   "zero",
-    .mode   =   0666,
-    .close  =   pseudo_close,
-    .ioctl  =   NULL,
-    .open   =   pseudo_open,
-    .read   =   zero_read,
-    .write  =   zero_write,
-    .state  =   NULL
+    .name       =   "zero",
+    .mode       =   0666,
+    .majorno    =   DEV_MAJOR_PSEUDO,
+    .minorno    =   2,
+    .close      =   pseudo_close,
+    .ioctl      =   NULL,
+    .open       =   pseudo_open,
+    .read       =   zero_read,
+    .write      =   zero_write,
+    .state      =   NULL
 };
 
 static int

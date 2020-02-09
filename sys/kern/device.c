@@ -5,6 +5,32 @@
 
 struct list device_list;
 
+struct device *
+device_from_devno(dev_t devno)
+{
+    uint16_t dev_minor = minor(devno);
+    uint16_t dev_major = major(devno);
+
+    list_iter_t iter;
+
+    list_get_iter(&device_list, &iter);
+
+    struct device *dev;
+    struct device *ret = NULL;
+
+    while (iter_move_next(&iter, (void**)&dev)) {
+        if (dev->majorno == dev_major && dev->minorno == dev_minor) {
+            ret = dev;
+            break;
+        }
+    }
+
+
+    iter_close(&iter);
+    
+    return ret;
+}
+
 int
 device_close(struct device *dev)
 {

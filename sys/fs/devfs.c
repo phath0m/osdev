@@ -80,6 +80,7 @@ devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
             node->gid = 0;
             node->uid = 0;
             node->state = (void*)dev;
+            node->devno = makedev(dev->majorno, dev->minorno);
 
             *result = node;
 

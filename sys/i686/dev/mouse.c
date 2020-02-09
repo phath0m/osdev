@@ -1,4 +1,5 @@
 #include <sys/device.h>
+#include <sys/devices.h>
 #include <sys/interrupt.h>
 #include <sys/types.h>
 #include <sys/i686/portio.h>
@@ -6,15 +7,17 @@
 static int mouse_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 
 struct device mouse_device = {
-    .name   =   "mouse",
-    .mode   =   0600,
-    .close  =   NULL,
-    .ioctl  =   NULL,
-    .isatty =   NULL,
-    .open   =   NULL,
-    .read   =   mouse_read,
-    .write  =   NULL,
-    .state  =   NULL
+    .name       =   "mouse",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_MOUSE,
+    .minorno    =   0,
+    .close      =   NULL,
+    .ioctl      =   NULL,
+    .isatty     =   NULL,
+    .open       =   NULL,
+    .read       =   mouse_read,
+    .write      =   NULL,
+    .state      =   NULL
 };
 
 static uint8_t mouse_x;

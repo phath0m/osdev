@@ -196,6 +196,10 @@ vops_open_r(struct proc *proc, struct file **result, const char *path, int flags
             child = fifo_open(child, flags);
         }
 
+        if ((child->mode & S_IFCHR)) {
+            child = device_file_open(child, child->devno);
+        }
+
         struct file *file = file_new(child);
         
         file->flags = flags;

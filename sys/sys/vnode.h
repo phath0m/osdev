@@ -86,6 +86,7 @@ struct vnode {
     gid_t               gid;
     uid_t               uid;
     mode_t              mode;
+    dev_t               devno;
     uint64_t            size;
     void *              state;
     int                 refs;

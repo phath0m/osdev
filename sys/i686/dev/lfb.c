@@ -6,6 +6,7 @@
  */
 
 #include <sys/device.h>
+#include <sys/devices.h>
 #include <sys/errno.h>
 #include <sys/ioctl.h>
 #include <sys/malloc.h>
@@ -56,16 +57,18 @@ static int lfb_open(struct device *dev);
 static int lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct device lfb_device = {
-    .name   =   "lfb",
-    .mode   =   0600,
-    .close  =   lfb_close,
-    .ioctl  =   lfb_ioctl,
-    .isatty =   lfb_isatty,
-    .mmap   =   lfb_mmap,
-    .open   =   lfb_open,
-    .read   =   NULL,
-    .write  =   lfb_write,
-    .state  =   NULL
+    .name       =   "lfb",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_CON,
+    .minorno    =   1,
+    .close      =   lfb_close,
+    .ioctl      =   lfb_ioctl,
+    .isatty     =   lfb_isatty,
+    .mmap       =   lfb_mmap,
+    .open       =   lfb_open,
+    .read       =   NULL,
+    .write      =   lfb_write,
+    .state      =   NULL
 };
 
 struct lfb_req {

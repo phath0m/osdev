@@ -1,8 +1,5 @@
-/*
- * Basic driver for interacting with textscreen
- */
-
 #include <sys/device.h>
+#include <sys/devices.h>
 #include <sys/types.h>
 #include <sys/i686/portio.h>
 
@@ -39,51 +36,59 @@ struct serial_state serial3_state = {
 };
 
 struct device serial0_device = {
-    .name   =   "ttyS0",
-    .mode   =   0600,
-    .close  =   serial_close,
-    .ioctl  =   serial_ioctl,
-    .isatty =   serial_isatty,
-    .open   =   serial_open,
-    .read   =   serial_read,
-    .write  =   serial_write,
-    .state  =   &serial0_state
+    .name       =   "ttyS0",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_TTYS,
+    .minorno    =   0,
+    .close      =   serial_close,
+    .ioctl      =   serial_ioctl,
+    .isatty     =   serial_isatty,
+    .open       =   serial_open,
+    .read       =   serial_read,
+    .write      =   serial_write,
+    .state      =   &serial0_state
 };
 
 struct device serial1_device = {
-    .name   =   "ttyS1",
-    .mode   =   0600,
-    .close  =   serial_close,
-    .ioctl  =   serial_ioctl,
-    .isatty =   serial_isatty,
-    .open   =   serial_open,
-    .read   =   serial_read,
-    .write  =   serial_write,
-    .state  =   &serial1_state
+    .name       =   "ttyS1",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_TTYS,
+    .minorno    =   1,
+    .close      =   serial_close,
+    .ioctl      =   serial_ioctl,
+    .isatty     =   serial_isatty,
+    .open       =   serial_open,
+    .read       =   serial_read,
+    .write      =   serial_write,
+    .state      =   &serial1_state
 };
 
 struct device serial2_device = {
-    .name   =   "ttyS2",
-    .mode   =   0600,
-    .close  =   serial_close,
-    .ioctl  =   serial_ioctl,
-    .isatty =   serial_isatty,
-    .open   =   serial_open,
-    .read   =   serial_read,
-    .write  =   serial_write,
-    .state  =   &serial2_state
+    .name       =   "ttyS2",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_TTYS,
+    .minorno    =   2,
+    .close      =   serial_close,
+    .ioctl      =   serial_ioctl,
+    .isatty     =   serial_isatty,
+    .open       =   serial_open,
+    .read       =   serial_read,
+    .write      =   serial_write,
+    .state      =   &serial2_state
 };
 
 struct device serial3_device = {
-    .name   =   "ttyS3",
-    .mode   =   0600,
-    .close  =   serial_close,
-    .ioctl  =   serial_ioctl,
-    .isatty =   serial_isatty,
-    .open   =   serial_open,
-    .read   =   serial_read,
-    .write  =   serial_write,
-    .state  =   &serial3_state
+    .name       =   "ttyS3",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_TTYS,
+    .minorno    =   3,
+    .close      =   serial_close,
+    .ioctl      =   serial_ioctl,
+    .isatty     =   serial_isatty,
+    .open       =   serial_open,
+    .read       =   serial_read,
+    .write      =   serial_write,
+    .state      =   &serial3_state
 };
 
 static void

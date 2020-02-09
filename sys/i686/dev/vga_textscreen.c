@@ -3,6 +3,7 @@
  */
 
 #include <sys/device.h>
+#include <sys/devices.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/types.h>
@@ -113,15 +114,17 @@ static int vga_open(struct device *dev);
 static int vga_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct device vga_device = {
-    .name   =   "vga",
-    .mode   =   0600,
-    .close  =   vga_close,
-    .ioctl  =   vga_ioctl,
-    .open   =   vga_open,
-    .isatty =   NULL,
-    .read   =   NULL,
-    .write  =   vga_write,
-    .state  =   &state
+    .name       =   "vga",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_CON,
+    .minorno    =   0,
+    .close      =   vga_close,
+    .ioctl      =   vga_ioctl,
+    .open       =   vga_open,
+    .isatty     =   NULL,
+    .read       =   NULL,
+    .write      =   vga_write,
+    .state      =   &state
 };
 
 struct draw_req {

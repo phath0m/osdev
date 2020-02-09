@@ -3,6 +3,10 @@
 
 #include <sys/types.h>
 
+#define minor(n) (n & 0xFF)
+#define major(n) ((n >> 8) & 0xFF)
+#define makedev(maj, min) (min | (maj << 8))
+
 struct device;
 
 typedef int (*dev_close_t)(struct device *dev);
@@ -16,6 +20,8 @@ typedef int (*dev_write_t)(struct device *dev, const char *buf, size_t nbyte, ui
 struct device {
     char *          name;
     int             mode;
+    int             majorno;
+    int             minorno;
     dev_close_t     close;
     dev_ioctl_t     ioctl;
     dev_isatty_t    isatty;
@@ -25,6 +31,11 @@ struct device {
     dev_write_t     write;
     void *          state;
 };
+
+struct vnode;
+
+struct device *device_from_devno(dev_t dev);
+struct vnode * device_file_open(struct vnode *parent, dev_t devno);
 
 int device_close(struct device *dev);
 int device_destroy(struct device *dev);

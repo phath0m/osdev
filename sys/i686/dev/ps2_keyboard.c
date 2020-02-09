@@ -1,5 +1,6 @@
 #include <ds/fifo.h>
 #include <sys/device.h>
+#include <sys/devices.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/types.h>
@@ -9,15 +10,17 @@
 static int keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 
 struct device keyboard_device = {
-    .name   =   "kbd",
-    .mode   =   0600,
-    .close  =   NULL,
-    .ioctl  =   NULL,
-    .isatty =   NULL,
-    .open   =   NULL,
-    .read   =   keyboard_read,
-    .write  =   NULL,
-    .state  =   NULL
+    .name       =   "kbd",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_KBD,
+    .minorno    =   0,
+    .close      =   NULL,
+    .ioctl      =   NULL,
+    .isatty     =   NULL,
+    .open       =   NULL,
+    .read       =   keyboard_read,
+    .write      =   NULL,
+    .state      =   NULL
 };
 
 

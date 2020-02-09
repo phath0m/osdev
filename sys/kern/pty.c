@@ -1,4 +1,5 @@
 #include <sys/device.h>
+#include <sys/devices.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
@@ -50,6 +51,8 @@ mkpty_slave(struct pty *pty)
     pts_dev->name = name;
 
     pts_dev->mode = 0600;
+    pts_dev->majorno = DEV_MAJOR_PTS;
+    pts_dev->minorno = pty_counter;
     pts_dev->state = pty;
     pts_dev->ioctl = pts_ioctl;
     pts_dev->isatty = pts_isatty;
