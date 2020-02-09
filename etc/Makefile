@@ -1,4 +1,5 @@
 SUBDIRS = doit.d
+FILES += group
 FILES += motd
 FILES += passwd
 FILES += shadow
