@@ -7,6 +7,8 @@ SUBDIRS += newlib
 SUBDIRS += libauth
 SUBDIRS += libcollections
 SUBDIRS += libini
+SUBDIRS += libinput
+SUBDIRS += libmemgfx
 
 all: $(SUBDIRS)
 	mkdir -p "$(DESTDIR)/$(PREFIX)/lib"
