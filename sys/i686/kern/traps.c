@@ -88,8 +88,8 @@ handle_page_fault(int inum, struct regs *regs)
         /* send SIGSEGV to program */
         extern struct proc *current_proc;
 
-        printf("%s[%d] segfault ip: %p sp %p\n", current_proc->name,
-                current_proc->pid, regs->eip, regs->uesp);
+        printf("%s[%d] segfault at %p ip: %p sp %p\n", current_proc->name,
+                current_proc->pid, fault_addr, regs->eip, regs->uesp);
 
         proc_kill(current_proc, 11);
 
