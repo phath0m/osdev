@@ -236,6 +236,21 @@ connect(int fd, const struct sockaddr *address, socklen_t address_size)
     return ret;
 }
 
+pid_t
+clone(int (*func)(void *arg), void *stack, int flags, void *arg)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_CLONE), "b"(func), "c"(stack), "d"(flags), "S"(arg));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return (pid_t)ret;
+}
+
 int
 dup(int oldfd)
 {

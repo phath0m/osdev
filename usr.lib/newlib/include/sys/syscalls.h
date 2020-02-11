@@ -65,5 +65,6 @@
 #define SYS_ACCEPT      0x3F
 #define SYS_BIND        0x40
 #define SYS_MMAP        0x41
+#define SYS_CLONE       0x44
 
 #endif
