@@ -35,10 +35,17 @@ init_child_proc(void *statep)
 
     free(statep);
 
+    uint32_t *stack = (uint32_t*)state->u_stack_top;
+
+    --stack;
+
+    *(--stack) = (uintptr_t)state->arg;
+    *(--stack) = NULL;
+
     /* defined in sys/i686/kern/usermode.asm */
     extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);
 
-    return_to_usermode((uintptr_t)state->func, state->u_stack_top - 4, state->u_stack_top - 4, 0);
+    return_to_usermode((uintptr_t)state->func, (uintptr_t)stack, (uintptr_t)stack, 0);
     
     return 0;
 }
@@ -58,6 +65,7 @@ proc_clone(void *func, void *stack, int flags, void *arg)
     
     state->proc = current_proc;
     state->func = func;
+    state->arg = arg;
     state->u_stack_top = (uintptr_t)stack;
     state->u_stack_bottom = (uintptr_t)stack - 65535;
 
