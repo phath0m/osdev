@@ -85,6 +85,20 @@ sys_chroot(syscall_args_t args)
 }
 
 static int
+sys_clone(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(void *, func, 0, argv);
+    DEFINE_SYSCALL_PARAM(void *, stack, 1, argv);
+    DEFINE_SYSCALL_PARAM(int, flags, 2, argv);
+    DEFINE_SYSCALL_PARAM(void *, arg, 3, argv);
+
+    TRACE_SYSCALL("clone", "0x%p, 0x%p, %d, 0x%p", func, stack, flags, arg);
+
+    return proc_clone(func, stack, flags, arg);    
+}
+
+
+static int
 sys_execve(syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, file, 0, args);
@@ -149,13 +163,17 @@ sys_exit(syscall_args_t args)
 
     TRACE_SYSCALL("exit", "%d", status);
 
-    current_proc->status = status;
-    current_proc->exited = true;
-    //current_proc->thread->state = SZOMB;
+    extern struct thread *sched_curr_thread;
 
-    wq_pulse(&current_proc->waiters);
+    list_remove(&current_proc->threads, sched_curr_thread);
 
-    thread_schedule(SDEAD, current_proc->thread);
+    if (LIST_SIZE(&current_proc->threads) == 0) {
+        current_proc->status = status;
+        current_proc->exited = true;
+        wq_pulse(&current_proc->waiters);
+    }
+    
+    thread_schedule(SDEAD, sched_curr_thread);
 
     for (; ;) {
         thread_yield();
@@ -592,4 +610,5 @@ _init_proc_syscalls()
     register_syscall(SYS_KILL, 2, sys_kill);
     register_syscall(SYS_SIGACTION, 2, sys_sigaction);
     register_syscall(SYS_SIGRESTORE, 0, sys_sigrestore);
+    register_syscall(SYS_CLONE, 4, sys_clone);
 }

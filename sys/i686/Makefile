@@ -15,6 +15,7 @@ KERNEL_I686_OBJECTS += dev/ps2_keyboard.o
 KERNEL_I686_OBJECTS += dev/mouse.o
 KERNEL_I686_OBJECTS += dev/vga_textscreen.o
 KERNEL_I686_OBJECTS += kern/context_switch.o
+KERNEL_I686_OBJECTS += kern/clone.o
 KERNEL_I686_OBJECTS += kern/preinit.o
 KERNEL_I686_OBJECTS += kern/boot.o
 KERNEL_I686_OBJECTS += kern/gdt.o

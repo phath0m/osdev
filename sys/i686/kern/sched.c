@@ -84,47 +84,17 @@ sched_get_next_proc(uintptr_t prev_esp)
 
         current_proc = next_thread->proc;
 
+        set_tss_esp0(next_thread->stack_top);
+
         return next_thread->stack;
     }
 
     if (sched_curr_thread) {
         current_proc = sched_curr_thread->proc;
+        set_tss_esp0(sched_curr_thread->stack_top);
     }
 
     return prev_esp;
-}
-
-
-uintptr_t
-sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg)
-{
-    uintptr_t stack_top = (uintptr_t)vm_share(sched_curr_address_space, space, NULL, (void*)stack_start, 0x1000, PROT_READ | PROT_WRITE | PROT_KERN);
-
-    uint32_t *stack = (uint32_t*)stack_top;
-
-    *--stack = (uint32_t)arg;
-    *--stack = stack_top; /* idk (I think ESP?)) */
-    *--stack = 0x202; /* EFLAGS???? */
-    *--stack = 0x08; /* code segment */
-    *--stack = (uint32_t)entry;
-    *--stack = 0;       /* EAX */
-    *--stack = 0;       /* ECX */
-    *--stack = 0;       /* EDX */
-    *--stack = 0;       /* EBX */
-    *--stack = 0;       /* reserved */
-    *--stack = 0;       /* EBP */
-    *--stack = 0;       /* ESI */
-    *--stack = 0;       /* EDI */
-    *--stack = 0x10;    /* GS */
-    *--stack = 0x10;    /* ES */
-    *--stack = 0x10;    /* FS */
-    *--stack = 0x10;    /* GS  */
-
-    uint32_t delta = (uint32_t)stack_top - (uint32_t)stack;
-
-    vm_unmap(sched_curr_address_space, (void*)(stack_top & 0xFFFFF000), 0x1000);
-
-    return (uintptr_t)(stack_start - delta);
 }
 
 void
@@ -155,7 +125,7 @@ thread_interrupt_leave(struct thread *thread, struct regs *regs)
 void
 thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 {
-    struct thread *thread = (struct thread*)calloc(0, sizeof(struct thread));
+    struct thread *thread = (struct thread*)calloc(1, sizeof(struct thread));
 
     if (space) {
         thread->address_space = space;
@@ -165,9 +135,32 @@ thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 
     thread->state = SRUN;
 
-    vm_map(thread->address_space, (void*)0xFFFFF000, 1, PROT_WRITE | PROT_READ | PROT_KERN);
+    uint32_t *stack_base = calloc(1, 65536);
+    uint32_t *stack_top = &stack_base[16380];
+
+    uint32_t *stack = (uint32_t*)stack_top;
     
-    thread->stack = sched_init_thread(thread->address_space, 0xFFFFFA00, entrypoint, arg);
+    *--stack = (uint32_t)arg;
+    *--stack = (uintptr_t)stack_top; /* idk (I think ESP?)) */
+    *--stack = 0x202; /* EFLAGS???? */
+    *--stack = 0x08; /* code segment */
+    *--stack = (uint32_t)entrypoint;
+    *--stack = 0;       /* EAX */
+    *--stack = 0;       /* ECX */
+    *--stack = 0;       /* EDX */
+    *--stack = 0;       /* EBX */
+    *--stack = 0;       /* reserved */
+    *--stack = 0;       /* EBP */
+    *--stack = 0;       /* ESI */
+    *--stack = 0;       /* EDI */
+    *--stack = 0x10;    /* GS */
+    *--stack = 0x10;    /* ES */
+    *--stack = 0x10;    /* FS */
+    *--stack = 0x10;    /* GS  */
+
+    thread->stack = (uintptr_t)stack;
+    thread->stack_top = (uintptr_t)stack_top;
+    thread->stack_base = (uintptr_t)stack_base;
 
     list_append(&run_queue, thread);
 }
@@ -184,19 +177,29 @@ thread_schedule(int state, struct thread *thread)
 {
     thread->state = state;
 
-    if (state == SRUN) {
-        list_append(&run_queue, thread);
-    } else if (state == SDEAD) {
-        list_append(&dead_threads, thread);
+    switch (state) {
+        case SRUN:
+            list_append(&run_queue, thread);
+            break;
+        case SDEAD:
+            list_append(&dead_threads, thread);
+            break;
     }
 }
 
 void
 thread_destroy(struct thread *thread)
 {
-    list_destroy(&thread->joined_queues, true);
-    proc_destroy(thread->proc);
+    struct proc *proc = thread->proc;
+
+    list_destroy(&thread->joined_queues, true); 
+
+    free((void*)thread->stack_base);
     free(thread);
+    
+    if (proc && proc->exited) {
+        proc_destroy(thread->proc);
+    }
 }
 
 __attribute__((constructor))

@@ -64,6 +64,7 @@ init_child_proc(void *statep)
     extern struct thread *sched_curr_thread;
 
     proc->thread = sched_curr_thread;
+    
     sched_curr_thread->proc = state->proc;
     sched_curr_thread->u_stack_bottom = state->u_stack_bottom;
     sched_curr_thread->u_stack_top = state->u_stack_top;

@@ -16,6 +16,9 @@
 #define SLOCK   0x07
 #define SDEAD   0x08
 
+#define CLONE_VM        0x01
+#define CLONE_FILES     0x02
+
 typedef int (*kthread_entry_t)(void *state);
 
 struct regs;
@@ -75,6 +78,8 @@ struct thread {
     uint8_t             interrupt_in_progress;
     uint8_t             state;
     uintptr_t           stack;
+    uintptr_t           stack_base;
+    uintptr_t           stack_top;
     uintptr_t           u_stack_bottom;
     uintptr_t           u_stack_top;
 };
@@ -91,6 +96,8 @@ struct pgrp *pgrp_new(struct proc *leader, struct session *session);
 int proc_execve(const char *path, const char **argv, const char **envp);
 
 int proc_fork(struct regs *regs);
+
+int proc_clone(void *func, void *stack, int flags, void *arg);
 
 char *proc_getctty(struct proc *proc);
 
@@ -130,6 +137,8 @@ void thread_interrupt_leave(struct thread *thread, struct regs *regs);
 void thread_restore_signal_state(struct sigcontext *ctx, struct regs *regs);
 
 void thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg);
+
+void thread_run_s(kthread_entry_t entrypoint, struct vm_space *space, void *stack, void *arg);
 
 void thread_yield();
 
