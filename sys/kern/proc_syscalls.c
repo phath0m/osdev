@@ -266,6 +266,16 @@ sys_getppid()
 }
 
 static int
+sys_gettid(syscall_args_t argv)
+{
+    TRACE_SYSCALL("gettid", "void");
+
+    extern struct thread *sched_curr_thread;
+
+    return sched_curr_thread->tid;
+}
+
+static int
 sys_fork(syscall_args_t argv)
 {
     TRACE_SYSCALL("fork", "void");
@@ -575,6 +585,47 @@ sys_pause(syscall_args_t argv)
     return 0;
 }
 
+static int
+sys_thread_sleep(syscall_args_t argv)
+{
+    TRACE_SYSCALL("thread_sleep", "void");
+
+    asm volatile("sti");
+
+    extern struct thread *sched_curr_thread;
+
+    thread_schedule(SSLEEP, sched_curr_thread);
+
+    return 0;
+}
+
+static int
+sys_thread_wake(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(pid_t, tid, 0, argv);
+
+    TRACE_SYSCALL("thread_wake", "void");
+
+    list_iter_t iter;
+
+    list_get_iter(&current_proc->threads, &iter);
+
+    int ret = -(ESRCH);
+    struct thread *thread;
+
+    while (iter_move_next(&iter, (void**)&thread)) {
+        if (thread->tid == tid) {
+            thread_schedule(SRUN, current_proc->thread);
+            ret = 0;
+            break;
+        }
+    }
+
+    iter_close(&iter);
+
+    return ret;
+}
+
 __attribute__((constructor))
 void
 _init_proc_syscalls()
@@ -611,4 +662,7 @@ _init_proc_syscalls()
     register_syscall(SYS_SIGACTION, 2, sys_sigaction);
     register_syscall(SYS_SIGRESTORE, 0, sys_sigrestore);
     register_syscall(SYS_CLONE, 4, sys_clone);
+    register_syscall(SYS_THREAD_SLEEP, 0, sys_thread_sleep);
+    register_syscall(SYS_THREAD_WAKE, 1, sys_thread_wake);
+    register_syscall(SYS_GETTID, 0, sys_gettid);
 }

@@ -125,7 +125,7 @@ thread_interrupt_leave(struct thread *thread, struct regs *regs)
 void
 thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 {
-    struct thread *thread = (struct thread*)calloc(1, sizeof(struct thread));
+    struct thread *thread = calloc(1, sizeof(struct thread));
 
     if (space) {
         thread->address_space = space;

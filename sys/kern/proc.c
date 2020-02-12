@@ -18,6 +18,7 @@ int proc_count = 0;
  * List of all processes running
  */
 struct list process_list;
+struct list thread_list;
 
 void
 pgrp_leave_session(struct pgrp *group, struct session *session)
@@ -257,14 +258,19 @@ proc_getctty(struct proc *proc)
     return NULL;
 }
 
+pid_t
+proc_get_new_pid()
+{
+    return ++next_pid;
+}
+
 struct proc *
 proc_new()
 {
     struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
 
     proc->start_time = time(NULL);    
-    proc->pid = ++next_pid;
-
+    proc->pid = proc_get_new_pid();
     list_append(&process_list, proc);
 
     proc_count++;
@@ -293,4 +299,12 @@ session_new(struct proc *leader)
     session->leader = leader;
 
     return session;  
+}
+
+struct thread *
+thread_new()
+{
+    struct thread *thread = calloc(1, sizeof(struct thread));
+
+    return thread;
 }

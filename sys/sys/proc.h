@@ -72,6 +72,7 @@ struct thread {
     struct list         joined_queues;
     struct list         pending_signals; /* list of signals to jump to when we return from kernel space */
     struct list         signal_stack; /* list of signals currently "in-progress" */
+    pid_t               tid;
     struct regs *       regs;
     struct proc *       proc;
     struct vm_space *   address_space;
@@ -102,6 +103,8 @@ int proc_clone(void *func, void *stack, int flags, void *arg);
 char *proc_getctty(struct proc *proc);
 
 void proc_getcwd(struct proc *proc, char *buf, int bufsize);
+
+pid_t proc_get_new_pid();
 
 void proc_destroy(struct proc *);
 
@@ -137,8 +140,6 @@ void thread_interrupt_leave(struct thread *thread, struct regs *regs);
 void thread_restore_signal_state(struct sigcontext *ctx, struct regs *regs);
 
 void thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg);
-
-void thread_run_s(kthread_entry_t entrypoint, struct vm_space *space, void *stack, void *arg);
 
 void thread_yield();
 

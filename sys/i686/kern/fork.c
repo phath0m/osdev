@@ -68,6 +68,7 @@ init_child_proc(void *statep)
     sched_curr_thread->proc = state->proc;
     sched_curr_thread->u_stack_bottom = state->u_stack_bottom;
     sched_curr_thread->u_stack_top = state->u_stack_top;
+    sched_curr_thread->tid = proc->pid;
 
     current_proc = proc;
 
