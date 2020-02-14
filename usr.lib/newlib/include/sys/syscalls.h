@@ -66,5 +66,8 @@
 #define SYS_BIND        0x40
 #define SYS_MMAP        0x41
 #define SYS_CLONE       0x44
+#define SYS_THREAD_SLEEP    0x45
+#define SYS_THREAD_WAKE     0x46
+#define SYS_GETTID          0x47
 
 #endif

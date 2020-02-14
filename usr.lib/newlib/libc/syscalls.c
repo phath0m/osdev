@@ -494,6 +494,21 @@ getsid()
 }
 
 int
+gettid()
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETTID));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 gettimeofday(struct timeval *p, void *z)
 {
     int ret;
