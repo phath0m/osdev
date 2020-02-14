@@ -3,6 +3,9 @@
 #include "canvas.h"
 #include "font.h"
 
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+
 canvas_t *
 canvas_new(int width, int height)
 {
@@ -46,6 +49,30 @@ canvas_rect(canvas_t *canvas, int x, int y, int width, int height, color_t col)
     }
 }
 
+
+void
+canvas_putcanvas(canvas_t *canvas, int x, int y, canvas_t *subcanvas)
+{
+    int max_width = subcanvas->width;
+    int max_height = subcanvas->height;
+    int min_width = canvas->width - x + max_width;
+    int min_height = canvas->height - y;
+
+    int width = MIN(max_width, min_width);
+    int height = MIN(max_height, min_height);
+
+    color_t *pixels = subcanvas->pixels;
+
+    for (int a_x = 0; a_x < width; a_x++)
+    for (int a_y = 0; a_y < height; a_y++) {
+        int canvas_pos = (canvas->width * (a_y + y)) + (a_x + x);
+        int subcanvas_pos = subcanvas->width * a_y + a_x;
+
+        if (pixels[subcanvas_pos] != 0xFFFFFFFF) {
+            canvas->pixels[canvas_pos] = pixels[subcanvas_pos];
+        }
+    }
+}
 
 void
 canvas_putpixels(canvas_t *canvas, int x, int y, int width, int height, color_t *pixels)
