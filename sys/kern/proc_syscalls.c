@@ -590,11 +590,13 @@ sys_thread_sleep(syscall_args_t argv)
 {
     TRACE_SYSCALL("thread_sleep", "void");
 
-    asm volatile("sti");
-
     extern struct thread *sched_curr_thread;
 
     thread_schedule(SSLEEP, sched_curr_thread);
+
+    asm volatile("sti");
+
+    thread_yield();
 
     return 0;
 }
