@@ -4,7 +4,10 @@ AR=i686-elysium-ar
 CFLAGS = -c -std=gnu99 -Wall -Werror
 
 LIBTHREAD_HEADERS += thread.h
+LIBTHREAD_OBJECTS += cond.o
 LIBTHREAD_OBJECTS += thread.o
+LIBTHREAD_OBJECTS += spinlock.o
+LIBTHREAD_OBJECTS += syscalls.o
 
 LIBTHREAD = libthread.a
 
