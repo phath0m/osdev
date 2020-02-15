@@ -12,6 +12,7 @@
 #define TXIOCURSON        0x0007
       
 #define FBIOBUFRQ         0x0200
+#define FBIOGETINFO       0x0201
 
 /* generic file descriptor ioctl's */
 

@@ -1,10 +1,3 @@
-/*
- * Linear framebuffer driver for VBE
- * NOTICE: this does not enable VBE. This requires VBE to be initialized
- * We're letting GRUB do that because I'm lazy and don't feel like reading
- * a textwall on osdev wiki
- */
-
 #include <sys/device.h>
 #include <sys/devices.h>
 #include <sys/errno.h>
@@ -77,6 +70,11 @@ struct lfb_req {
     uint32_t    offset;
     uint32_t    color;
     void *      data;
+};
+
+struct lfb_info {
+    uint32_t    width;
+    uint32_t    height;
 };
 
 static inline void 
@@ -306,6 +304,10 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
     case TXIOCURSOFF:
         state->enable_cursor = false;
         fb_draw_cursor(state, state->last_position, true);
+        break;
+    case FBIOGETINFO:
+        ((struct lfb_info*)argp)->width = state->width;
+        ((struct lfb_info*)argp)->height = state->height;
         break;
     }
 

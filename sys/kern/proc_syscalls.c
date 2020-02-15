@@ -462,7 +462,7 @@ sys_sleep(syscall_args_t argv)
     TRACE_SYSCALL("sleep", "%d", seconds);
 
     extern uint32_t timer_ticks;
-    uint32_t required_ticks = seconds * 1000;
+    uint32_t required_ticks = seconds;
 
     int wakeup_time = timer_ticks + required_ticks;
 
