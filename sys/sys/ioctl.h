@@ -13,6 +13,10 @@
       
 #define FBIOBUFRQ         0x0200
 
+/* generic file descriptor ioctl's */
+
+#define FIONREAD          0x80
+
 struct curpos {
     unsigned short  c_row;
     unsigned short  c_col;

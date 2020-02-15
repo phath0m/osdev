@@ -14,6 +14,7 @@ struct fifo {
 };
 
 #define FIFO_EMPTY(f) (f->size == 0)
+#define FIFO_SIZE(f) (f->size)
 
 struct fifo *fifo_new(size_t maxsize);
 size_t fifo_read(struct fifo *fifo, void *buf, size_t nbyte);

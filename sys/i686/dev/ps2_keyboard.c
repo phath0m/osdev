@@ -2,10 +2,12 @@
 #include <sys/device.h>
 #include <sys/devices.h>
 #include <sys/interrupt.h>
+#include <sys/ioctl.h>
 #include <sys/proc.h>
 #include <sys/types.h>
 #include <sys/i686/portio.h>
 
+static int keyboard_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
 static int keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 
 struct device keyboard_device = {
@@ -14,7 +16,7 @@ struct device keyboard_device = {
     .majorno    =   DEV_MAJOR_KBD,
     .minorno    =   0,
     .close      =   NULL,
-    .ioctl      =   NULL,
+    .ioctl      =   keyboard_ioctl,
     .isatty     =   NULL,
     .open       =   NULL,
     .read       =   keyboard_read,
@@ -34,6 +36,19 @@ keyboard_irq_handler(int inum, struct regs *regs)
     fifo_write(keyboard_buf, &scancode, 1);
 
     return 0;
+}
+
+    
+static int      
+keyboard_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
+{   
+    switch (request) {
+        case FIONREAD:
+            *((uint32_t*)argp) = FIFO_SIZE(keyboard_buf);
+            return -1;
+    }
+
+    return -1;
 }
 
 static int
