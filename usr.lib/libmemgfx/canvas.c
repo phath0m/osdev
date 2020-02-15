@@ -7,13 +7,23 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 canvas_t *
-canvas_new(int width, int height)
+canvas_new(int width, int height, int flags)
 {
     canvas_t *canvas = calloc(1, sizeof(canvas_t));
-    canvas->pixels = calloc(1, width*height*sizeof(color_t));
+    canvas->buffersize = width*height*sizeof(color_t);
+
+    canvas->frontbuffer = calloc(1, canvas->buffersize);
+    
+    if ((flags & CANVAS_DOUBLE_BUFFER)) {
+        canvas->backbuffer = calloc(1, canvas->buffersize);
+        canvas->pixels = canvas->backbuffer;
+    } else {
+        canvas->pixels = canvas->frontbuffer;
+    }
+
     canvas->width = width;
     canvas->height = height;
-    
+
     return canvas;
 }
 
@@ -49,6 +59,15 @@ canvas_rect(canvas_t *canvas, int x, int y, int width, int height, color_t col)
     }
 }
 
+void
+canvas_paint(canvas_t *canvas)
+{
+    if (!canvas->frontbuffer || !canvas->backbuffer) {
+        return;
+    }
+
+    memcpy(canvas->frontbuffer, canvas->backbuffer, canvas->buffersize);
+}
 
 void
 canvas_putcanvas(canvas_t *canvas, int x, int y, canvas_t *subcanvas)
@@ -61,7 +80,7 @@ canvas_putcanvas(canvas_t *canvas, int x, int y, canvas_t *subcanvas)
     int width = MIN(max_width, min_width);
     int height = MIN(max_height, min_height);
 
-    color_t *pixels = subcanvas->pixels;
+    color_t *pixels = subcanvas->frontbuffer;
 
     for (int a_x = 0; a_x < width; a_x++)
     for (int a_y = 0; a_y < height; a_y++) {

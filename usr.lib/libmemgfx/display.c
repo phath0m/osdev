@@ -25,12 +25,16 @@ display_open()
         return NULL;
     }
 
+    struct lfb_info fbinfo;
+
+    ioctl(fd, FBIOGETINFO, &fbinfo);
+
     display_t *display = calloc(1, sizeof(display_t));
     
-    display->width = 800;
-    display->height = 600;
+    display->width = fbinfo.width;
+    display->height = fbinfo.height;
     display->fd = fd;
-    display->state = mmap(NULL, 800*600*4, 7, 0, fd, 0);
+    display->state = mmap(NULL, fbinfo.width*fbinfo.height*4, 7, 0, fd, 0);
 
     return display;
 }
@@ -45,17 +49,17 @@ display_close(display_t *display)
 int
 display_width(display_t *display)
 {
-    return 800;
+    return display->width;
 }
 
 int
 display_height(display_t *display)
 {
-    return 600;
+    return display->height;
 }
 
 void
 display_render(display_t *display, canvas_t *canvas)
 {
-    memcpy(display->state, canvas->pixels, 800*600*4);
+    memcpy(display->state, canvas->pixels, display->width*display->height*4);
 }
