@@ -3,7 +3,11 @@ AR=i686-elysium-ar
 
 CFLAGS = -c -std=gnu99 -Wall -Werror
 
+LIBINPUT_HEADERS += kbd.h
+LIBINPUT_HEADERS += inmux.h
 LIBINPUT_HEADERS += mouse.h
+LIBINPUT_OBJECTS += kbd.o
+LIBINPUT_OBJECTS += inmux.o
 LIBINPUT_OBJECTS += mouse.o
 
 LIBINPUT = libinput.a
