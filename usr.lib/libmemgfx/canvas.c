@@ -6,14 +6,14 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
-canvas_t *
-canvas_new(int width, int height, int flags)
+canvas_t * 
+canvas_from_mem(int width, int height, int flags, color_t *pixels)
 {
     canvas_t *canvas = calloc(1, sizeof(canvas_t));
-    canvas->buffersize = width*height*sizeof(color_t);
 
-    canvas->frontbuffer = calloc(1, canvas->buffersize);
-    
+    canvas->buffersize = width*height*sizeof(color_t);
+    canvas->frontbuffer = pixels;
+
     if ((flags & CANVAS_DOUBLE_BUFFER)) {
         canvas->backbuffer = calloc(1, canvas->buffersize);
         canvas->pixels = canvas->backbuffer;
@@ -25,6 +25,14 @@ canvas_new(int width, int height, int flags)
     canvas->height = height;
 
     return canvas;
+}
+
+canvas_t *
+canvas_new(int width, int height, int flags)
+{
+    color_t *pixels = calloc(1, width*height*4);
+    
+    return canvas_from_mem(width, height, flags, pixels);
 }
 
 void

@@ -1,5 +1,6 @@
 CC=i686-elysium-gcc
 AR=i686-elysium-ar
+RANLIB=i686-elysium-ranlib
 
 CFLAGS = -c -std=gnu99 -Wall -Werror
 
@@ -14,6 +15,7 @@ all: $(LIBMEMGFX)
 
 $(LIBMEMGFX): $(LIBMEMGFX_OBJECTS)
 	$(AR) -rcs $@ $^
+	$(RANLIB) $@
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:

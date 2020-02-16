@@ -18,6 +18,7 @@ typedef struct canvas {
 #define CANVAS_ALPHA_BLEND          0x02
 
 canvas_t *canvas_new(int width, int height, int flags);
+canvas_t *canvas_from_mem(int width, int height, int flags, color_t *pixels);
 
 void canvas_destroy(canvas_t *canvas);
 void canvas_clear(canvas_t *canvas, color_t col);

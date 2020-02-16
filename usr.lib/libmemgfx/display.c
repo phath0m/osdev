@@ -3,17 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 
 #include "canvas.h"
 #include "display.h"
-
-/* right now I'm not providing mman.h because my
- * mmap is half baked and I don't want GNU autocruft
- * to think that I have it properly implemented
- */
-
-extern void *mmap(void *addr, size_t length, int prot, int flags,
-                int fd, off_t offset);
 
 display_t *
 display_open()
@@ -34,7 +27,7 @@ display_open()
     display->width = fbinfo.width;
     display->height = fbinfo.height;
     display->fd = fd;
-    display->state = mmap(NULL, fbinfo.width*fbinfo.height*4, 7, 0, fd, 0);
+    display->state = mmap(NULL, fbinfo.width*fbinfo.height*4, PROT_READ | PROT_WRITE, 0, fd, 0);
 
     return display;
 }
