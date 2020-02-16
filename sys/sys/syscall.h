@@ -75,6 +75,8 @@
 #define SYS_THREAD_SLEEP    0x45
 #define SYS_THREAD_WAKE     0x46
 #define SYS_GETTID          0x47
+#define SYS_SHM_OPEN        0x48
+#define SYS_SHM_UNLINK      0x49
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

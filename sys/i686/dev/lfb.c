@@ -73,8 +73,8 @@ struct lfb_req {
 };
 
 struct lfb_info {
-    uint32_t    width;
-    uint32_t    height;
+    unsigned short  width;
+    unsigned short  height;
 };
 
 static inline void 

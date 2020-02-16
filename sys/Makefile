@@ -30,6 +30,7 @@ KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
 KERNEL_OBJECTS += kern/pty.o
 KERNEL_OBJECTS += kern/pty_syscalls.o
+KERNEL_OBJECTS += kern/shm.o
 KERNEL_OBJECTS += kern/signal.o
 KERNEL_OBJECTS += kern/timer.o
 KERNEL_OBJECTS += kern/extract_tar.o

@@ -236,7 +236,7 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
 {
     int required_pages = ((length - 1) >> 12) + 1;
 
-    bool write = (prot & PROT_WRITE);
+    bool write = (prot & PROT_WRITE) != 0;
     bool user = (prot & PROT_KERN) == 0;
 
     if (addr1 == NULL && (prot & PROT_KERN)) {
