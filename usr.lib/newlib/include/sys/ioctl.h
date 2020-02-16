@@ -12,6 +12,7 @@
 #define TXIOCURSON        0x0007
 
 #define FBIOBUFRQ         0x0200
+#define FBIOGETINFO       0x0201
 
 #define FIONREAD          0x80
 
@@ -19,6 +20,11 @@
 struct curpos {
     unsigned short  c_row;
     unsigned short  c_col;
+};
+
+struct lfb_info {
+    unsigned short    width;
+    unsigned short    height;
 };
 
 struct winsize {

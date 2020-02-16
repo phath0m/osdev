@@ -69,10 +69,16 @@ utime(const char *filename, const struct utimbuf *times)
 }
 
 unsigned int
+msleep(unsigned int miliseconds)
+{
+    asm volatile("int $0x80" : : "a"(SYS_SLEEP), "b"(miliseconds));
+    return 0;
+}
+
+unsigned int
 sleep(unsigned int seconds)
 {
-    asm volatile("int $0x80" : : "a"(SYS_SLEEP), "b"(seconds));
-    return 0;
+    return msleep(seconds * 1000);
 }
 
 char *
@@ -855,6 +861,36 @@ setuid(uid_t uid)
     int ret;
 
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETUID), "b"(uid));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int 
+shm_open(const char *path, int oflag, mode_t mode)
+{       
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SHM_OPEN), "b"(path), "c"(oflag), "d"(mode));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1; 
+    }
+    
+    return ret;
+}   
+
+int
+shm_unlink(const char *path)
+{
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SHM_UNLINK), "b"(path));
 
     if (ret < 0) {
         errno = -ret;
