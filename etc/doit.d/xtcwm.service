@@ -1,0 +1,4 @@
+[Service]
+Name=XTC Window Manager
+ExecStart=/usr/libexec/xtcwm
+RunLevel=5

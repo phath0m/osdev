@@ -8,13 +8,56 @@
 #include <unistd.h>
 #include <collections/dict.h>
 
+typedef enum {
+    SINGLE_USER = 1,
+    MULTI_USER  = 2,
+    GRAPHICAL   = 4
+} runlevel_t;
+
 struct service {
-    char *  name;
-    char *  exec_start;
-    bool    running;
+    char *      name; /* service name */
+    char *      exec_start; /* command to start the service */
+    pid_t       sid; /* session ID for service */
+    runlevel_t  runlevels; /* valid runlevels to start service in */
+    bool        running; /* whether or not this is running */
 };
 
 struct dict loaded_services;
+
+static runlevel_t
+parse_runlevel(const char *runlevel)
+{
+    char rlbuf[256];
+
+    strncpy(rlbuf, runlevel, 256);
+
+    runlevel_t mask = 0;
+    
+    char *tok = strtok(rlbuf, ",");
+
+    while (tok) {
+
+        int runlevel = atoi(tok);
+
+        switch (runlevel) {
+            case 1:
+                mask |= SINGLE_USER;
+                break;
+            case 2:
+                mask |= MULTI_USER;
+                break;
+            case 5:
+                mask |= GRAPHICAL;
+                break;
+            default:
+                return -1;
+        }
+
+        tok = strtok(NULL, ",");
+    }
+    
+    return mask;
+}
 
 static int
 load_service(const char *config_file)
@@ -28,8 +71,17 @@ load_service(const char *config_file)
 
     char *exec_start = ini_section_get(&ini, "Service", "ExecStart");
     char *service_name = ini_section_get(&ini, "Service", "Name");
+    char *runlevels = ini_section_get(&ini, "Service", "RunLevel");
 
     if (!exec_start || !service_name) {
+        printf("doit: invalid syntax in file: %s!\n", config_file);
+        ini_close(&ini);
+        return -1;
+    }
+
+    runlevel_t rlmask = parse_runlevel(runlevels);
+    
+    if (rlmask == -1) {
         ini_close(&ini);
         return -1;
     }
@@ -38,7 +90,7 @@ load_service(const char *config_file)
 
     service->name = service_name;
     service->exec_start = exec_start;
-
+    service->runlevels = rlmask;
     printf("doit: registering %s\n", service_name);
     dict_set(&loaded_services, service_name, service);
 
@@ -93,6 +145,8 @@ service_start(struct service *service)
     if (pid == 0) {
         char *argv[24];
 
+        setsid();
+
         if (shitty_arg_split(service->exec_start, argv, 24) == 0) {
             execv(argv[0], argv);
         }
@@ -100,12 +154,13 @@ service_start(struct service *service)
         exit(-1);
     }   
 
-    
+    service->sid = pid;
+
     return 0;    
 }
 
 static void
-start_services()
+change_runlevel(runlevel_t runlevel)
 {
     list_iter_t iter;
 
@@ -118,7 +173,9 @@ start_services()
 
         if (!dict_get(&loaded_services, name, (void**)&service)) continue;
 
-        service_start(service);
+        if ((service->runlevels & runlevel)) {
+            service_start(service);
+        }
     }
 }
 
@@ -166,7 +223,7 @@ main(int argc, const char *argv[])
         do_directory("/etc/doit.d");
     }
 
-    start_services();
+    change_runlevel(GRAPHICAL);
 
     for (;;) {
         pause();

@@ -1,3 +1,4 @@
 [Service]
 Name=systerm
 ExecStart=/usr/libexec/systerm
+RunLevel=2
