@@ -8,6 +8,16 @@
 #include "canvas.h"
 #include "display.h"
 
+static inline void
+fast_memcpy_d(void *dst, const void *src, size_t nbyte)
+{
+    asm volatile("cld\n\t"
+                 "rep ; movsd"
+                 : "=D" (dst), "=S" (src)
+                 : "c" (nbyte / 4), "D" (dst), "S" (src)
+                 : "memory");
+}
+
 display_t *
 display_open()
 {
@@ -54,5 +64,5 @@ display_height(display_t *display)
 void
 display_render(display_t *display, canvas_t *canvas)
 {
-    memcpy(display->state, canvas->pixels, display->width*display->height*4);
+    fast_memcpy_d(display->state, canvas->pixels, display->width*display->height*4);
 }

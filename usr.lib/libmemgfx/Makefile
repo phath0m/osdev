@@ -8,6 +8,7 @@ LIBMEMGFX_HEADERS += canvas.h
 LIBMEMGFX_HEADERS += display.h
 LIBMEMGFX_OBJECTS += canvas.o
 LIBMEMGFX_OBJECTS += display.o
+LIBMEMGFX_OBJECTS += targa.o
 
 LIBMEMGFX = libmemgfx.a
 

@@ -19,6 +19,7 @@ typedef struct canvas {
 
 canvas_t *canvas_new(int width, int height, int flags);
 canvas_t *canvas_from_mem(int width, int height, int flags, color_t *pixels);
+canvas_t *canvas_from_targa(const char *path, int flags);
 
 void canvas_destroy(canvas_t *canvas);
 void canvas_clear(canvas_t *canvas, color_t col);
@@ -30,4 +31,6 @@ void canvas_puts(canvas_t *canvas, int x, int y, const char *str, color_t col);
 void canvas_putpixels(canvas_t *canvas, int x, int y, int width, int height, color_t *colors);
 void canvas_putcanvas(canvas_t *canvas, int x, int y, canvas_t *other);
 void canvas_scroll(canvas_t *canvas, int amount, color_t fill);
+void canvas_scale(canvas_t *canvas, int width, int height);
+
 #endif

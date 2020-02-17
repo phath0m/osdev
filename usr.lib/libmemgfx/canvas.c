@@ -6,6 +6,25 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
+
+static inline void 
+fast_memcpy_d(void *dst, const void *src, size_t nbyte)
+{
+    asm volatile("cld\n\t"
+                 "rep ; movsd"
+                 : "=D" (dst), "=S" (src)
+                 : "c" (nbyte / 4), "D" (dst), "S" (src)
+                 : "memory");
+}
+
+static inline void
+fast_memset_d(void *dst, uint32_t val, size_t nbyte)
+{
+    asm volatile("cld; rep stosl\n\t"
+            : "+c"(nbyte), "+D" (dst) : "a" (val)
+            : "memory");
+}
+
 canvas_t * 
 canvas_from_mem(int width, int height, int flags, color_t *pixels)
 {
@@ -44,10 +63,11 @@ canvas_clear(canvas_t *canvas, color_t col)
 void
 canvas_fill(canvas_t *canvas, int x, int y, int width, int height, color_t col)
 {
-    for (int a_x = 0; a_x < width; a_x++)
+    int row_size = width;
     for (int a_y = 0; a_y < height; a_y++) {
-        int pos = canvas->width * (a_y + y) + (a_x + x);
-        canvas->pixels[pos] = col;
+        void *dst = &canvas->pixels[canvas->width * (a_y + y) + x];
+
+        fast_memset_d(dst, col, row_size);
     }
 }
 
@@ -90,14 +110,11 @@ canvas_putcanvas(canvas_t *canvas, int x, int y, canvas_t *subcanvas)
 
     color_t *pixels = subcanvas->frontbuffer;
 
-    for (int a_x = 0; a_x < width; a_x++)
     for (int a_y = 0; a_y < height; a_y++) {
-        int canvas_pos = (canvas->width * (a_y + y)) + (a_x + x);
-        int subcanvas_pos = subcanvas->width * a_y + a_x;
+        void *dst = &canvas->pixels[canvas->width * (a_y + y) + x];
+        void *src = &pixels[subcanvas->width * a_y];
 
-        if (pixels[subcanvas_pos] != 0xFFFFFFFF) {
-            canvas->pixels[canvas_pos] = pixels[subcanvas_pos];
-        }
+        fast_memcpy_d(dst, src, width*4);
     }
 }
 
@@ -147,5 +164,37 @@ canvas_scroll(canvas_t *canvas, int amount, color_t fill)
     int start_index = amount * canvas->width;
     int copysize = (canvas->height - amount) * canvas->width;
     
-    memcpy(canvas->pixels, &canvas->pixels[start_index], copysize*sizeof(color_t));
+    fast_memcpy_d(canvas->pixels, &canvas->pixels[start_index], copysize*sizeof(color_t));
+}
+
+void
+canvas_scale(canvas_t *canvas, int width, int height)
+{
+    color_t *newpixels = calloc(1, width*height*sizeof(color_t));
+    color_t *oldpixels = canvas->pixels;
+
+    int x_ratio = (canvas->width << 16) / width + 1;
+    int y_ratio = (canvas->height << 16) / height + 1;
+
+    for (int dst_y = 0; dst_y < height; dst_y++)
+    for (int dst_x = 0; dst_x < width; dst_x++) {
+        int src_x = ((dst_x * x_ratio) >> 16);
+        int src_y = ((dst_y * y_ratio) >> 16);
+
+        newpixels[dst_y*width+dst_x] = oldpixels[src_y*canvas->width+src_x];
+    }
+
+    canvas->pixels = newpixels;
+    canvas->width = width;
+    canvas->height = height;
+
+    free(oldpixels);   
+    
+    if (canvas->backbuffer) {
+        canvas->backbuffer = newpixels;
+        free(canvas->frontbuffer);
+        canvas->frontbuffer = calloc(1, width*height*sizeof(color_t));
+    } else {
+        canvas->frontbuffer = newpixels;
+    }
 }
