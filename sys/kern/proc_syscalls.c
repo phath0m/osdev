@@ -617,7 +617,7 @@ sys_thread_wake(syscall_args_t argv)
 
     while (iter_move_next(&iter, (void**)&thread)) {
         if (thread->tid == tid) {
-            thread_schedule(SRUN, current_proc->thread);
+            thread_schedule(SRUN, thread);
             ret = 0;
             break;
         }

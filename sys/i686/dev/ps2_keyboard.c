@@ -1,6 +1,7 @@
 #include <ds/fifo.h>
 #include <sys/device.h>
 #include <sys/devices.h>
+#include <sys/errno.h>
 #include <sys/interrupt.h>
 #include <sys/ioctl.h>
 #include <sys/proc.h>
@@ -55,6 +56,10 @@ static int
 keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     while (FIFO_EMPTY(keyboard_buf)) {
+        if (thread_exit_requested()) {
+            return -(EINTR);
+        }
+
         thread_yield();
     }
 

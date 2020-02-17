@@ -104,7 +104,20 @@ thread_interrupt_enter(struct thread *thread, struct regs *regs)
 
 void
 thread_interrupt_leave(struct thread *thread, struct regs *regs)
-{
+{ 
+    if (thread->terminated) {
+        thread_schedule(SDEAD, thread);
+        
+        asm volatile("sti");
+
+        for (;;) {
+            thread_yield();
+        }
+    }
+
+    /* reset this flag, we've exited kernel space */
+    thread->exit_requested = 0;
+
     if (LIST_SIZE(&thread->pending_signals) > 0 && regs->eip < 0xC0000000) {
         struct sigcontext *ctx;
 

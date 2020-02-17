@@ -1,3 +1,4 @@
+#include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
 #include <sys/malloc.h>
@@ -125,6 +126,12 @@ pipe_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
     uint8_t *buf8 = (uint8_t*)buf;
 
     while (pipe->size == 0 && !pipe->write_closed) {
+        extern struct thread *sched_curr_thread;
+
+        if (sched_curr_thread->exit_requested) {
+            return -(EINTR);
+        }
+
         thread_yield();
     }
 

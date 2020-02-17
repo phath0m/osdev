@@ -76,6 +76,8 @@ struct thread {
     struct regs *       regs;
     struct proc *       proc;
     struct vm_space *   address_space;
+    uint8_t             exit_requested; /* should this be interrupted?  */
+    uint8_t             terminated; /* has this thread been terminated */
     uint8_t             interrupt_in_progress;
     uint8_t             state;
     uintptr_t           stack;
@@ -84,6 +86,15 @@ struct thread {
     uintptr_t           u_stack_bottom;
     uintptr_t           u_stack_top;
 };
+
+
+static inline bool
+thread_exit_requested()
+{
+    extern struct thread *sched_curr_thread;
+     
+    return sched_curr_thread->exit_requested;
+}
 
 /*
  * Pointer to the currently running process, defined in architecture specific scheduler implementation 
