@@ -141,3 +141,11 @@ canvas_puts(canvas_t *canvas, int x, int y, const char *str, color_t col)
     }
 }
 
+void
+canvas_scroll(canvas_t *canvas, int amount, color_t fill)
+{
+    int start_index = amount * canvas->width;
+    int copysize = (canvas->height - amount) * canvas->width;
+    
+    memcpy(canvas->pixels, &canvas->pixels[start_index], copysize*sizeof(color_t));
+}
