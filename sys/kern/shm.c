@@ -23,6 +23,8 @@ static intptr_t shm_mmap(struct vnode *node, uintptr_t addr, size_t size, int pr
 static int shm_truncate(struct vnode *node, off_t length);
 
 struct vops shm_ops = {
+    .close = NULL,
+    .destroy = NULL,
     .mmap = shm_mmap,
     .truncate = shm_truncate
 };

@@ -122,6 +122,10 @@ vops_close(struct file *file)
         return 0;
     }
 
+    if (!file->node) {
+        return 0;
+    }
+
     VN_DEC_REF(file->node);
 
     struct vops *ops = file->node->ops;

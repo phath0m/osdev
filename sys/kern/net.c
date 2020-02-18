@@ -37,12 +37,13 @@ sock_file_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 }
 
 struct vops sock_file_ops = {
+    .close      = NULL,
     .destroy    = sock_file_destroy,
     .read       = sock_file_read,
     .write      = sock_file_write,
 };
 
-static inline struct protocol *
+static struct protocol *
 get_protocol_from_domain(int domain)
 {
     list_iter_t iter;
