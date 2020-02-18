@@ -15,6 +15,12 @@ typedef void (*test_t)();
 int
 kmain()
 {
+    /* this is sort of a hack because it assumes we're using LFB for output*/
+    /* TODO: something that makes less assumptions */
+    extern struct device lfb_device;
+    
+    kset_output(&lfb_device);
+
     struct vnode *root;
 
     if (fs_open(NULL, &root, "tmpfs", 0) != 0) {
@@ -50,7 +56,7 @@ kmain()
 
 
     const char *envp[] = {
-        "CONSOLE=/dev/ttyS1",
+        "CONSOLE=/dev/ttyS0",
         "TERM=xterm",
         NULL
     };
