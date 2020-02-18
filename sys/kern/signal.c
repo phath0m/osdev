@@ -5,18 +5,36 @@
 #include <sys/systm.h>
 
 
+static void
+kill_thread(struct thread *thread)
+{
+    if (thread->interrupt_in_progress) {
+        thread->exit_requested = 1;
+        thread->terminated = 1;
+    } else {
+        thread_schedule(SDEAD, thread);
+    }
+}
+
 int
 proc_actually_kill(struct proc *proc, int signal)
 {
     proc->status = signal;
     proc->exited = true;
 
-    if (proc->thread->interrupt_in_progress) {
-        proc->thread->exit_requested = 1;
-        proc->thread->terminated = 1;
-    } else {
-        thread_schedule(SDEAD, proc->thread);
+    //kill_thread(proc->thread);
+
+    list_iter_t iter;
+
+    list_get_iter(&proc->threads, &iter);
+
+    struct thread *thread;
+
+    while (iter_move_next(&iter, (void**)&thread)) {
+        kill_thread(thread);
     }
+
+    iter_close(&iter);
     
     return 0;
 }
@@ -26,6 +44,7 @@ default_kill(struct proc *proc, int signal)
 {
     switch (signal) {
         case 9:  /* SIGKILL*/
+        case 11: /* SIGSEGV */
         case 15: /* SIGTERM */
             return proc_actually_kill(proc, signal);
         default:
