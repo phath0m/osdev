@@ -12,10 +12,10 @@ stacktrace(int max_frames)
     struct stackframe *frame;
 
     asm volatile("movl %%ebp, %%edx": "=d"(frame));
-    printf("Trace:\n");
+    printf("Trace:\n\r");
 
     for (int i = 0; i < max_frames && frame; i++) {
-        printf("    [0x%p]\n", frame->eip);
+        printf("    [0x%p]\n\r", frame->eip);
         frame = frame->prev;
     }
 }

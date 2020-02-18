@@ -210,9 +210,15 @@ thread_destroy(struct thread *thread)
     free((void*)thread->stack_base);
     free(thread);
     
-    if (proc && proc->exited) {
-        proc_destroy(thread->proc);
+    if (!proc) {
+        return;
     }
+
+    list_remove(&proc->threads, thread);
+     
+    if (LIST_SIZE(&proc->threads) == 0) {
+        proc_destroy(proc);
+    }   
 }
 
 __attribute__((constructor))

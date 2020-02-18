@@ -88,7 +88,7 @@ handle_page_fault(int inum, struct regs *regs)
         /* send SIGSEGV to program */
         extern struct proc *current_proc;
 
-        printf("%s[%d] segfault at %p ip: %p sp %p\n", current_proc->name,
+        printf("%s[%d] segfault at %p ip: %p sp %p\n\r", current_proc->name,
                 current_proc->pid, fault_addr, regs->eip, regs->uesp);
 
         proc_kill(current_proc, 11);
@@ -98,18 +98,18 @@ handle_page_fault(int inum, struct regs *regs)
     
     printf("\n");
 
-    print_stack(regs, 4);
     print_regs(regs);
+    print_stack(regs, 4);
 
     if (!present) {
-        printf("page not present\n");
+        printf("page not present\n\r");
     }
 
     if (present && rw) {
-        printf("page read only\n");
+        printf("page read only\n\r");
     }
 
-    printf("\n");
+    printf("\n\r");
     
     panic("page fault at %p", fault_addr);
     asm volatile("cli");
@@ -122,10 +122,10 @@ print_stack(struct regs *regs, int max_fames)
 {
     struct stackframe *frame = (struct stackframe*)regs->ebp;
  
-    printf("Trace:\n");
+    printf("Trace:\n\r");
 
     for (int i = 0; i < max_fames && frame; i++) {
-        printf("    [0x%p]\n", frame->eip);
+        printf("    [0x%p]\n\r", frame->eip);
         frame = frame->prev;
     }
 }
@@ -133,9 +133,9 @@ print_stack(struct regs *regs, int max_fames)
 static void
 print_regs(struct regs *regs)
 {
-    printf("eax: %p ebx: %p ecx: %p edx: %p\n", regs->eax, regs->ebx, regs->ecx, regs->ebx);
-    printf("edi: %p esi: %p esp: %p eip: %p\n", regs->edi, regs->esi, regs->esp, regs->eip);
-    printf(" cs: %p  ds: %p  ss: %p\n", regs->cs, regs->ds, regs->ss);
+    printf("eax: %p ebx: %p ecx: %p edx: %p\n\r", regs->eax, regs->ebx, regs->ecx, regs->ebx);
+    printf("edi: %p esi: %p esp: %p eip: %p\n\r", regs->edi, regs->esi, regs->esp, regs->eip);
+    printf(" cs: %p  ds: %p  ss: %p\n\r", regs->cs, regs->ds, regs->ss);
 }
 
 __attribute__((constructor))
