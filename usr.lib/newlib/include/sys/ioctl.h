@@ -10,6 +10,7 @@
 #define TXIOERSLIN        0x0005
 #define TXIOCURSOFF       0x0006
 #define TXIOCURSON        0x0007
+#define TXIORST           0x0008
 
 #define FBIOBUFRQ         0x0200
 #define FBIOGETINFO       0x0201

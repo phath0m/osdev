@@ -305,6 +305,12 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
         state->enable_cursor = false;
         fb_draw_cursor(state, state->last_position, true);
         break;
+    case TXIORST:
+        state->enable_cursor = false;
+        state->position = 0;
+        state->foreground_color = 0xFFFFFF;
+        state->background_color = 0;
+        break;
     case FBIOGETINFO:
         ((struct lfb_info*)argp)->width = state->width;
         ((struct lfb_info*)argp)->height = state->height;
