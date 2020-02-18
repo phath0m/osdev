@@ -31,7 +31,9 @@ run_kernel(void *state)
     sched_curr_thread->proc = init;
     current_proc = init;
     
-    if (kmain() != 0) {
+    const char *args = (const char *)(KERNEL_BASE +  multiboot_header->cmdline);
+
+    if (kmain(args) != 0) {
         printf("Unable to boot kernel!\n");
     }
 

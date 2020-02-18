@@ -14,7 +14,7 @@
         panic("kassert: %s", msg); \
     }
 
-int kmain();
+int kmain(const char *args);
 void kputs(const char *str);
 void kset_output(struct device *dev);
 void panic(const char *fmt, ...);

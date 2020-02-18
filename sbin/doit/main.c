@@ -7,6 +7,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <collections/dict.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 typedef enum {
     SINGLE_USER = 1,
@@ -21,6 +23,17 @@ struct service {
     runlevel_t  runlevels; /* valid runlevels to start service in */
     bool        running; /* whether or not this is running */
 };
+
+/* IPC request, used to interact with the daemon */
+struct doit_request {
+    int     opcode;
+    int     arg;
+    char    payload[512];
+};
+
+#define DOIT_SOCK_PATH "/var/run/doit.sock"
+
+#define DOIT_CHANGE_RUNLEVEL    0x01
 
 struct dict loaded_services;
 
@@ -200,33 +213,115 @@ do_directory(const char *directory)
     closedir(dirp);
 }
 
+/* this should only be called onced; initializes the actual daemon and starts services*/
+static void
+start_daemon(int argc, const char *argv[])
+{
+    runlevel_t target = MULTI_USER;
+
+    if (argc == 2) {
+        target = parse_runlevel(argv[1]);
+        
+        if (target == -1) {
+            printf("doit: invalid runlevel specified! assume multi-user!\n");
+            target = MULTI_USER;
+        }
+    }
+
+    memset(&loaded_services, 0, sizeof(loaded_services));
+
+    const char *console = getenv("CONSOLE");
+
+    for (int i = 0; i < 3; i++) {
+        open(console, O_RDWR);
+    }
+
+    printf("doit: Welcome!\n");
+
+    do_directory("/etc/doit.d");
+
+    change_runlevel(target);
+
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    struct sockaddr_un  addr;
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+
+    strcpy(addr.sun_path, DOIT_SOCK_PATH);
+
+    bind(fd, (struct sockaddr*)&addr, sizeof(addr));
+ 
+    for (;;) {
+
+        int client = accept(fd, NULL, NULL);
+
+        struct doit_request request;
+        struct doit_request response;
+
+        read(client, &request, sizeof(request));
+
+        switch (request.opcode) {
+            case DOIT_CHANGE_RUNLEVEL:
+                printf("doit: change runlevel to %d\n", request.arg);
+                break;
+        }
+
+        write(client, &response, sizeof(response));
+        close(client);
+    }
+}
+
+static void
+send_ipc_request(int opcode, int arg, const char *payload)
+{
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    struct sockaddr_un  addr;
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_UNIX;
+
+    strcpy(addr.sun_path, DOIT_SOCK_PATH);
+
+    connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+
+    struct doit_request request;
+
+    request.opcode = opcode;
+    request.arg = arg;
+
+    write(fd, &request, sizeof(request));
+    read(fd, &request, sizeof(request));
+
+    close(fd);
+ }
+
+static int
+handle_runlevel_command(const char *runlevel)
+{
+    send_ipc_request(DOIT_CHANGE_RUNLEVEL, atoi(runlevel), NULL);
+    
+    return 0;
+}
+
 int
 main(int argc, const char *argv[])
 {
-    memset(&loaded_services, 0, sizeof(loaded_services));
-
-    if (argc > 1) {
-        const char *operation = argv[1];
-
-        if (strcmp(operation, "--start-directory") == 0 && argc == 3) {
-            do_directory(argv[2]);
-        }
-    } else {
-        const char *console = getenv("CONSOLE");
-
-        for (int i = 0; i < 3; i++) {
-            open(console, O_RDWR);
-        }
-
-        printf("doit: Welcome!\n");
-
-        do_directory("/etc/doit.d");
+    if (getpid() == 1) {
+        start_daemon(argc, argv);
+        return 0;
     }
 
-    change_runlevel(GRAPHICAL);
 
-    for (;;) {
-        pause();
+    if (argc != 3) {
+        fprintf(stderr, "usage: doit (runlevel|start|stop) arg\n");
+        return -1;
+    }
+
+    const char *command = argv[1];
+
+    if (strcmp(command, "runlevel") == 0) {
+        return handle_runlevel_command(argv[2]);
     }
 
     return 0;

@@ -10,10 +10,8 @@
 #include <sys/i686/vm.h>
 #include <ds/membuf.h>
 
-typedef void (*test_t)();
-
 int
-kmain()
+kmain(const char *args)
 {
     /* this is sort of a hack because it assumes we're using LFB for output*/
     /* TODO: something that makes less assumptions */
@@ -38,7 +36,6 @@ kmain()
 
     if (fs_mount(root, NULL, "devfs", "/dev", 0) != 0) {
         panic("could not mount devfs!");
-        printf("kernel: mounted devfs to /dev\n");
     }
 
     extern struct vm_space *sched_curr_address_space;
@@ -49,13 +46,14 @@ kmain()
 
     set_tss_esp0(0xFFFFFF00);
 
-    const char *argv[] = {
+    const char *init_argv[] = {
         "/sbin/doit",
+        args,
         NULL
     };
 
-
-    const char *envp[] = {
+    
+    const char *init_envp[] = {
         "CONSOLE=/dev/ttyS0",
         "TERM=xterm",
         NULL
@@ -65,11 +63,7 @@ kmain()
 
     current_proc->umask = 0744;
 
-    proc_execve(argv[0], argv, envp);
-
-    /*
-     * There isn't much we can do right now :P
-     */
+    proc_execve(init_argv[0], init_argv, init_envp);
 
     return 0;
 }
