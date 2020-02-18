@@ -28,6 +28,9 @@ display_open()
         return NULL;
     }
 
+    /* First; reset the textscreen (This ensures kernel output will be visible if panic) */
+    ioctl(fd, TXIORST, NULL);
+
     struct lfb_info fbinfo;
 
     ioctl(fd, FBIOGETINFO, &fbinfo);
