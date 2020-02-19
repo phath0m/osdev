@@ -37,7 +37,7 @@ extract_file(struct vnode *root, const char *name, void *data, size_t size, mode
     struct file *fp;
 
     if (vops_creat(current_proc, &fp, name, mode) != 0) {
-        printf("error: extracting %s\n", name);
+        panic("could not extract %s", name);
         return;
     }
 
@@ -49,7 +49,7 @@ extract_file(struct vnode *root, const char *name, void *data, size_t size, mode
 void
 tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive)
 {
-    printf("extracting files for initial ramdisk...\n");
+    printf("kernel: extracting files for initial ramdisk...\n\r");
 
     for (int i = 0; ;i++) {
         struct tar_header *header = (struct tar_header*)archive;

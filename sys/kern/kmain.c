@@ -54,12 +54,12 @@ kmain(const char *args)
 
     
     const char *init_envp[] = {
-        "CONSOLE=/dev/ttyS0",
+        "CONSOLE=/dev/lfb",
         "TERM=xterm",
         NULL
     };
 
-    printf("kernel: invoke /sbin/doit\n");
+    printf("kernel: invoke /sbin/doit\n\r");
 
     current_proc->umask = 0744;
 
