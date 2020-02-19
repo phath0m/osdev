@@ -44,7 +44,6 @@ static int default_color_palette[] = {0x0, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698
 
 static int lfb_close(struct device *dev);
 static int lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
-static int lfb_isatty(struct device *dev);
 static int lfb_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset);
 static int lfb_open(struct device *dev);
 static int lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
@@ -56,7 +55,7 @@ struct device lfb_device = {
     .minorno    =   1,
     .close      =   lfb_close,
     .ioctl      =   lfb_ioctl,
-    .isatty     =   lfb_isatty,
+    .isatty     =   NULL,
     .mmap       =   lfb_mmap,
     .open       =   lfb_open,
     .read       =   NULL,
@@ -321,12 +320,6 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
     return 0;
 }
 
-static int
-lfb_isatty(struct device *dev)
-{
-    return 1;
-}
-
 static intptr_t
 lfb_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset)
 {
@@ -439,6 +432,7 @@ _init_lfb()
     state.foreground = calloc(1, state.buffer_size);
     state.background = calloc(1, state.buffer_size);
     state.backbuffer = calloc(1, state.buffer_size);
+    state.foreground_color = 0xFFFFFF;
     spinlock_unlock(&state.lock);
     lfb_device.state = &state;
     device_register(&lfb_device);
