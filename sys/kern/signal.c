@@ -17,12 +17,10 @@ kill_thread(struct thread *thread)
 }
 
 int
-proc_actually_kill(struct proc *proc, int signal)
+proc_actually_kill(struct proc *proc, int status)
 {
-    proc->status = signal;
+    proc->status = status;
     proc->exited = true;
-
-    //kill_thread(proc->thread);
 
     list_iter_t iter;
 
@@ -43,7 +41,8 @@ int
 default_kill(struct proc *proc, int signal)
 {
     switch (signal) {
-        case 9:  /* SIGKILL*/
+        case 2:  /* SIGINT */
+        case 9:  /* SIGKILL */
         case 11: /* SIGSEGV */
         case 15: /* SIGTERM */
             return proc_actually_kill(proc, signal);
