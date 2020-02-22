@@ -19,11 +19,13 @@
 #include <sys/un.h>
 
 #include "window.h"
+#include "wm.h"
 
 #define SESSION_MAX_WINDOWS     256
 
 struct xtc_session {
     int             sfd;
+    struct wmctx *  ctx;
     struct window * windows[SESSION_MAX_WINDOWS];
 };
 
@@ -86,7 +88,7 @@ handle_new_win(struct xtc_session *session, struct xtc_msg_hdr *hdr)
     
     session->windows[window_id] = win;
 
-    add_new_window(win);
+    wm_add_window(session->ctx, win);
 
     send_response(session, &window_id, 1, 0);
 }
@@ -294,7 +296,7 @@ handle_connection(void *arg)
 }
 
 void
-server_listen()
+server_listen(void *ctx)
 {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -310,7 +312,7 @@ server_listen()
         int sfd = accept(fd, NULL, NULL);
 
         struct xtc_session *session = calloc(1, sizeof(struct xtc_session));
-
+        session->ctx = ctx;
         session->sfd = sfd;
 
         thread_t thread;

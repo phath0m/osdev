@@ -1,14 +1,12 @@
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
-#CC=gcc
-#LD=gcc
 
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS = -lcollections -lthread -lmemgfx -linput
 
-XTCWM_OBJECTS += main.o
 XTCWM_OBJECTS += server.o
 XTCWM_OBJECTS += window.o
+XTCWM_OBJECTS += wm.o
 
 XTCWM = xtcwm
 

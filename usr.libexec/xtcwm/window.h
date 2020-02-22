@@ -10,11 +10,12 @@
 #define WINEVENT_CLICK          0x01
 #define WINEVENT_KEYPRESS       0x02
 
-#define WINDOW_BORDER_COLOR     0x3e868a
-#define WINDOW_TITLE_COLOR      0x1f5770
-#define WINDOW_COLOR            0xFFFFFF
-#define WINDOW_TEXT_COLOR       0x000000
-#define WINDOW_CONTROL_COLOR    0x656566
+#define WINDOW_BORDER_COLOR             0x3e868a
+#define WINDOW_TITLE_COLOR              0x303030
+#define WINDOW_ACTIVE_TITLE_COLOR       0x1f5770
+#define WINDOW_ACTIVE_TEXT_COLOR        0xFFFFFF
+#define WINDOW_TEXT_COLOR               0x5c5b5b
+#define WINDOW_COLOR                    0xFFFFFF
 
 #define CONTROL_BUTTON      0x01
 
@@ -26,8 +27,14 @@ struct click_event {
 };
 
 struct window {
+    int             active;
+    int             redraw;
     int             x;
     int             y;
+    int             prev_x;
+    int             prev_y;
+    int             absolute_height;
+    int             absolute_width;
     int             height;
     int             width;
     int             dragged;
@@ -47,7 +54,7 @@ struct window_event {
 };
 
 
-void add_new_window(struct window *window);
+void add_new_window(void *ctx, struct window *window);
 
 struct window * window_new(int x, int y, int width, int height);
 void window_set_title(struct window *win, const char *title);

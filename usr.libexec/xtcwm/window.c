@@ -33,8 +33,14 @@ window_new(int x, int y, int width, int height)
 
     window->x = x;
     window->y = y;
+    window->prev_x = x;
+    window->prev_y = y;
     window->width = width;
     window->height = height;
+    window->absolute_width = width + 2;
+    window->absolute_height = height + 21;
+
+    window->redraw = 1;
 
     /* 
      * unique name for shm object that can be used to expose the actual raw
@@ -44,12 +50,15 @@ window_new(int x, int y, int width, int height)
 
     int memfd = shm_open(window->shm_name, O_RDWR | O_CREAT, 0700);
    
-    ftruncate(memfd, width*height*4); 
+    size_t pixbuf_size = sizeof(pixbuf_t)+(width*height*4);
+    ftruncate(memfd, pixbuf_size); 
 
-    color_t *pixels = mmap(NULL, width*height*4, PROT_READ | PROT_WRITE,
+    pixbuf_t *pixbuf = mmap(NULL, pixbuf_size, PROT_READ | PROT_WRITE,
             MAP_SHARED, memfd, 0);
 
-    window->canvas = canvas_from_mem(width, height, CANVAS_DOUBLE_BUFFER, pixels);
+    memset(pixbuf, 0, pixbuf_size);
+
+    window->canvas = canvas_from_mem(width, height, 0, pixbuf);
 
     strcpy(window->title, "Form 1");
 
@@ -65,15 +74,45 @@ window_set_title(struct window *win, const char *title)
 void
 window_draw(struct window *win, canvas_t *canvas)
 {
-    canvas_fill(canvas, win->x, win->y, win->width + 1, 20, WINDOW_TITLE_COLOR);
-    canvas_rect(canvas, win->x, win->y, win->width + 1, win->height + 20, WINDOW_BORDER_COLOR);
+    if (win->redraw) {
+        
+        int title_color = WINDOW_TITLE_COLOR;
+        int text_color = WINDOW_TEXT_COLOR;
 
-    int text_width = strlen(win->title) * 10;
+        if (win->active) {
+            title_color = WINDOW_ACTIVE_TITLE_COLOR;
+            text_color = WINDOW_ACTIVE_TEXT_COLOR;
+        }
 
-    int center_x = win->width / 2 - text_width / 2;
+        canvas_fill(canvas, win->x, win->y, win->width + 1, 20, title_color);
+        canvas_rect(canvas, win->x, win->y, win->width + 1, win->height + 20, WINDOW_BORDER_COLOR);
 
-    canvas_puts(canvas, win->x + center_x, win->y + 4, win->title, 0xFFFFFF);
-    canvas_putcanvas(canvas, win->x + 1, win->y + 20, win->canvas);
+        int text_width = strlen(win->title) * 10;
+
+        int center_x = win->width / 2 - text_width / 2;
+
+        canvas_puts(canvas, win->x + center_x, win->y + 4, win->title, text_color);
+        canvas_putcanvas(canvas, win->x + 1, win->y + 20, 0, 0, 
+                win->width, win->height, win->canvas);
+
+        canvas_invalidate_region(canvas, win->prev_x, win->prev_y,
+                win->absolute_width,
+                win->absolute_height);
+
+        win->redraw = 0;
+    }
+
+    pixbuf_t *buf = win->canvas->pixels;
+
+    if (buf->dirty) {
+        
+        int width = buf->max_x - buf->min_x;
+        int height = buf->max_y - buf->min_y;
+
+        canvas_putcanvas(canvas, win->x + 1 + buf->min_x, win->y + 20 + buf->min_y, buf->min_x,
+                buf->min_y, width, height, win->canvas);
+        buf->dirty = 0;
+    }
 }
 
 void
@@ -84,6 +123,8 @@ window_click(struct window *self, struct click_event *event)
 
     if (relative_y < 20) {
         self->dragged = 1;
+        self->prev_x = self->x;
+        self->prev_y = self->y;
         return;
     }
   
