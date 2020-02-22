@@ -7,16 +7,7 @@
 
 #include "canvas.h"
 #include "display.h"
-
-static inline void
-fast_memcpy_d(void *dst, const void *src, size_t nbyte)
-{
-    asm volatile("cld\n\t"
-                 "rep ; movsd"
-                 : "=D" (dst), "=S" (src)
-                 : "c" (nbyte / 4), "D" (dst), "S" (src)
-                 : "memory");
-}
+#include "utils.h"
 
 display_t *
 display_open()
@@ -65,7 +56,33 @@ display_height(display_t *display)
 }
 
 void
-display_render(display_t *display, canvas_t *canvas)
+display_render(display_t *display, canvas_t *canvas, int x, int y, int width, int height)
 {
-    fast_memcpy_d(display->state, canvas->pixels, display->width*display->height*4);
+    pixbuf_t *pixbuf = canvas->frontbuffer;
+
+    color_t *srcpixels = pixbuf->pixels;
+   
+    color_t *fb = (color_t*)display->state;
+
+    int max_width = width;
+    int max_height = height;
+    int min_width = display->width - x;
+    int min_height = display->height - y;
+
+    width = MIN(max_width, min_width);
+    height = MIN(max_height, min_height);
+
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    int max_y = y + height;
+
+    while (y < max_y) {
+        void *dst = &fb[display->width * y + x];
+        void *src = &srcpixels[canvas->width * y + x];
+        
+        fast_memcpy_d(dst, src, width*4);
+        y++;
+    }
 }

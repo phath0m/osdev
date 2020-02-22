@@ -14,6 +14,6 @@ display_t *display_open();
 int display_width(display_t *display);
 int display_height(display_t *display);
 void display_close(display_t *display);
-void display_render(display_t *display, canvas_t *canvas);
+void display_render(display_t *display, canvas_t *canvas, int x, int y, int width, int height);
 
 #endif

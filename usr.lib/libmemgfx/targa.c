@@ -33,7 +33,8 @@ canvas_from_targa(const char *path, int flags)
 
     int bpp = header.bpp / 8;
 
-    color_t *pixels = calloc(1, header.width*header.height*sizeof(uint32_t));
+    pixbuf_t *pixbuf = pixbuf_new(header.width, header.height);
+    color_t *pixels = pixbuf->pixels;
    
     //for (int y = header.height - 1; y >= 0; y--)
     for (int y = 0; y < header.height; y++)
@@ -47,5 +48,5 @@ canvas_from_targa(const char *path, int flags)
 
     fclose(fp);
  
-    return canvas_from_mem(header.width, header.height, flags, pixels);
+    return canvas_from_mem(header.width, header.height, flags, pixbuf);
 }
