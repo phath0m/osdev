@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <sys/syscalls.h>
 #include <sys/utsname.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <utime.h>
 
@@ -41,12 +42,25 @@ sysconf(int name)
 int
 fcntl(int fd, int cmd, ...)
 {
-    printf("fcntl() %d, %d\n", fd, cmd);
-    if (cmd == F_GETFD || cmd == F_SETFD) {
-        return 0;
+    if (cmd != F_GETFD && cmd != F_SETFD) {
+        return -1;
     }
 
-    return -1;
+    va_list argp;
+    va_start(argp, cmd);
+    void *arg = va_arg(argp, void*);
+    va_end(argp);
+
+    int ret;
+
+    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FCNTL), "b"(fd), "c"(cmd), "d"(arg));
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return 0;
 }
 
 
