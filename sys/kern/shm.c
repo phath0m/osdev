@@ -117,7 +117,6 @@ shm_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset
         /* its not mapped already, we've got to allocate and map space */
         obj->space = space; 
         obj->addr = vm_map(space, NULL, size, prot);
-
         return (intptr_t)obj->addr;
     }
 
