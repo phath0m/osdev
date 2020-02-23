@@ -17,7 +17,11 @@
 #define ENOSPC      28
 #define ESPIPE      29
 #define EROFS       30
+#define EPIPE       32
 #define ENOTEMPTY   39
+
+#define ECONNRESET  104
+
 #define ENOTSUP     129
 
 #endif

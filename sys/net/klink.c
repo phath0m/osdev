@@ -59,16 +59,17 @@ struct klink_heap_stat {
     uint32_t    vm_space_count;
 } __attribute__((packed));
 
-static int klink_close(struct socket *sock);
 static int klink_connect(struct socket *socket, void *address, size_t address_len);
+static int klink_destroy(struct socket *sock);
 static int klink_init(struct socket *socket, int type, int protocol);
 static size_t klink_recv(struct socket *socket, void *buf, size_t size);
 static size_t klink_send(struct socket *socket, const void *buf, size_t);
 
 struct socket_ops klink_ops = {
     .accept     = NULL,
-    .close      = klink_close,
+    .close      = NULL,
     .connect    = klink_connect,
+    .destroy    = klink_destroy,
     .init       = klink_init,
     .recv       = klink_recv,
     .send       = klink_send
@@ -242,7 +243,7 @@ klink_query(struct klink_session *session, struct klink_dgram *req)
 }
 
 static int
-klink_close(struct socket *sock)
+klink_destroy(struct socket *sock)
 {
     struct klink_session *session = (struct klink_session*)sock->state;
 

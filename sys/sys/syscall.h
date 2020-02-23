@@ -12,7 +12,7 @@
 #define SYS_STAT            0x04
 #define SYS_FSTAT           0x05
 #define SYS_LSEEK           0x06
-#define SYS_FNCTL           0x07
+#define SYS_FCNTL           0x07
 #define SYS_IOCTL           0x08
 #define SYS_SBRK            0x09
 #define SYS_ACCESS          0x0A
@@ -82,7 +82,7 @@
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
 
 
-#define TRACE_SYSCALL(name, fmt, ...)  // printf("pid=%d   %s(" fmt ")\n", current_proc->pid, name, ## __VA_ARGS__);
+#define TRACE_SYSCALL(name, fmt, ...) //  printf("pid=%d   %s(" fmt ")\n", current_proc->pid, name, ## __VA_ARGS__);
 
 #define SYSCALL_REGS(s) ((struct regs*)s->state)
 

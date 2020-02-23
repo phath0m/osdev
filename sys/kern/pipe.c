@@ -126,13 +126,17 @@ pipe_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
     uint8_t *buf8 = (uint8_t*)buf;
 
     while (pipe->size == 0 && !pipe->write_closed) {
+        thread_yield();
+
         extern struct thread *sched_curr_thread;
 
         if (sched_curr_thread->exit_requested) {
             return -(EINTR);
         }
+    }
 
-        thread_yield();
+    if (pipe->write_closed && pipe->size == 0) {
+        return -(EPIPE);
     }
 
     spinlock_lock(&pipe->lock);
@@ -170,6 +174,15 @@ pipe_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 
     while (pipe->size != 0 && !pipe->read_closed) {
         //thread_yield();
+        extern struct thread *sched_curr_thread;
+        
+        if (sched_curr_thread->exit_requested) {
+            return -(EINTR);
+        }
+    }
+
+    if (pipe->read_closed) {
+        return -(EPIPE);
     }
 
     spinlock_lock(&pipe->lock);

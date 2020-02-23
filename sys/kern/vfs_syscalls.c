@@ -58,6 +58,7 @@ sys_close(syscall_args_t argv)
         current_proc->files[fd] = NULL;
 
         vops_close(fp);
+
         return 0;
     }
 

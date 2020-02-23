@@ -17,6 +17,8 @@ static int un_accept(struct socket *socket, struct socket **result, void *addres
 static int un_bind(struct socket *socket, void *address, size_t address_len);
 static int un_close(struct socket *sock);
 static int un_connect(struct socket *socket, void *address, size_t address_len);
+static int un_destroy(struct socket *sock);
+static int un_duplicate(struct socket *sock);
 static int un_init(struct socket *socket, int type, int protocol);
 static size_t un_recv(struct socket *sock, void *buf, size_t size);
 static size_t un_send(struct socket *sock, const void *buf, size_t size);
@@ -26,6 +28,8 @@ struct socket_ops un_ops = {
     .bind       = un_bind,
     .close      = un_close,
     .connect    = un_connect,
+    .destroy    = un_destroy,
+    .duplicate  = un_duplicate,
     .init       = un_init,
     .recv       = un_recv,
     .send       = un_send
@@ -40,7 +44,10 @@ struct un_conn {
     struct proc *       client;
     struct file *       tx_pipe[2];
     struct file *       rx_pipe[2];
-    struct vnode *   host;
+    struct un_conn *    peer;
+    bool                closed;
+    int                 refs;
+    struct vnode *      host;
 };
 
 static int
@@ -71,12 +78,14 @@ un_accept(struct socket *socket, struct socket **result, void *address, size_t *
 
     struct un_conn *server_conn = calloc(1, sizeof(struct un_conn));
 
+    server_conn->refs = 1;
     server_conn->rx_pipe[0] = client_conn->tx_pipe[0];
     server_conn->tx_pipe[1] = client_conn->rx_pipe[1];
+    server_conn->peer = client_conn;
+    client_conn->peer = server_conn;
 
     client->state = server_conn;
     client->protocol = &un_domain;
-
     *result = client;
 
     return 0;
@@ -106,20 +115,49 @@ un_bind(struct socket *socket, void *address, size_t address_len)
 }
 
 static int
-un_close(struct socket *sock)
+un_destroy(struct socket *sock)
 {
     struct un_conn *conn = (struct un_conn*)sock->state;
 
-    if (conn->tx_pipe[1]) {
-        vops_close(conn->tx_pipe[1]);
-        vops_close(conn->rx_pipe[0]);
-    }
+    KASSERT("tx/rx pipes should be called before the vnode is destroyed",
+            conn->rx_pipe[0] == NULL && conn->tx_pipe[1] == NULL);
 
     if (conn->host) {
         VN_DEC_REF(conn->host);
     }
 
     free(conn);
+
+    return 0;
+}
+
+static int
+un_duplicate(struct socket *sock)
+{
+    struct un_conn *conn = (struct un_conn*)sock->state;
+
+    conn->refs++;
+
+    return 0;
+}
+
+static int
+un_close(struct socket *sock)
+{
+    struct un_conn *conn = (struct un_conn*)sock->state;
+
+    conn->refs--;
+
+    if (conn->refs == 0) {
+        KASSERT("un tx/rx pipes should not have been closed already",
+                conn->rx_pipe[0] != NULL && conn->tx_pipe[1] != NULL);
+        vops_close(conn->rx_pipe[0]);
+        vops_close(conn->tx_pipe[1]);
+        
+        conn->rx_pipe[0] = NULL;
+        conn->tx_pipe[1] = NULL;
+        conn->closed = 1;
+    }
 
     return 0;
 }
@@ -137,6 +175,7 @@ un_connect(struct socket *socket, void *address, size_t address_len)
     struct un_conn *conn = calloc(1, sizeof(struct un_conn));
 
     conn->host = host;
+    conn->refs = 1;
 
     socket->state = conn;
 
@@ -159,7 +198,17 @@ un_recv(struct socket *sock, void *buf, size_t size)
 {
     struct un_conn *conn = (struct un_conn*)sock->state;
 
-    return vops_read(conn->rx_pipe[0], buf, size);
+    if (conn->peer->closed) {
+        return -(ECONNRESET);
+    }
+
+    int ret = vops_read(conn->rx_pipe[0], buf, size);
+    
+    if (ret == -(EPIPE)) {
+        return -(ECONNRESET);
+    }
+
+    return ret;
 }
 
 static size_t
@@ -167,7 +216,17 @@ un_send(struct socket *sock, const void *buf, size_t size)
 {
     struct un_conn *conn = (struct un_conn*)sock->state;
 
-    return vops_write(conn->tx_pipe[1], buf, size);
+    if (conn->peer->closed) {
+        return -(ECONNRESET);
+    }
+
+    int ret = vops_write(conn->tx_pipe[1], buf, size);
+    
+    if (ret == -(ESPIPE)) {
+        return -(ECONNRESET);
+    }
+
+    return ret;
 }
 
 __attribute__((constructor))

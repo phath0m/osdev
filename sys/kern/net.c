@@ -12,12 +12,31 @@ static struct list protocol_list;
 /*
  * Wrapper functions to connect socket API to underlying virtual system
  */
+
+static int
+sock_file_close(struct vnode *node, struct file *fp)
+{
+    struct socket *sock = (struct socket*)node->state;
+
+    return sock_close(sock);
+}
+
 static int
 sock_file_destroy(struct vnode *node)
 {
     struct socket *sock = (struct socket*)node->state;
 
-    return sock_close(sock);
+    sock_destroy(sock);
+
+    return 0;
+}
+
+static int
+sock_file_duplicate(struct vnode *node, struct file *fp)
+{
+    struct socket *sock = (struct socket*)node->state;
+
+    return sock_duplicate(sock); 
 }
 
 static int
@@ -37,8 +56,9 @@ sock_file_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 }
 
 struct vops sock_file_ops = {
-    .close      = NULL,
+    .close      = sock_file_close,
     .destroy    = sock_file_destroy,
+    .duplicate  = sock_file_duplicate,
     .read       = sock_file_read,
     .write      = sock_file_write,
 };
@@ -70,7 +90,6 @@ register_protocol(struct protocol *protocol)
 {
     list_append(&protocol_list, protocol);
 }
-
 
 int
 sock_accept(struct socket *sock, struct socket **result, void *address, size_t *address_len)
@@ -117,8 +136,6 @@ sock_close(struct socket *sock)
         ret = prot->ops->close(sock);
     }
 
-    free(sock);
-
     return ret;
 }
 
@@ -139,6 +156,40 @@ sock_connect(struct socket *sock, void *address, size_t address_size)
 }
 
 int
+sock_destroy(struct socket *sock)
+{
+    struct protocol *prot = sock->protocol;
+
+    int ret;
+
+    if (!prot->ops || !prot->ops->close) {
+        ret = 0;
+    } else {
+        ret = prot->ops->destroy(sock);
+    }
+
+    free(sock);
+
+    return ret;
+}
+
+int
+sock_duplicate(struct socket *sock)
+{   
+    struct protocol *prot = sock->protocol;
+    
+    int ret;
+    
+    if (!prot->ops || !prot->ops->duplicate) {
+        ret = 0;
+    } else {
+        ret = prot->ops->duplicate(sock);
+    }
+    
+    return ret;
+}
+
+int
 sock_new(struct socket **result, int domain, int type, int protocol)
 {
     struct protocol *prot = get_protocol_from_domain(domain);
@@ -147,11 +198,10 @@ sock_new(struct socket **result, int domain, int type, int protocol)
         return -(EINVAL);
     }
 
-    struct socket *sock = (struct socket*)malloc(sizeof(struct socket));
+    struct socket *sock = (struct socket*)calloc(1, sizeof(struct socket));
 
     sock->protocol = prot;
     sock->type = type;
-
     *result = sock;
 
     if (prot->ops && prot->ops->init) {
@@ -204,7 +254,10 @@ sock_to_file(struct socket *sock)
     struct file *ret = file_new(node);
 
     ret->flags = O_RDWR;
+    sock->refs++;
 
+    //VN_INC_REF(node);
+    
     return ret;
 }
 
