@@ -6,10 +6,6 @@
 #include <sys/vm.h>
 #include <sys/vnode.h>
 
-// remove
-#include <sys/i686/vm.h>
-#include <ds/membuf.h>
-
 int
 kmain(const char *args)
 {
