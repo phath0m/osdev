@@ -57,6 +57,7 @@ struct window_event {
 void add_new_window(void *ctx, struct window *window);
 
 struct window * window_new(int x, int y, int width, int height);
+void window_destroy(struct window *window);
 void window_set_title(struct window *win, const char *title);
 bool window_boundcheck(struct window *window, int x, int y);
 void window_draw(struct window *window, canvas_t *canvas);

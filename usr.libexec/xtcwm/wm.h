@@ -16,5 +16,6 @@ struct wmctx {
 };
 
 void wm_add_window(struct wmctx *ctx, struct window *win);
+void wm_remove_window(struct wmctx *ctx, struct window *win);
 
 #endif

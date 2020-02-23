@@ -28,11 +28,20 @@
 #include "window.h"
 #include "wm.h"
 
+static void set_redraw(struct wmctx *ctx);
 
 void
 wm_add_window(struct wmctx *ctx, struct window *win)
 {
     list_append(&ctx->windows, win);
+}
+
+void
+wm_remove_window(struct wmctx *ctx, struct window *win)
+{
+    list_remove(&ctx->windows, win);
+
+    set_redraw(ctx);
 }
 
 /* mark a window as being active and trigger a re-draw */
@@ -263,9 +272,9 @@ display_loop(void *argp)
     canvas_t *backbuffer = canvas_new(width, height, CANVAS_PARTIAL_RENDER);
     canvas_t *frontbuffer = canvas_new(width, height, CANVAS_PARTIAL_RENDER);
     
-    canvas_t *bg = canvas_from_targa("/usr/share/wallpapers/weeb.tga", 0);
-
-    canvas_scale(bg, width, height);
+    canvas_t *bg = canvas_new(width, height, 0);//canvas_from_targa("/usr/share/wallpapers/weeb.tga", 0);
+    canvas_clear(bg, 0x777777);
+    //canvas_scale(bg, width, height);
 
     ctx->redraw_flag = 1;
 
@@ -392,7 +401,7 @@ run_term()
             "xtcterm",
             NULL
         };
-        sleep(2);
+        sleep(3);
         execv("/usr/bin/xtcterm", argv);
         exit(-1);
     }
@@ -423,7 +432,7 @@ main(int argc, const char *argv[])
     thread_create(&display_thread, display_loop, &ctx);
 
     run_term();
-
+    //run_term();
     server_listen(&ctx);
 
     return 0;

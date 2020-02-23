@@ -30,6 +30,16 @@ struct xtc_session {
 };
 
 static void
+set_no_exec(int fd)
+{
+    int flags;
+
+    fcntl(fd, F_GETFD, &flags);
+    flags |= FD_CLOEXEC;
+    fcntl(fd, F_SETFD, &flags);
+}
+
+static int
 send_response(struct xtc_session *session, uint32_t *parameters, int paramc, int err)
 {
     struct xtc_msg_hdr resp;
@@ -43,10 +53,14 @@ send_response(struct xtc_session *session, uint32_t *parameters, int paramc, int
     resp.error = err;
     resp.payload_size = 0;
 
-    write(session->sfd, &resp, sizeof(resp));
+    if (write(session->sfd, &resp, sizeof(resp)) == -1) {
+        return -1;
+    }
+
+    return 0;
 }
 
-static void
+static int
 send_response_ex(struct xtc_session *session, uint32_t *params, int paramc, int err ,void *data, size_t size)
 {
     struct xtc_msg_hdr resp;
@@ -60,8 +74,15 @@ send_response_ex(struct xtc_session *session, uint32_t *params, int paramc, int 
     resp.error = err;
     resp.payload_size = size;
 
-    write(session->sfd, &resp, sizeof(resp));
-    write(session->sfd, data, resp.payload_size);
+    if (write(session->sfd, &resp, sizeof(resp)) == -1) {
+        return -1;
+    }
+
+    if (write(session->sfd, data, resp.payload_size) == -1) {
+        return -1;
+    }
+
+    return 0;
 }
 
 static void
@@ -276,7 +297,11 @@ handle_connection(void *arg)
         void *payload = NULL;
         struct xtc_msg_hdr request;
 
-        read(sfd, &request, sizeof(request));
+        ssize_t nread = read(sfd, &request, sizeof(request));
+
+        if (nread == -1) {
+            break;
+        }
 
         if (request.payload_size > 0) {
             payload = calloc(1, request.payload_size+1);
@@ -290,6 +315,15 @@ handle_connection(void *arg)
         }        
     }
 
+    close(sfd);
+
+    for (int i = 0; i < SESSION_MAX_WINDOWS; i++) {
+        if (session->windows[i]) {
+            wm_remove_window(session->ctx, session->windows[i]);
+            window_destroy(session->windows[i]);
+        }
+    }
+
     free(session);    
     
     return NULL;
@@ -299,6 +333,8 @@ void
 server_listen(void *ctx)
 {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+    set_no_exec(fd);
 
     struct sockaddr_un  addr;
     memset(&addr, 0, sizeof(struct sockaddr_un));
@@ -310,6 +346,8 @@ server_listen(void *ctx)
 
     for (;;) {
         int sfd = accept(fd, NULL, NULL);
+
+        set_no_exec(sfd);
 
         struct xtc_session *session = calloc(1, sizeof(struct xtc_session));
         session->ctx = ctx;

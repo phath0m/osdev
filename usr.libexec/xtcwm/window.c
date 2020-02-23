@@ -66,6 +66,11 @@ window_new(int x, int y, int width, int height)
 }
 
 void
+window_destroy(struct window *window)
+{
+}
+
+void
 window_set_title(struct window *win, const char *title)
 {
     strncpy(win->title, title, sizeof(win->title));
