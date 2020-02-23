@@ -1,6 +1,7 @@
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/errno.h>
+#include <sys/fcntl.h>
 #include <sys/file.h>
 #include <sys/wait.h>
 #include <sys/malloc.h>
@@ -217,6 +218,56 @@ proc_dup2(int oldfd, int newfd)
     INC_FILE_REF(fp);
     
     return newfd;
+}
+
+static int
+get_fcntl_flags(struct file *fp)
+{
+    int ret = 0;
+
+    if ((fp->flags & O_CLOEXEC)) {
+        ret |= FD_CLOEXEC; 
+    }
+
+    return ret;
+}
+
+static int
+set_fcntl_flags(struct file *fp, int flags)
+{
+    if (flags & FD_CLOEXEC) {
+        fp->flags |= O_CLOEXEC;
+    }
+
+    return 0;
+}
+
+int
+proc_fcntl(int fd, int cmd, void *arg)
+{
+    if (fd >= 4096 || fd >= 4096) {
+        return -1;
+    }
+
+    struct file *fp = current_proc->files[fd];
+
+    if (!fp) {
+        return -1;
+    }
+
+    switch (cmd) {
+        case F_SETFD:
+            return set_fcntl_flags(fp, *((int*)arg));
+        case F_GETFD:
+            
+            if (arg) {
+                *((int*)arg) = get_fcntl_flags(fp);
+            }
+            
+            return 0;
+    }
+
+    return -1;    
 }
 
 struct file *

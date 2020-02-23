@@ -139,6 +139,8 @@ int proc_dup(int oldfd);
 
 int proc_dup2(int oldfd, int newfd);
 
+int proc_fcntl(int fd, int cmd, void *arg);
+
 struct session *session_new(struct proc *leader);
 
 uintptr_t sched_init_thread(struct vm_space *space, uintptr_t stack_start, kthread_entry_t entry, void *arg);

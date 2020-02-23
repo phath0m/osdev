@@ -276,6 +276,18 @@ sys_gettid(syscall_args_t argv)
 }
 
 static int
+sys_fcntl(syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, cmd, 1, argv);
+    DEFINE_SYSCALL_PARAM(void*, arg, 2, argv);
+
+    TRACE_SYSCALL("fcntl", "%d, %d, 0x%p", fd, cmd, arg);
+
+    return proc_fcntl(fd, cmd, arg);
+}
+
+static int
 sys_fork(syscall_args_t argv)
 {
     TRACE_SYSCALL("fork", "void");
@@ -667,4 +679,5 @@ _init_proc_syscalls()
     register_syscall(SYS_THREAD_SLEEP, 0, sys_thread_sleep);
     register_syscall(SYS_THREAD_WAKE, 1, sys_thread_wake);
     register_syscall(SYS_GETTID, 0, sys_gettid);
+    register_syscall(SYS_FCNTL, 3, sys_fcntl);
 }
