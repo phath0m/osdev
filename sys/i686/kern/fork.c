@@ -70,6 +70,8 @@ init_child_proc(void *statep)
     sched_curr_thread->u_stack_top = state->u_stack_top;
     sched_curr_thread->tid = proc->pid;
 
+    list_append(&proc->threads, sched_curr_thread);
+
     current_proc = proc;
 
     uintptr_t eip = state->regs.eip;
