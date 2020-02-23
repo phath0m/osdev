@@ -8,7 +8,7 @@
 #define SYS_STAT        0x04
 #define SYS_FSTAT       0x05
 #define SYS_LSEEK       0x06
-#define SYS_FNCTL       0x07
+#define SYS_FCNTL       0x07
 #define SYS_IOCTL       0x08
 #define SYS_SBRK        0x09
 #define SYS_ACCESS      0x0A
