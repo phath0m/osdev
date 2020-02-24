@@ -122,7 +122,7 @@ proc_fork(struct regs *regs)
     copy_image(proc, new_space);
     copy_fildes(proc, new_proc);
 
-    struct fork_state *state = (struct fork_state*)calloc(0, sizeof(struct fork_state));
+    struct fork_state *state = (struct fork_state*)calloc(1, sizeof(struct fork_state));
 
     state->proc = new_proc;
     state->u_stack_top = proc->thread->u_stack_top;

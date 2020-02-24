@@ -9,6 +9,16 @@
 #define PROT_WRITE  0x02
 #define PROT_EXEC   0x01
 
+/* vamap_t is a bitmap used to track allocation of virtual addresses */
+typedef uint8_t *   vamap_t;
+
+/* structure used to track allocation of virtual addresses */
+struct va_map {
+    uintptr_t   base; /* starting virtual address*/
+    uintptr_t   limit; /* ending virtual address */
+    uint8_t     bitmap[]; /* bitmap used to actually track allocations */
+};
+
 struct vm_block {
     size_t      size;
     uintptr_t   start_physical;
@@ -21,8 +31,11 @@ struct vm_block {
 struct vm_space {
     struct list map;
     uintptr_t   kernel_brk;
+    uintptr_t   kernel_end;
     uintptr_t   stack;
-    uint8_t *   va_map;
+    struct va_map * uva_map; /* usermode virtual address map */
+    struct va_map * kva_map; /* kernel mode virtual address map*/
+
     /* used for the architecture specific virtual memory implementation */
     void *      state_physical;
     void *      state_virtual;

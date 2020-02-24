@@ -20,7 +20,14 @@
 #define BITMAP_CLEAR(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] &= ~(1 << BITMAP_BIT(n)))
 #define BITMAP_GET(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] & (1 << BITMAP_BIT(n)))
 
+/* page align an address */
 #define ALIGN_ADDRESS(addr) (((uintptr_t)addr) & 0xFFFFF000)
+#define PAGE_COUNT(amount) (((amount - 1) >> 12) + 1)
+#define PAGE_OFFSET(addr) (addr >> 12)
+
+/* protection help with flags */
+#define VM_IS_WRITABLE(prot) ((prot & PROT_WRITE) != 0)
+#define VM_IS_USER(prot) ((prot & PROT_KERN) == 0)
 
 struct frame {
     uintptr_t   addr;
@@ -123,10 +130,10 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
     }
 
     struct page_entry *page = &table->pages[page_table % 1024];
-
+    /*
     if (page->present) {
         return;
-    }
+    }*/
     
     page->frame = paddr >> 12;
     page->present = true;
@@ -154,50 +161,99 @@ page_directory_free(struct page_directory *directory)
     free(directory);
 }
 
-uintptr_t
-vm_find_vsegment(struct vm_space *space, size_t length)
+
+struct va_map *
+va_map_new(uintptr_t base, uintptr_t limit)
 {
-    size_t required_pages = ((length - 1) >> 12) + 1;
+    size_t bitmap_size = PAGE_COUNT(limit - base);
+
+    struct va_map *vamap = calloc(1, sizeof(struct va_map) + bitmap_size);
+
+    vamap->base = base;
+    vamap->limit = limit;
+
+    return vamap;
+}
+
+/* finds a suitable virtual address */
+uintptr_t
+va_find_block(struct va_map *vamap, size_t length)
+{
+    size_t required_pages = PAGE_COUNT(length);
+    size_t max_pages = PAGE_COUNT(vamap->limit);
 
     int free_page_count = 0;
 
-    for (int i = 1; i < 0xC0000; i++) {
+    uint8_t *bitmap = vamap->bitmap;
 
+    for (int i = 1; i < max_pages; i++) {
         if (free_page_count == required_pages) {
-            return (i - free_page_count) * 4096;
+            return vamap->base + (i - free_page_count) * 4096;
         }
 
-        if (BITMAP_GET(space->va_map, i)) {
+        if (BITMAP_GET(bitmap, i)) {
             free_page_count = 0;
         } else {
             free_page_count++;
         }
     }
 
+    panic("out of memory!");
+
     return 0;
 }
 
+/* marks a block of virtual addresses as "allocated" */
 void
-vm_alloc_vsegment(struct vm_space *space, uintptr_t addr, size_t length)
+va_mark_block(struct va_map *vamap, uintptr_t addr, size_t length)
 {
-    size_t required_pages = ((length - 1) >> 12) + 1;
+    if (addr + length > vamap->limit) {
+        return;
+    }
 
-    int start_page = addr / 4096;
+    addr -= vamap->base;
+
+    size_t required_pages = PAGE_COUNT(length);
+
+    int start_page = PAGE_OFFSET(addr);
+
+    uint8_t *bitmap = vamap->bitmap;
 
     for (int i = 0; i < required_pages; i++) {
-        BITMAP_SET(space->va_map, start_page + i);
+        BITMAP_SET(bitmap, start_page + i);
     }
 }
 
-void
-vm_free_vsegment(struct vm_space *space, uintptr_t addr, size_t length)
+/* allocate an used virtual address */
+uintptr_t
+va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length)
 {
-    size_t required_pages = ((length - 1) >> 12) + 1;
+    if (addr == 0) {
+        addr = va_find_block(vamap, length);
+    }
 
-    int start_page = addr / 4096;
+    va_mark_block(vamap, addr, length);
+
+    return addr;
+}
+
+/* marks a block of virtual addresses as "free" */
+void
+va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
+{
+    if (addr + length > vamap->limit) {
+        return;
+    }
+
+    addr -= vamap->base;
+
+    size_t required_pages = PAGE_COUNT(length);
+    int start_page = PAGE_OFFSET(addr);
+
+    uint8_t *bitmap = vamap->bitmap;
 
     for (int i = 0; i < required_pages; i++) {
-        BITMAP_CLEAR(space->va_map, start_page + i);
+        BITMAP_CLEAR(bitmap, start_page + i);
     }
 }
 
@@ -234,20 +290,15 @@ vm_block_new()
 void *
 vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *addr2, size_t length, int prot)
 {
-    int required_pages = ((length - 1) >> 12) + 1;
+    int required_pages = PAGE_COUNT(length);
 
-    bool write = (prot & PROT_WRITE) != 0;
-    bool user = (prot & PROT_KERN) == 0;
-
-    if (addr1 == NULL && (prot & PROT_KERN)) {
-        addr1 = (void*)space1->kernel_brk;
-        space1->kernel_brk += (PAGE_SIZE * required_pages);
-    } else if (addr1 == NULL) {
-        addr1 = (void*)vm_find_vsegment(space1, length);
-    }
+    bool write = VM_IS_WRITABLE(prot);
+    bool user = VM_IS_USER(prot);
 
     if (user) {
-        vm_alloc_vsegment(space1, (uintptr_t)addr1, length);
+        addr1 = (void*)va_alloc_block(space1->uva_map, (uintptr_t)addr1, length);
+    } else {
+        addr1 = (void*)va_alloc_block(space1->kva_map, (uintptr_t)addr1, length);
     }
 
     uint32_t offset = (uint32_t)addr2 & 0x0000FFF;
@@ -275,12 +326,18 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
 
         list_append(&space1->map, block);
 
+        if (block->start_virtual >= 0xE0000000) {
+            stacktrace(4);
+            panic("here we go\n");
+        }
+        printf("share map 0x%p -> 0x%p\n", block->start_virtual, block->start_physical);
+
         page_map_entry(directory, vaddr, paddr, write, user);
     }
 
     return (void*)((uint32_t)addr1 + offset);
 }
-
+/*
 void
 vm_clone(struct vm_space *space1, struct vm_space *space2)
 {
@@ -323,25 +380,20 @@ vm_clone(struct vm_space *space1, struct vm_space *space2)
     memcpy(space1->va_map, space2->va_map, 0xC0000);
 
     iter_close(&iter);
-}
+}*/
 
 void *
 vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 {
-    int required_pages = ((length - 1) >> 12) + 1;
+    int required_pages = PAGE_COUNT(length);
 
-    bool write = (prot & PROT_WRITE) != 0;
-    bool user = (prot & PROT_KERN) == 0;
-
-    if (addr == NULL && !user) {
-        addr = (void*)space->kernel_brk;
-        space->kernel_brk += (PAGE_SIZE * required_pages);
-    } else if (addr == NULL) {
-        addr = (void*)vm_find_vsegment(space, length);
-    }
+    bool write = VM_IS_WRITABLE(prot);
+    bool user = VM_IS_USER(prot);
 
     if (user) {
-        vm_alloc_vsegment(space, (uintptr_t)addr, length);
+        addr = (void*)va_alloc_block(space->uva_map, (uintptr_t)addr, length);
+    } else {
+        addr = (void*)va_alloc_block(space->kva_map, (uintptr_t)addr, length);
     }
 
     struct page_directory *directory = (struct page_directory*)space->state_virtual;
@@ -370,20 +422,15 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 void *
 vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t length, int prot)
 {
-    int required_pages = ((length - 1) >> 12) + 1;
+    int required_pages = PAGE_COUNT(length);
 
-    bool write = (prot & PROT_WRITE) != 0;
-    bool user = (prot & PROT_KERN) == 0;
-
-    if (addr == NULL && !user) {
-        addr = (void*)space->kernel_brk;
-        space->kernel_brk += (PAGE_SIZE * required_pages);
-    } else if (addr == NULL) {
-        addr = (void*)vm_find_vsegment(space, length);
-    }
+    bool write = VM_IS_WRITABLE(prot);
+    bool user = VM_IS_USER(prot);
 
     if (user) {
-        vm_alloc_vsegment(space, (uintptr_t)addr, length);
+        addr = (void*)va_alloc_block(space->uva_map, (uintptr_t)addr, length);
+    } else {
+        addr = (void*)va_alloc_block(space->kva_map, (uintptr_t)addr, length);
     }
 
     struct page_directory *directory = (struct page_directory*)space->state_virtual;
@@ -408,11 +455,15 @@ vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t l
 void
 vm_unmap(struct vm_space *space, void *addr, size_t length)
 {
-    int required_pages = ((length - 1) >> 12) + 1;
-    
+    int required_pages = PAGE_COUNT(length);
+
     addr = (void*)ALIGN_ADDRESS(addr);
 
-    vm_free_vsegment(space, (uintptr_t)addr, length);
+    if ((uintptr_t)addr + length < 0xC0000000) {
+        va_free_block(space->uva_map, (uintptr_t)addr, length);
+    } else if ((uintptr_t)addr >= space->kernel_brk && ((uintptr_t)addr < space->kernel_end)) {
+        va_free_block(space->kva_map, (uintptr_t)addr, length);
+    }
 
     for (int i = 0; i < required_pages; i++) {
         struct vm_block *block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
@@ -423,6 +474,7 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
         }
 
         if (frame && frame->ref_count <= 0) {
+            printf("munmap 0x%p\n", block->start_physical);
             frame_free((void*)block->start_physical);
         }
 
@@ -464,7 +516,8 @@ vm_space_destroy(struct vm_space *space)
 
     page_directory_free((struct page_directory*)space->state_virtual);
 
-    free(space->va_map);
+    free(space->uva_map);
+    free(space->kva_map);
     free(space);
 }
 
@@ -514,8 +567,12 @@ vm_space_new()
 
     map_vbe_data(directory);
 
-    vm_space->va_map = calloc(1, 0xC0000);
+    //vm_space->uva_map = calloc(1, 0xC0000);
+    //vm_space->kva_map = calloc(1, 0xC0000);
+    vm_space->uva_map = va_map_new(0, 0xC0000000);
+    vm_space->kva_map = va_map_new(KERNEL_VIRTUAL_BASE + 0x1FC00000, 0xE0000000);
     vm_space->kernel_brk = KERNEL_VIRTUAL_BASE + 0x1FC00000;
+    vm_space->kernel_end = 0xE0000000;
     vm_space->state_physical = (void*)((uint32_t)directory - KERNEL_VIRTUAL_BASE);
     vm_space->state_virtual = (void*)directory;
 

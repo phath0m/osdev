@@ -11,9 +11,9 @@ kmain(const char *args)
 {
     /* this is sort of a hack because it assumes we're using LFB for output*/
     /* TODO: something that makes less assumptions */
-    extern struct device lfb_device;
+    //extern struct device lfb_device;
     
-    kset_output(&lfb_device);
+    //kset_output(&lfb_device);
 
     struct vnode *root;
 
@@ -33,14 +33,6 @@ kmain(const char *args)
     if (fs_mount(root, NULL, "devfs", "/dev", 0) != 0) {
         panic("could not mount devfs!");
     }
-
-    extern struct vm_space *sched_curr_address_space;
-
-    vm_map(sched_curr_address_space, (void*)0xFFFFF000, 0x1000, PROT_KERN | PROT_WRITE | PROT_READ);
-    
-    extern void set_tss_esp0(uintptr_t ptr);
-
-    set_tss_esp0(0xFFFFFF00);
 
     const char *init_argv[] = {
         "/sbin/doit",
