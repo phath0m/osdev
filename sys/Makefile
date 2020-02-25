@@ -16,7 +16,6 @@ KERNEL_OBJECTS += kern/device_file.o
 KERNEL_OBJECTS += kern/interrupt.o
 KERNEL_OBJECTS += kern/fifo.o
 KERNEL_OBJECTS += kern/kmain.o
-KERNEL_OBJECTS += kern/kputs.o
 KERNEL_OBJECTS += kern/malloc.o
 KERNEL_OBJECTS += kern/mem_syscalls.o
 KERNEL_OBJECTS += kern/misc_syscalls.o

@@ -41,4 +41,7 @@ struct page_directory {
 #define PAGE_COUNT(amount) (((amount - 1) >> 12) + 1)
 #define PAGE_OFFSET(addr) (addr >> 12)
 
+/* physical address to kernel virtual address */
+#define PTOKVA(addr) ((uintptr_t)(KERNEL_VIRTUAL_BASE)+(uintptr_t)addr)
+
 #endif
