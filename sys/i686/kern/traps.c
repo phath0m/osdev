@@ -1,8 +1,7 @@
+#include <machine/reg.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/systm.h>
-#include <sys/i686/interrupt.h>
-
 
 #define DIVIDE_BY_ZERO              0x00
 #define DEBUG                       0x01

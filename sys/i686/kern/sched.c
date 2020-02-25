@@ -3,13 +3,13 @@
  * Scheduler implementation for i686 compatible devices
  */
 #include <ds/list.h>
+#include <machine/reg.h>
 #include <sys/interrupt.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/timer.h>
 #include <sys/vm.h>
-#include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
 
 // list of processes to run

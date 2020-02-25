@@ -1,9 +1,9 @@
 #include <ds/list.h>
+#include <machine/reg.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
-#include <sys/i686/interrupt.h>
 
 /*
  *

@@ -1,5 +1,5 @@
-#ifndef SYS_I686_INTERRUPT_H
-#define SYS_I686_INTERRUPT_H
+#ifndef _MACHINE_REG_H
+#define _MACHINE_REG_H
 
 #include <sys/types.h>
 

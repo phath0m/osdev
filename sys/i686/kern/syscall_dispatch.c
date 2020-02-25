@@ -2,19 +2,19 @@
  * sys/i686/kern/syscall.c
  * x86 system call implementation via interrupt 0x80
  */
+#include <machine/reg.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include <sys/i686/interrupt.h>
 
 struct syscall *syscall_table[256];
 
 int
 register_syscall(int num, int argc, syscall_t handler)
 {
-    struct syscall *syscall = (struct syscall*)calloc(0, sizeof(struct syscall));
+    struct syscall *syscall = (struct syscall*)calloc(1, sizeof(struct syscall));
 
     syscall->num = num;
     syscall->argc = argc;

@@ -113,11 +113,7 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
     }
 
     struct page_entry *page = &table->pages[page_table % 1024];
-    /*
-    if (page->present) {
-        return;
-    }*/
-    
+
     page->frame = paddr >> 12;
     page->present = true;
     page->read_write = write;
@@ -191,61 +187,11 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
 
         list_append(&space1->map, block);
 
-        if (block->start_virtual >= 0xE0000000) {
-            stacktrace(4);
-            panic("here we go\n");
-        }
-        printf("share map 0x%p -> 0x%p\n", block->start_virtual, block->start_physical);
-
         page_map_entry(directory, vaddr, paddr, write, user);
     }
 
     return (void*)((uint32_t)addr1 + offset);
 }
-/*
-void
-vm_clone(struct vm_space *space1, struct vm_space *space2)
-{
-    struct page_directory *directory = (struct page_directory*)space1->state_virtual;
-
-    list_iter_t iter;
-
-    list_get_iter(&space2->map, &iter);
-
-    struct vm_block *block;
-
-    while (iter_move_next(&iter, (void**)&block)) {
-        
-        bool write = (block->prot & PROT_WRITE) != 0;
-        bool user = (block->prot & PROT_KERN) == 0;
-
-        if (!user) {
-            continue;
-        }
-
-        struct vm_block *new_block = vm_block_new();
-
-        struct frame *frame = (struct frame*)block->state;
-
-        if (frame) {
-            frame->ref_count++;
-        }
-
-        new_block->size = PAGE_SIZE;
-        new_block->start_physical = block->start_physical;
-        new_block->start_virtual = block->start_virtual;
-        new_block->prot = block->prot;
-        new_block->state = block->state;
-
-        list_append(&space1->map, new_block);
-
-        page_map_entry(directory, new_block->start_virtual, new_block->start_physical, write, user);
-    }
-
-    memcpy(space1->va_map, space2->va_map, 0xC0000);
-
-    iter_close(&iter);
-}*/
 
 void *
 vm_map(struct vm_space *space, void *addr, size_t length, int prot)
@@ -339,7 +285,6 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
         }
 
         if (frame && frame->ref_count <= 0) {
-            printf("munmap 0x%p\n", block->start_physical);
             frame_free((void*)block->start_physical);
         }
 

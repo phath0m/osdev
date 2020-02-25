@@ -1,6 +1,6 @@
+#include <machine/reg.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
-#include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
 
 void

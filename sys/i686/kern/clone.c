@@ -1,3 +1,4 @@
+#include <machine/reg.h>
 #include <sys/errno.h>
 #include <sys/file.h>
 #include <sys/proc.h>
@@ -7,7 +8,6 @@
 #include <sys/types.h>
 #include <sys/vnode.h>
 #include <sys/vm.h>
-#include <sys/i686/interrupt.h>
 
 struct clone_state {
     struct proc *   proc;
