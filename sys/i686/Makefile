@@ -10,8 +10,8 @@ KERNEL_I686_OBJECTS += rtl/malloc.o
 KERNEL_I686_OBJECTS += $(KERNEL_OBJECT)
 
 KERNEL_I686_OBJECTS += dev/serial_tty.o
+KERNEL_I686_OBJECTS += dev/kbd.o
 KERNEL_I686_OBJECTS += dev/lfb.o
-KERNEL_I686_OBJECTS += dev/ps2_keyboard.o
 KERNEL_I686_OBJECTS += dev/mouse.o
 KERNEL_I686_OBJECTS += dev/vga_textscreen.o
 KERNEL_I686_OBJECTS += kern/context_switch.o

@@ -44,6 +44,29 @@ struct vm_space {
     void *      state_virtual;
 };
 
+/*
+ * various metrics I started tracking for debugging purposes. The bugs I was
+ * originally trying to fix have been resolved, however, I thought I'd keep
+ * this around
+ */
+struct vm_statistics {
+    uint32_t    frame_count; /* how many total frames */
+    uint32_t    page_count; /* how many total page objects */
+    uint32_t    page_table_count; /* how many page tables */
+    uint32_t    vmspace_count;  /* how many address spaces*/
+};
+
+extern struct vm_statistics vm_stat;
+
+#define VMSTAT_DEC_FRAME_COUNT(v) ((v)->frame_count--)
+#define VMSTAT_DEC_PAGE_COUNT(v) ((v)->page_count--)
+#define VMSTAT_DEC_PAGE_TABLE_COUNT(v) ((v)->page_table_count--)
+
+#define VMSTAT_DEC_VM_SPACE_COUNT(v) ((v)->vmspace_count++)
+#define VMSTAT_INC_FRAME_COUNT(v) ((v)->frame_count++)
+#define VMSTAT_INC_PAGE_COUNT(v) ((v)->page_count++)
+#define VMSTAT_INC_PAGE_TABLE_COUNT(v) ((v)->page_table_count++)
+#define VMSTAT_INC_VM_SPACE_COUNT(v) ((v)->vmspace_count++)
 
 struct va_map *va_map_new(uintptr_t base, uintptr_t limit);
 uintptr_t va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length);
