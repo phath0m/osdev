@@ -7,7 +7,6 @@
 #include <sys/types.h>
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
-#include <sys/i686/vm.h>
 
 struct dt_ptr {
     uint16_t    limit;

@@ -1,5 +1,5 @@
-#ifndef SYS_MM_H
-#define SYS_MM_H
+#ifndef _SYS_VM_H
+#define _SYS_VM_H
 
 #include <ds/list.h>
 #include <sys/types.h>
@@ -8,6 +8,9 @@
 #define PROT_READ   0x04
 #define PROT_WRITE  0x02
 #define PROT_EXEC   0x01
+
+#define VM_IS_WRITABLE(prot) ((prot & PROT_WRITE) != 0)
+#define VM_IS_USER(prot) ((prot & PROT_KERN) == 0)
 
 /* vamap_t is a bitmap used to track allocation of virtual addresses */
 typedef uint8_t *   vamap_t;
@@ -40,6 +43,16 @@ struct vm_space {
     void *      state_physical;
     void *      state_virtual;
 };
+
+
+struct va_map *va_map_new(uintptr_t base, uintptr_t limit);
+uintptr_t va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length);
+uintptr_t va_find_block(struct va_map *vamap, size_t length);
+void va_mark_block(struct va_map *vamap, uintptr_t addr, size_t length);
+void va_free_block(struct va_map *vamap, uintptr_t addr, size_t length);
+
+struct vm_block *vm_find_block(struct vm_space *space, uintptr_t vaddr);
+
 
 void *vm_map(struct vm_space *space, void *addr, size_t length, int prot);
 void *vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t length, int prot);

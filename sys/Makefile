@@ -35,6 +35,7 @@ KERNEL_OBJECTS += kern/signal.o
 KERNEL_OBJECTS += kern/timer.o
 KERNEL_OBJECTS += kern/extract_tar.o
 KERNEL_OBJECTS += kern/vfs_syscalls.o
+KERNEL_OBJECTS += kern/vm.o
 KERNEL_OBJECTS += kern/vnode.o
 KERNEL_OBJECTS += kern/vops.o
 KERNEL_OBJECTS += kern/wait_queue.o

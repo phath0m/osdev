@@ -4,30 +4,13 @@
  */
 
 #include <ds/list.h>
+#include <machine/vm.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/vm.h>
-#include <sys/i686/vm.h>
 #include <sys/i686/multiboot.h>
-
-/* bitmap macros */
-#define BITMAP_INDEX(n) ((n) >> 3)
-#define BITMAP_BIT(n) ((n) & 7)
-#define BITMAP_SIZE(n) (((n) >> 3) + 1)
-#define BITMAP_SET(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] |= (1 << BITMAP_BIT(n)))
-#define BITMAP_CLEAR(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] &= ~(1 << BITMAP_BIT(n)))
-#define BITMAP_GET(b, n) (((uint8_t*)b)[BITMAP_INDEX(n)] & (1 << BITMAP_BIT(n)))
-
-/* page align an address */
-#define ALIGN_ADDRESS(addr) (((uintptr_t)addr) & 0xFFFFF000)
-#define PAGE_COUNT(amount) (((amount - 1) >> 12) + 1)
-#define PAGE_OFFSET(addr) (addr >> 12)
-
-/* protection help with flags */
-#define VM_IS_WRITABLE(prot) ((prot & PROT_WRITE) != 0)
-#define VM_IS_USER(prot) ((prot & PROT_KERN) == 0)
 
 struct frame {
     uintptr_t   addr;
@@ -159,124 +142,6 @@ page_directory_free(struct page_directory *directory)
 
     vm_space_count--;
     free(directory);
-}
-
-
-struct va_map *
-va_map_new(uintptr_t base, uintptr_t limit)
-{
-    size_t bitmap_size = PAGE_COUNT(limit - base);
-
-    struct va_map *vamap = calloc(1, sizeof(struct va_map) + bitmap_size);
-
-    vamap->base = base;
-    vamap->limit = limit;
-
-    return vamap;
-}
-
-/* finds a suitable virtual address */
-uintptr_t
-va_find_block(struct va_map *vamap, size_t length)
-{
-    size_t required_pages = PAGE_COUNT(length);
-    size_t max_pages = PAGE_COUNT(vamap->limit);
-
-    int free_page_count = 0;
-
-    uint8_t *bitmap = vamap->bitmap;
-
-    for (int i = 1; i < max_pages; i++) {
-        if (free_page_count == required_pages) {
-            return vamap->base + (i - free_page_count) * 4096;
-        }
-
-        if (BITMAP_GET(bitmap, i)) {
-            free_page_count = 0;
-        } else {
-            free_page_count++;
-        }
-    }
-
-    panic("out of memory!");
-
-    return 0;
-}
-
-/* marks a block of virtual addresses as "allocated" */
-void
-va_mark_block(struct va_map *vamap, uintptr_t addr, size_t length)
-{
-    if (addr + length > vamap->limit) {
-        return;
-    }
-
-    addr -= vamap->base;
-
-    size_t required_pages = PAGE_COUNT(length);
-
-    int start_page = PAGE_OFFSET(addr);
-
-    uint8_t *bitmap = vamap->bitmap;
-
-    for (int i = 0; i < required_pages; i++) {
-        BITMAP_SET(bitmap, start_page + i);
-    }
-}
-
-/* allocate an used virtual address */
-uintptr_t
-va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length)
-{
-    if (addr == 0) {
-        addr = va_find_block(vamap, length);
-    }
-
-    va_mark_block(vamap, addr, length);
-
-    return addr;
-}
-
-/* marks a block of virtual addresses as "free" */
-void
-va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
-{
-    if (addr + length > vamap->limit) {
-        return;
-    }
-
-    addr -= vamap->base;
-
-    size_t required_pages = PAGE_COUNT(length);
-    int start_page = PAGE_OFFSET(addr);
-
-    uint8_t *bitmap = vamap->bitmap;
-
-    for (int i = 0; i < required_pages; i++) {
-        BITMAP_CLEAR(bitmap, start_page + i);
-    }
-}
-
-struct vm_block *
-vm_find_block(struct vm_space *space, uintptr_t vaddr)
-{
-    list_iter_t iter;
-
-    list_get_iter(&space->map, &iter);
-
-    struct vm_block *block;
-    struct vm_block *res = NULL;
-
-    while (iter_move_next(&iter, (void**)&block)) {
-        if (block->start_virtual == vaddr) {
-            res = block;
-            break;
-        }
-    }
-
-    iter_close(&iter);
-
-    return res;
 }
 
 struct vm_block *
@@ -567,9 +432,7 @@ vm_space_new()
 
     map_vbe_data(directory);
 
-    //vm_space->uva_map = calloc(1, 0xC0000);
-    //vm_space->kva_map = calloc(1, 0xC0000);
-    vm_space->uva_map = va_map_new(0, 0xC0000000);
+    vm_space->uva_map = va_map_new(0, KERNEL_VIRTUAL_BASE);
     vm_space->kva_map = va_map_new(KERNEL_VIRTUAL_BASE + 0x1FC00000, 0xE0000000);
     vm_space->kernel_brk = KERNEL_VIRTUAL_BASE + 0x1FC00000;
     vm_space->kernel_end = 0xE0000000;

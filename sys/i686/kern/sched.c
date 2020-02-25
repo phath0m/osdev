@@ -11,7 +11,6 @@
 #include <sys/vm.h>
 #include <sys/i686/interrupt.h>
 #include <sys/i686/portio.h>
-#include <sys/i686/vm.h>
 
 // list of processes to run
 struct list         run_queue;
