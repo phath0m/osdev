@@ -1,14 +1,13 @@
 /*
  * Basic driver for interacting with textscreen
  */
-
+#include <machine/portio.h>
 #include <sys/device.h>
 #include <sys/devices.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/types.h>
 #include <sys/dev/textscreen.h>
-#include <sys/i686/portio.h>
 
 #include "./vga_textscreen_font.h"
 

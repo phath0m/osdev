@@ -2,10 +2,10 @@
  * sys/i686/kern/interrupt.c
  * Enables everything required for hardware and software interrupts as well as context switching
  */
+#include <machine/portio.h>
 #include <machine/reg.h>
 #include <sys/string.h>
 #include <sys/types.h>
-#include <sys/i686/portio.h>
 
 struct dt_ptr {
     uint16_t    limit;

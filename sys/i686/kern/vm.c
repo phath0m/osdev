@@ -4,13 +4,13 @@
  */
 
 #include <ds/list.h>
+#include <machine/multiboot.h>
 #include <machine/vm.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/vm.h>
-#include <sys/i686/multiboot.h>
 
 struct frame {
     uintptr_t   addr;

@@ -1,4 +1,5 @@
 #include <ds/fifo.h>
+#include <machine/portio.h>
 #include <sys/device.h>
 #include <sys/devices.h>
 #include <sys/errno.h>
@@ -6,7 +7,6 @@
 #include <sys/ioctl.h>
 #include <sys/proc.h>
 #include <sys/types.h>
-#include <sys/i686/portio.h>
 
 static int keyboard_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
 static int keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);

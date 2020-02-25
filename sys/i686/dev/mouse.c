@@ -1,8 +1,8 @@
+#include <machine/portio.h>
 #include <sys/device.h>
 #include <sys/devices.h>
 #include <sys/interrupt.h>
 #include <sys/types.h>
-#include <sys/i686/portio.h>
 
 static int mouse_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
 

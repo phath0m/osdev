@@ -1,9 +1,9 @@
+#include <machine/multiboot.h>
 #include <sys/device.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/dev/textscreen.h>
-#include <sys/i686/multiboot.h>
 
 // remove
 #include <ds/list.h>

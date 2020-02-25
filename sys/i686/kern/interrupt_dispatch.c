@@ -1,7 +1,7 @@
+#include <machine/portio.h>
 #include <machine/reg.h>
 #include <sys/interrupt.h>
 #include <sys/proc.h>
-#include <sys/i686/portio.h>
 
 void
 dispatch_intr(struct regs *regs)

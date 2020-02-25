@@ -1,4 +1,5 @@
 #include <ds/list.h>
+#include <machine/elf32.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
@@ -8,7 +9,6 @@
 #include <sys/types.h>
 #include <sys/vnode.h>
 #include <sys/vm.h>
-#include <sys/i686/elf32.h>
 
 static const char **
 copy_strings(const char **strs, size_t *sizep, int *countp)

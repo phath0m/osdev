@@ -1,5 +1,5 @@
+#include <machine/portio.h>
 #include <sys/types.h>
-#include <sys/i686/portio.h>
 
 #define CMOS_ADDRESS    0x70
 #define CMOS_DATA       0x71

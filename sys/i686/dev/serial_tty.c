@@ -1,7 +1,7 @@
+#include <machine/portio.h>
 #include <sys/device.h>
 #include <sys/devices.h>
 #include <sys/types.h>
-#include <sys/i686/portio.h>
 
 #define PORT0   0x3F8
 #define PORT1   0x2F8

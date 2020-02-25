@@ -1,3 +1,4 @@
+#include <machine/multiboot.h>
 #include <machine/vm.h>
 #include <sys/device.h>
 #include <sys/devices.h>
@@ -12,7 +13,6 @@
 #include <sys/types.h>
 #include <sys/vm.h>
 #include <sys/dev/textscreen.h>
-#include <sys/i686/multiboot.h>
 
 #include "./lfb_font.h"
 
