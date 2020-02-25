@@ -68,6 +68,9 @@ extern struct vm_statistics vm_stat;
 #define VMSTAT_INC_PAGE_TABLE_COUNT(v) ((v)->page_table_count++)
 #define VMSTAT_INC_VM_SPACE_COUNT(v) ((v)->vmspace_count++)
 
+#define VA_BOUNDCHECK(vamap, addr, len) (((uintptr_t)(addr) >= (vamap)->base) && \
+                                         ((uintptr_t)(addr) + (uintptr_t)(len) < (vamap)->limit))
+
 struct va_map *va_map_new(uintptr_t base, uintptr_t limit);
 uintptr_t va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length);
 uintptr_t va_find_block(struct va_map *vamap, size_t length);
@@ -75,7 +78,6 @@ void va_mark_block(struct va_map *vamap, uintptr_t addr, size_t length);
 void va_free_block(struct va_map *vamap, uintptr_t addr, size_t length);
 
 struct vm_block *vm_find_block(struct vm_space *space, uintptr_t vaddr);
-
 
 void *vm_map(struct vm_space *space, void *addr, size_t length, int prot);
 void *vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t length, int prot);

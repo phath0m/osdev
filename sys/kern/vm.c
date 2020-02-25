@@ -72,7 +72,7 @@ va_mark_block(struct va_map *vamap, uintptr_t addr, size_t length)
 
     size_t required_pages = PAGE_COUNT(length);
 
-    int start_page = PAGE_OFFSET(addr);
+    int start_page = PAGE_INDEX(addr);
 
     uint8_t *bitmap = vamap->bitmap;
 
@@ -105,7 +105,7 @@ va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
     addr -= vamap->base;
 
     size_t required_pages = PAGE_COUNT(length);
-    int start_page = PAGE_OFFSET(addr);
+    int start_page = PAGE_INDEX(addr);
 
     uint8_t *bitmap = vamap->bitmap;
 
@@ -114,6 +114,7 @@ va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
     }
 }
 
+/* finds a page from a given virtual address */
 struct vm_block *
 vm_find_block(struct vm_space *space, uintptr_t vaddr)
 {

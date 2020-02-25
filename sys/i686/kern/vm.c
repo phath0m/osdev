@@ -6,6 +6,7 @@
 #include <ds/list.h>
 #include <machine/multiboot.h>
 #include <machine/vm.h>
+#include <machine/vm_private.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
@@ -25,6 +26,7 @@ uintptr_t   kernel_physical_brk;    /* physical memory highwater mark */
 /* global statistics for VM structures allocated in kernel space */
 struct vm_statistics vm_stat;
 
+/* find a recycled frame */
 static struct frame *
 get_free_frame()
 {
@@ -37,6 +39,7 @@ get_free_frame()
     return NULL;
 }
 
+/* allocates a new block of physical memory  */
 static uintptr_t
 frame_alloc(struct frame **res)
 {
@@ -56,6 +59,7 @@ frame_alloc(struct frame **res)
     return frame->addr;
 }
 
+/* marks a block of physical memory as free */
 static void
 frame_free(void *addr)
 {
@@ -82,12 +86,11 @@ frame_free(void *addr)
     }
 }
 
-
-/* add an entry into a page directory */
+/* actually map a virtual address to a physical address  */
 static void
 page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t paddr, bool write, bool user)
 {
-    uint32_t page_table = vaddr / PAGE_SIZE;
+    uint32_t page_table = PAGE_INDEX(vaddr);
     uint32_t page_table_entry = page_table / 1024;
 
     struct page_directory_entry *dir_entry = &directory->tables[page_table_entry];
@@ -101,17 +104,17 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
         dir_entry->present = 1;
         dir_entry->read_write = 1;
         dir_entry->user = 1;
-        dir_entry->address = (((uint32_t)table) - KERNEL_VIRTUAL_BASE) >> 12;
+        dir_entry->address = FRAME_INDEX(KVATOP(table));
      }
      else if (dir_entry->size) {
          panic("we shouldn't be unmapping huge pages. something is wrong");
     } else {
-        table = (struct page_table*)((uintptr_t)table + KERNEL_VIRTUAL_BASE);
+        table = (struct page_table*)PTOKVA(table);
     }
 
     struct page_entry *page = &table->pages[page_table % 1024];
 
-    page->frame = paddr >> 12;
+    page->frame = FRAME_INDEX(paddr);
     page->present = true;
     page->read_write = write;
     page->user = 1;
@@ -119,6 +122,7 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
     asm volatile("invlpg (%0)" : : "b"(vaddr) : "memory");
 }
 
+/* destroy a page directory structure */
 static void
 page_directory_free(struct page_directory *directory)
 {
@@ -126,7 +130,7 @@ page_directory_free(struct page_directory *directory)
         struct page_directory_entry *entry = &directory->tables[i];
 
         if (entry->present && !entry->size) {
-            struct page_table *table = (struct page_table*)((entry->address << 12) + KERNEL_VIRTUAL_BASE);
+            struct page_table *table = (struct page_table*)PTOKVA(entry->address << 12);
             VMSTAT_DEC_PAGE_TABLE_COUNT(&vm_stat);
             entry->present = false;
             free(table);
@@ -136,6 +140,7 @@ page_directory_free(struct page_directory *directory)
     free(directory);
 }
 
+/* new page structure */
 struct vm_block *
 vm_block_new()
 {
@@ -144,6 +149,7 @@ vm_block_new()
     return block;
 }
 
+/* share a virtual address from one address space to another */
 void *
 vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *addr2, size_t length, int prot)
 {
@@ -158,8 +164,8 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
         addr1 = (void*)va_alloc_block(space1->kva_map, (uintptr_t)addr1, length);
     }
 
-    uint32_t offset = (uint32_t)addr2 & 0x0000FFF;
-    
+    uintptr_t offset = PAGE_OFFSET(addr2);
+
     addr1 = (void*)ALIGN_ADDRESS(addr1);
     addr2 = (void*)ALIGN_ADDRESS(addr2);
 
@@ -189,6 +195,7 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
     return (void*)((uint32_t)addr1 + offset);
 }
 
+/* maps a contiguous block of pages to an address space */
 void *
 vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 {
@@ -226,6 +233,7 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
     return addr;
 }
 
+/* map a physical address to a virtual address */
 void *
 vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t length, int prot)
 {
@@ -259,6 +267,7 @@ vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t l
     return addr;
 }
 
+/* unmaps a contiguous block of pages from an address space */
 void
 vm_unmap(struct vm_space *space, void *addr, size_t length)
 {
@@ -266,9 +275,9 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
 
     addr = (void*)ALIGN_ADDRESS(addr);
 
-    if ((uintptr_t)addr + length < KERNEL_VIRTUAL_BASE) {
+    if (VA_BOUNDCHECK(space->uva_map, addr, length)) {
         va_free_block(space->uva_map, (uintptr_t)addr, length);
-    } else if ((uintptr_t)addr >= space->kernel_brk && ((uintptr_t)addr < space->kernel_end)) {
+    } else if (VA_BOUNDCHECK(space->kva_map, addr, length)) {
         va_free_block(space->kva_map, (uintptr_t)addr, length);
     }
 
@@ -292,6 +301,7 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
     }
 }
 
+/* destroy an address space */
 void
 vm_space_destroy(struct vm_space *space)
 {
@@ -353,6 +363,7 @@ map_vbe_data(struct page_directory *directory)
     } 
 }
 
+/* create a new address space */
 struct vm_space *
 vm_space_new()
 {
@@ -378,9 +389,7 @@ vm_space_new()
 
     vm_space->uva_map = va_map_new(0, KERNEL_VIRTUAL_BASE);
     vm_space->kva_map = va_map_new(KERNEL_VIRTUAL_BASE + 0x1FC00000, 0xE0000000);
-    vm_space->kernel_brk = KERNEL_VIRTUAL_BASE + 0x1FC00000;
-    vm_space->kernel_end = 0xE0000000;
-    vm_space->state_physical = (void*)((uint32_t)directory - KERNEL_VIRTUAL_BASE);
+    vm_space->state_physical = (void*)KVATOP(directory);
     vm_space->state_virtual = (void*)directory;
 
     return vm_space;
