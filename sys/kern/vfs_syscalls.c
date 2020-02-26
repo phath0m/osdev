@@ -6,6 +6,7 @@
  */
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/pipe.h>
 #include <sys/proc.h>
 #include <sys/procdesc.h>
 #include <sys/syscall.h>

@@ -12,6 +12,7 @@
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/malloc.h>
+#include <sys/pipe.h>
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>

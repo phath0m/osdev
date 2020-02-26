@@ -5,6 +5,7 @@
 #include <sys/fcntl.h>
 #include <sys/file.h>
 #include <sys/malloc.h>
+#include <sys/pipe.h>
 #include <sys/systm.h>
 #include <sys/vnode.h>
 

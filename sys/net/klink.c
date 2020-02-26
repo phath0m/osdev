@@ -1,3 +1,11 @@
+/*
+ * klink.c - Kernel link protocol
+ *
+ * This is a weird thing I came up with in lieu of having procfs. Basically,
+ * this is a simple request/response driven protocol that can be used to query
+ * information from kernel space. Sort of inspired by Linux's netlink sockets, 
+ * but radically different in terms of use/purpose
+ */
 #include <ds/list.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>

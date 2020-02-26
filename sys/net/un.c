@@ -1,15 +1,22 @@
+/*
+ * un.c - UNIX sockets (sort of)
+ *
+ * This file implements IPC sockets. Currently, this only supports connection 
+ * based socks (SOCK_STREAM) and does not support advanced things like sharing
+ * file descriptors
+ */
 #include <ds/list.h>
 #include <sys/errno.h>
+#include <sys/pipe.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/string.h>
+#include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/vnode.h>
-// remove me
-#include <sys/systm.h>
 
 #define AF_UNIX     0x01
 

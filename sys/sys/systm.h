@@ -19,7 +19,6 @@ void puts(const char *str);
 void set_kernel_output(struct cdev *dev);
 void panic(const char *fmt, ...);
 void shutdown();
-void create_pipe(struct file **files);
 void stacktrace(int max_frames);
 void printf(const char *fmt, ...);
 void vprintf(const char *fmt, va_list arg);
