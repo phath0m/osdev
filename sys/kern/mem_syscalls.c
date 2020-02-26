@@ -1,5 +1,6 @@
 #include <sys/errno.h>
 #include <sys/proc.h>
+#include <sys/procdesc.h>
 #include <sys/shm.h>
 #include <sys/string.h>
 #include <sys/syscall.h>

@@ -3,6 +3,7 @@
 #include <sys/file.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
+#include <sys/procdesc.h>
 #include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/string.h>

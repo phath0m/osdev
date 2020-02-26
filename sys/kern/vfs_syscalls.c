@@ -1,15 +1,17 @@
+/*
+ * vfs_syscalls.c
+ *
+ * This file is responsible for implementing generic filesystem system calls
+ *
+ */
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/proc.h>
+#include <sys/procdesc.h>
 #include <sys/syscall.h>
 #include <sys/systm.h>
 #include <sys/types.h>
 #include <sys/vnode.h>
-
-
-/*
- * filesystem syscalls
- */
 
 static int
 sys_access(syscall_args_t argv)

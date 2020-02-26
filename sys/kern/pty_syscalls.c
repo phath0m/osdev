@@ -1,6 +1,14 @@
+/*
+ * pty_syscalls.c
+ *
+ * This file is responsible for implementing terminal system calls
+ *
+ */
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/file.h>
+#include <sys/proc.h>
+#include <sys/procdesc.h>
 #include <sys/string.h>
 #include <sys/syscall.h>
 #include <sys/types.h>

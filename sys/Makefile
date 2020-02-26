@@ -26,6 +26,7 @@ KERNEL_OBJECTS += kern/panic.o
 KERNEL_OBJECTS += kern/pipe.o
 KERNEL_OBJECTS += kern/printf.o
 KERNEL_OBJECTS += kern/proc.o
+KERNEL_OBJECTS += kern/proc_desc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
 KERNEL_OBJECTS += kern/pty.o
 KERNEL_OBJECTS += kern/pty_syscalls.o

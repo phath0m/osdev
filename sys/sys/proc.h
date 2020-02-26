@@ -129,21 +129,9 @@ void proc_leave_group(struct proc *proc, struct pgrp *group);
 
 struct proc *proc_getbypid(int pid);
 
-struct file * proc_getfile(int fildes);
-
-int proc_getfildes();
-
 struct proc *proc_new();
 
-int proc_newfildes(struct file *file);
-
 int proc_signal(struct proc *proc, int sig, struct signal_args *sargs);
-
-int proc_dup(int oldfd);
-
-int proc_dup2(int oldfd, int newfd);
-
-int proc_fcntl(int fd, int cmd, void *arg);
 
 struct session *session_new(struct proc *leader);
 
