@@ -1,3 +1,10 @@
+/*
+ * pty.c - kernel pseudo-terminal implementation
+ *
+ * This file contains the pty implementation for the kernel and is responsible
+ * for the creation of pseudo-terminal devices (/dev/ptX) 
+ *
+ */
 #include <sys/device.h>
 #include <sys/devices.h>
 #include <sys/errno.h>
@@ -5,6 +12,7 @@
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/malloc.h>
+#include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/termios.h>
@@ -28,7 +36,6 @@ struct vops ptm_ops = {
     .write      = ptm_write
 };
 
-
 struct pty {
     struct file *   input_pipe[2];
     struct file *   output_pipe[2];
@@ -36,6 +43,7 @@ struct pty {
     struct termios  termios;
     int             line_buf_pos;
     char            line_buf[PTY_LINEBUF_SIZE];
+    struct winsize  winsize;
 };
 
 static int pty_counter = 0;
@@ -68,9 +76,12 @@ struct file *
 mkpty()
 {
     struct pty *pty = calloc(1, sizeof(struct pty));
-
+    
+    pty->winsize.ws_row = 50;
+    pty->winsize.ws_col = 100;
     pty->termios.c_lflag = ECHO | ICANON;
     pty->termios.c_oflag = OPOST;
+
     create_pipe(pty->input_pipe);
     create_pipe(pty->output_pipe);
 
@@ -86,7 +97,6 @@ mkpty()
 
     return res;
 }
-
 
 static void
 pty_flush_buf(struct pty *pty)
@@ -116,8 +126,8 @@ pty_outprocess(struct pty *pty, const char *buf, size_t nbyte)
     }
 }
 
-static
-int ptm_close(struct vnode *node, struct file *fp)
+static int
+ptm_close(struct vnode *node, struct file *fp)
 {
     return 0;
 }
@@ -128,8 +138,8 @@ ptm_destroy(struct vnode *node)
     return 0;
 }
 
-static
-int ptm_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
+static int
+ptm_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
     struct pty *pty = (struct pty*)node->state;
 
@@ -188,10 +198,22 @@ pts_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
         pty_flush_buf(pty);
         memcpy(&pty->termios, (void*)argp, sizeof(struct termios));
         break;
+    case TIOCSWINSZ:
+        memcpy(&pty->winsize, (void*)argp, sizeof(struct winsize));
+        break;
     case TIOCGWINSZ:
-        ((struct winsize*)argp)->ws_row = 50;
-        ((struct winsize*)argp)->ws_col = 100;
+        memcpy((void*)argp, &pty->winsize, sizeof(struct winsize));
         break; 
+    case TIOCSCTTY: {
+        struct session *session = PROC_GET_SESSION(current_proc);
+    
+        if (!session->ctty) {
+            session->ctty = dev;
+            return 0;
+        }
+
+        return -1;
+    }
     default:
         printf("got unknown IOCTL %d!\n", request);
         break;

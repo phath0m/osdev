@@ -19,6 +19,9 @@
 #define CLONE_VM        0x01
 #define CLONE_FILES     0x02
 
+/* retrieve the current session for a process */
+#define PROC_GET_SESSION(s) ((s)->group->session)
+
 typedef int (*kthread_entry_t)(void *state);
 
 struct regs;
@@ -35,6 +38,7 @@ struct cred {
 struct session {
     struct list         groups;
     struct proc *       leader;
+    struct device *     ctty;
     pid_t               sid;
 };
 

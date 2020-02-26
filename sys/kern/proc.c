@@ -40,6 +40,7 @@ pgrp_new(struct proc *leader, struct session *session)
     group->pgid = leader->pid;
     group->session = session;
 
+    list_append(&group->members, leader);
     list_append(&session->groups, group);
 
     return group;
@@ -50,6 +51,8 @@ proc_destroy(struct proc *proc)
 {
     KASSERT(proc != LIST_FIRST(&process_list), "init died");
     KASSERT(proc->parent != NULL, "cannot have NULL parent");
+
+    printf("leave group (proc=0x%p group=0x%p)\n", proc, proc->group);
 
     proc_leave_group(proc, proc->group);
 
@@ -294,16 +297,10 @@ proc_getfildes()
 char *
 proc_getctty(struct proc *proc)
 {
-    if (proc->files[0]) {
-        struct file *file = proc->files[0];
-
-        if (!file || !file->node || !file->node->device) {
-            return NULL;
-        }
-
-        if (device_isatty(file->node->device)) {
-            return file->node->device->name;
-        }
+    struct session *session = PROC_GET_SESSION(proc);
+    
+    if (session->ctty) {
+        return session->ctty->name;
     }
 
     return NULL;

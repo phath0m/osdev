@@ -93,5 +93,7 @@ struct termios {
 #define TCSETSF     0x03
 
 #define TIOCGWINSZ  0x04
+#define TIOCSWINSZ  0x05
+#define TIOCSCTTY   0x06
 
 #endif
