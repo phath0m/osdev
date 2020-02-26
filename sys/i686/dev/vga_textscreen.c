@@ -4,10 +4,10 @@
 #include <machine/portio.h>
 #include <sys/device.h>
 #include <sys/devices.h>
+#include <sys/ioctl.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/types.h>
-#include <sys/dev/textscreen.h>
 
 #include "./vga_textscreen_font.h"
 
@@ -350,13 +350,13 @@ vga_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
     struct vga_state *statep = (struct vga_state*)dev->state;
 
     switch (request) {
-    case TEXTSCREEN_CLEAR:
+    case TXIOCLRSCR:
         textscreen_clear((statep->background_color << 4) | statep->foreground_color);
         break;
-    case TEXTSCREEN_SETBG:
+    case TXIOSETBG:
         statep->background_color = (uint8_t)argp;
         break;
-    case TEXTSCREEN_SETFG:
+    case TXIOSETFG:
         statep->foreground_color = (uint8_t)argp;
         break;
     case VGA_SET_MODE_320X200:

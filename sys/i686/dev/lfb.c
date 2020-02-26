@@ -12,7 +12,6 @@
 #include <sys/timer.h>
 #include <sys/types.h>
 #include <sys/vm.h>
-#include <sys/dev/textscreen.h>
 
 #include "./lfb_font.h"
 

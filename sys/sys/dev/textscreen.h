@@ -1,8 +1,0 @@
-#ifndef SYS_DEV_TEXTSCREEN_H
-#define SYS_DEV_TEXTSCREEN_H
-
-#define TEXTSCREEN_CLEAR    0x0000
-#define TEXTSCREEN_SETBG    0x0001
-#define TEXTSCREEN_SETFG    0x0002
-
-#endif

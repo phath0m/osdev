@@ -4,7 +4,6 @@
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
-#include <sys/dev/textscreen.h>
 
 // remove
 #include <ds/list.h>
