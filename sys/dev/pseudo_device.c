@@ -1,5 +1,5 @@
 #include <sys/device.h>
-#include <sys/devices.h>
+#include <sys/devno.h>
 #include <sys/errno.h>
 
 static int full_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);

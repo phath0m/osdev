@@ -3,7 +3,7 @@
  */
 #include <machine/portio.h>
 #include <sys/device.h>
-#include <sys/devices.h>
+#include <sys/devno.h>
 #include <sys/ioctl.h>
 #include <sys/malloc.h>
 #include <sys/string.h>

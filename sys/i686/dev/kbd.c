@@ -1,7 +1,7 @@
 #include <ds/fifo.h>
 #include <machine/portio.h>
 #include <sys/device.h>
-#include <sys/devices.h>
+#include <sys/devno.h>
 #include <sys/errno.h>
 #include <sys/interrupt.h>
 #include <sys/ioctl.h>

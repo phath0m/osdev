@@ -6,7 +6,7 @@
  *
  */
 #include <sys/device.h>
-#include <sys/devices.h>
+#include <sys/devno.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
