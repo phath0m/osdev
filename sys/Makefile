@@ -6,6 +6,7 @@ include $(shell realpath "$(ARCH)/config.mk")
 CFLAGS += -I "$(shell realpath ./)"
 
 KERNEL_OBJECTS += dev/pseudo_device.o
+KERNEL_OBJECTS += dev/pty.o
 
 KERNEL_OBJECTS += ds/dict.o
 KERNEL_OBJECTS += ds/fifo.o
@@ -33,7 +34,6 @@ KERNEL_OBJECTS += kern/printf.o
 KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_desc.o
 KERNEL_OBJECTS += kern/proc_syscalls.o
-KERNEL_OBJECTS += kern/pty.o
 KERNEL_OBJECTS += kern/pty_syscalls.o
 KERNEL_OBJECTS += kern/shm.o
 KERNEL_OBJECTS += kern/signal.o
