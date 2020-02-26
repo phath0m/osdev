@@ -3,11 +3,11 @@
 
 #include <sys/file.h>
 
-struct file * proc_getfile(int fildes);
-int proc_getfildes();
-int proc_newfildes(struct file *file);
-int proc_dup(int oldfd);
-int proc_dup2(int oldfd, int newfd);
-int proc_fcntl(int fd, int cmd, void *arg);
+struct file * procdesc_getfile(int fildes);
+int procdesc_getfd();
+int procdesc_newfd(struct file *file);
+int procdesc_dup(int oldfd);
+int procdesc_dup2(int oldfd, int newfd);
+int procdesc_fcntl(int fd, int cmd, void *arg);
 
 #endif

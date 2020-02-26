@@ -54,7 +54,7 @@ sys_close(syscall_args_t argv)
 
     TRACE_SYSCALL("close", "%d", fd);
 
-    struct file *fp = proc_getfile(fd);
+    struct file *fp = procdesc_getfile(fd);
 
     if (fp) {
         current_proc->files[fd] = NULL;
@@ -81,7 +81,7 @@ sys_creat(syscall_args_t argv)
     int succ = vops_creat(current_proc, &file, path, mode);
 
     if (succ == 0) {
-        int fd = proc_getfildes();
+        int fd = procdesc_getfd();
 
         if (fd < 0) {
             vops_close(file);
@@ -103,7 +103,7 @@ sys_fchmod(syscall_args_t argv)
 
     TRACE_SYSCALL("fchmod", "%d, %d", fd, mode);
 
-    struct file *file = proc_getfile(fd);
+    struct file *file = procdesc_getfile(fd);
 
     if (file) {
         return vops_fchmod(file, mode);
@@ -121,7 +121,7 @@ sys_fchown(syscall_args_t argv)
 
     TRACE_SYSCALL("fchown", "%d, %d, %d", fd, owner, group);
 
-    struct file *file = proc_getfile(fd);
+    struct file *file = procdesc_getfile(fd);
 
     if (file) {
         return vops_fchown(file, owner, group);
@@ -138,7 +138,7 @@ sys_ftruncate(syscall_args_t argv)
 
     TRACE_SYSCALL("ftruncate", "%d, 0x%p", fd, length);
 
-    struct file *file = proc_getfile(fd);
+    struct file *file = procdesc_getfile(fd);
 
     if (file) {
         return vops_ftruncate(file, length);
@@ -156,7 +156,7 @@ sys_ioctl(syscall_args_t argv)
 
     TRACE_SYSCALL("ioctl", "%d, %d, %p", fd, request, arg);
 
-    struct file *file = proc_getfile(fd);
+    struct file *file = procdesc_getfile(fd);
 
     if (file) {
         asm volatile("sti");
@@ -174,7 +174,7 @@ sys_fstat(syscall_args_t argv)
 
     TRACE_SYSCALL("fstat", "%d, %p", fd, buf);
 
-    struct file *file = proc_getfile(fd);
+    struct file *file = procdesc_getfile(fd);
 
     if (file) {
         return vops_stat(file, buf);
@@ -196,7 +196,7 @@ sys_open(syscall_args_t argv)
     int succ = vops_open_r(current_proc, &file, path, mode);
 
     if (succ == 0) {
-        int fd = proc_getfildes();
+        int fd = procdesc_getfd();
 
         if (fd < 0) {
             vops_close(file);
@@ -221,8 +221,8 @@ sys_pipe(syscall_args_t argv)
 
     create_pipe(files);
 
-    pipefd[0] = proc_newfildes(files[0]);
-    pipefd[1] = proc_newfildes(files[1]);
+    pipefd[0] = procdesc_newfd(files[0]);
+    pipefd[1] = procdesc_newfd(files[1]);
 
     return 0;
 }
@@ -238,7 +238,7 @@ sys_read(syscall_args_t argv)
 
     asm volatile("sti");
 
-    struct file *file = proc_getfile(fildes);
+    struct file *file = procdesc_getfile(fildes);
 
     if (file) {
         return vops_read(file, buf, nbyte);
@@ -255,7 +255,7 @@ sys_readdir(syscall_args_t argv)
 
     TRACE_SYSCALL("readdir", "%d, %p", fildes, dirent);
 
-    struct file *file = proc_getfile(fildes);
+    struct file *file = procdesc_getfile(fildes);
 
     if (file) {
         return vops_readdirent(file, dirent);
@@ -283,7 +283,7 @@ sys_lseek(syscall_args_t argv)
 
     TRACE_SYSCALL("lseek", "%d, %d, %d", fd, offset, whence);
 
-    struct file *file = proc_getfile(fd);
+    struct file *file = procdesc_getfile(fd);
 
     if (file) {
         return vops_seek(file, offset, whence);
@@ -383,7 +383,7 @@ sys_write(syscall_args_t argv)
 
     asm volatile("sti");
 
-    struct file *file = proc_getfile(fildes);
+    struct file *file = procdesc_getfile(fildes);
 
     if (file) {
         return vops_write(file, buf, nbyte);

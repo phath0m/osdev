@@ -24,7 +24,7 @@ sys_mmap(syscall_args_t argv)
 
     TRACE_SYSCALL("mmap", "0x%p, %d, 0x%p, 0x%p, %d, %d", args->addr, args->length, args->prot, args->flags, args->fd, args->offset);
 
-    struct file *file = proc_getfile(args->fd);
+    struct file *file = procdesc_getfile(args->fd);
 
     if (!file) {
         return -(EBADF);
@@ -65,7 +65,7 @@ sys_shm_open(syscall_args_t argv)
         return res;
     }
 
-    int fd = proc_newfildes(fp);
+    int fd = procdesc_newfd(fp);
 
     return fd;
 }

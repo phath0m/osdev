@@ -21,7 +21,7 @@ sys_isatty(syscall_args_t argv)
 
     TRACE_SYSCALL("isatty", "%d", fildes);
 
-    struct file *file = proc_getfile(fildes);
+    struct file *file = procdesc_getfile(fildes);
 
     if (!file) {
         return -(EBADF);
@@ -54,7 +54,7 @@ sys_ttyname(syscall_args_t argv)
 
     TRACE_SYSCALL("ttyname", "%d, 0x%p", fildes, buf);
 
-    struct file *file = proc_getfile(fildes);
+    struct file *file = procdesc_getfile(fildes);
 
     if (!file) {
         return -(EBADF);
@@ -98,7 +98,7 @@ sys_mkpty(syscall_args_t argv)
         return -1;
     }
     
-    int fd = proc_getfildes();
+    int fd = procdesc_getfd();
 
     if (fd < 0) {
         vops_close(fp);

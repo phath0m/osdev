@@ -13,15 +13,15 @@
 #include <sys/vnode.h>
 
 int
-proc_dup(int oldfd)
+procdesc_dup(int oldfd)
 {
-    int newfd = proc_getfildes();
+    int newfd = procdesc_getfd();
 
-    return proc_dup2(oldfd, newfd);
+    return procdesc_dup2(oldfd, newfd);
 }
 
 int
-proc_dup2(int oldfd, int newfd)
+procdesc_dup2(int oldfd, int newfd)
 {
     if (oldfd >= 4096 || newfd >= 4096) {
         return -1;
@@ -51,7 +51,7 @@ proc_dup2(int oldfd, int newfd)
 }
 
 struct file *
-proc_getfile(int fildes)
+procdesc_getfile(int fildes)
 {   
     if (fildes >= 4096) {
         return NULL;
@@ -60,7 +60,7 @@ proc_getfile(int fildes)
 }
 
 int
-proc_getfildes()
+procdesc_getfd()
 {   
     for (int i = 0; i < 4096; i++) { 
         if (!current_proc->files[i]) {
@@ -72,7 +72,7 @@ proc_getfildes()
 }
 
 int
-proc_newfildes(struct file *file)
+procdesc_newfd(struct file *file)
 {
     for (int i = 0; i < 4096; i++) {
         if (!current_proc->files[i]) {
@@ -107,7 +107,7 @@ set_fcntl_flags(struct file *fp, int flags)
 }
 
 int
-proc_fcntl(int fd, int cmd, void *arg)
+procdesc_fcntl(int fd, int cmd, void *arg)
 {
     if (fd >= 4096 || fd >= 4096) {
         return -1;

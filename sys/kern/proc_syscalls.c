@@ -285,7 +285,7 @@ sys_fcntl(syscall_args_t argv)
 
     TRACE_SYSCALL("fcntl", "%d, %d, 0x%p", fd, cmd, arg);
 
-    return proc_fcntl(fd, cmd, arg);
+    return procdesc_fcntl(fd, cmd, arg);
 }
 
 static int
@@ -558,7 +558,7 @@ sys_dup(syscall_args_t argv)
 
     TRACE_SYSCALL("dup", "%d", oldfd);
 
-    return proc_dup(oldfd);
+    return procdesc_dup(oldfd);
 }
 
 static int
@@ -569,7 +569,7 @@ sys_dup2(syscall_args_t argv)
 
     TRACE_SYSCALL("dup2", "%d, %d", oldfd, newfd);
 
-    return proc_dup2(oldfd, newfd);
+    return procdesc_dup2(oldfd, newfd);
 }
 
 static int

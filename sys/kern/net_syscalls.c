@@ -12,7 +12,7 @@ sys_accept(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t*, address_len, 2, argv);
 
-    struct file *fp = proc_getfile(fd);
+    struct file *fp = procdesc_getfile(fd);
 
     if (!fp) {
         return -(EBADF);
@@ -26,7 +26,7 @@ sys_accept(syscall_args_t argv)
     if (res == 0) {
         struct file *file = sock_to_file(client);
 
-        return proc_newfildes(file);
+        return procdesc_newfd(file);
     }
 
     return res;
@@ -39,7 +39,7 @@ sys_bind(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
 
-    struct file *fp = fp = proc_getfile(fd);
+    struct file *fp = fp = procdesc_getfile(fd);
 
     if (!fp) {
         return -(EBADF); 
@@ -57,7 +57,7 @@ sys_connect(syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
 
-    struct file *fp = proc_getfile(fd);
+    struct file *fp = procdesc_getfile(fd);
 
     if (fp) {
         struct socket *sock = file_to_sock(fp);
@@ -85,7 +85,7 @@ sys_socket(syscall_args_t argv)
 
     struct file *file = sock_to_file(sock);
 
-    return proc_newfildes(file);
+    return procdesc_newfd(file);
 }
 
 __attribute__((constructor))
