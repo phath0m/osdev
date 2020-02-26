@@ -7,6 +7,11 @@ CFLAGS += -I "$(shell realpath ./)"
 
 KERNEL_OBJECTS += dev/pseudo_device.o
 
+KERNEL_OBJECTS += ds/dict.o
+KERNEL_OBJECTS += ds/fifo.o
+KERNEL_OBJECTS += ds/list.o
+KERNEL_OBJECTS += ds/membuf.o
+
 KERNEL_OBJECTS += fs/devfs.o
 KERNEL_OBJECTS += fs/tarfs.o
 KERNEL_OBJECTS += fs/tmpfs.o
@@ -44,12 +49,8 @@ KERNEL_OBJECTS += net/klink.o
 KERNEL_OBJECTS += net/un.o
 
 # Kernel runtime library
-KERNEL_OBJECTS += libk/dict.o
-KERNEL_OBJECTS += libk/fifo.o
-KERNEL_OBJECTS += libk/list.o
 KERNEL_OBJECTS += libk/mutex.o
 KERNEL_OBJECTS += libk/string.o
-KERNEL_OBJECTS += libk/membuf.o
 
 KERNEL_OBJECT = $(shell realpath kernel.o)
 
