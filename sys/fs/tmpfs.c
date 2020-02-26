@@ -21,7 +21,7 @@ struct tmpfs_node;
 struct tar_header;
 
 static int tmpfs_lookup(struct vnode *parent, struct vnode **result, const char *name);
-static int tmpfs_mount(struct vnode *parent, struct device *dev, struct vnode **root);
+static int tmpfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root);
 //static struct tmpfs_node *tmpfs_node_new();
 static int tmpfs_chmod(struct vnode *node, mode_t mode);
 static int tmpfs_chown(struct vnode *node, uid_t owner, gid_t group);
@@ -143,7 +143,7 @@ tmpfs_lookup(struct vnode *parent, struct vnode **result, const char *name)
 }
 
 static int
-tmpfs_mount(struct vnode *parent, struct device *dev, struct vnode **root)
+tmpfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
 {
     struct vnode *node = vn_new(parent, dev, &tmpfs_file_ops);
 

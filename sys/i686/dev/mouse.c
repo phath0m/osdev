@@ -4,9 +4,9 @@
 #include <sys/interrupt.h>
 #include <sys/types.h>
 
-static int mouse_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
+static int mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 
-struct device mouse_device = {
+struct cdev mouse_device = {
     .name       =   "mouse",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_MOUSE,
@@ -78,7 +78,7 @@ mouse_irq_handler(int inum, struct regs *regs)
 }
 
 static int
-mouse_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
+mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     if (nbyte != 3) {
         return 0;
@@ -99,7 +99,7 @@ __attribute__((constructor))
 static void
 _init_mouse()
 {
-    device_register(&mouse_device);
+    cdev_register(&mouse_device);
     mouse_wait(1);
     io_write_byte(0x64, 0xA8);
     mouse_wait(1);

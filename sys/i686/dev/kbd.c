@@ -8,10 +8,10 @@
 #include <sys/proc.h>
 #include <sys/types.h>
 
-static int keyboard_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
-static int keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
+static int keyboard_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
+static int keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 
-struct device keyboard_device = {
+struct cdev keyboard_device = {
     .name       =   "kbd",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_KBD,
@@ -41,7 +41,7 @@ keyboard_irq_handler(int inum, struct regs *regs)
 
     
 static int      
-keyboard_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
+keyboard_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {   
     switch (request) {
         case FIONREAD:
@@ -53,7 +53,7 @@ keyboard_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 }
 
 static int
-keyboard_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
+keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     while (FIFO_EMPTY(keyboard_buf)) {
         if (thread_exit_requested()) {
@@ -71,7 +71,7 @@ static void
 _init_keyboard()
 {
     keyboard_buf = fifo_new(4096);
-    device_register(&keyboard_device);
+    cdev_register(&keyboard_device);
     register_intr_handler(33, keyboard_irq_handler);
 }
 

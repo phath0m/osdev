@@ -33,13 +33,13 @@ sys_isatty(syscall_args_t argv)
         return -(ENOTTY);
     }
 
-    struct device *tty = file->node->device;
+    struct cdev *tty = file->node->device;
 
     if (!node) {
         return -(ENOTTY);
     }
 
-    if (!device_isatty(tty)) {
+    if (!cdev_isatty(tty)) {
         return -(ENOTTY);
     }
 
@@ -66,13 +66,13 @@ sys_ttyname(syscall_args_t argv)
         return -(ENOTTY);
     }
 
-    struct device *tty = file->node->device;
+    struct cdev *tty = file->node->device;
 
     if (!node) {
         return -(ENOTTY);
     }
 
-    if (!device_isatty(tty)) {
+    if (!cdev_isatty(tty)) {
         return -(ENOTTY);
     }
 

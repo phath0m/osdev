@@ -4,11 +4,11 @@
 #include <sys/systm.h>
 
 /* actual output device*/
-static struct device *output_device = NULL;
+static struct cdev *output_device = NULL;
 
 /* sets the kernel output to the specified device */
 void
-set_kernel_output(struct device *dev)
+set_kernel_output(struct cdev *dev)
 {
     output_device = dev;
 }
@@ -19,7 +19,7 @@ puts(const char *str)
     size_t nbyte = strlen(str);
 
     if (output_device) {
-        device_write(output_device, str, nbyte, 0);
+        cdev_write(output_device, str, nbyte, 0);
     }
 }   
 

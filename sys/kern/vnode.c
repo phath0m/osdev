@@ -33,7 +33,7 @@ vn_destroy(struct vnode *node)
 }
 
 struct vnode *
-vn_new(struct vnode *parent, struct device *dev, struct vops *ops)
+vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops)
 {
     struct vnode *node = (struct vnode*)calloc(0, sizeof(struct vnode));
     

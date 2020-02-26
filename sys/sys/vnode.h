@@ -70,13 +70,13 @@ struct vops {
 
 
 struct vnode {
-    struct device *     device;
+    struct cdev *     device;
     struct dict         children;
     struct vops *       ops;
     struct vnode *      mount;
     struct vnode *      parent;
     union {
-        struct device * device;
+        struct cdev * device;
         struct list     fifo_readers;
         struct list     un_connections;
     } un;
@@ -97,7 +97,7 @@ void vn_destroy(struct vnode *node);
 
 int vn_lookup(struct vnode *parent, struct vnode **result, const char *name);
 
-struct vnode *vn_new(struct vnode *parent, struct device *dev, struct vops *ops);
+struct vnode *vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops);
 
 int vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char *path);
 

@@ -15,7 +15,7 @@ static int devfs_ioctl(struct vnode *node, uint64_t mode, void *arg);
 
 static int devn_lookup(struct vnode *parent, struct vnode **result, const char *name);
 static int devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset);
-static int devfs_mount(struct vnode *parent, struct device *dev, struct vnode **root);
+static int devfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root);
 static int devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
 static int devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry);
 static int devfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence);
@@ -52,10 +52,10 @@ devfs_destroy(struct vnode *node)
 static int
 devfs_ioctl(struct vnode *node, uint64_t mode, void *arg)
 {
-    struct device *dev = (struct device*)node->state;
+    struct cdev *dev = (struct cdev*)node->state;
 
     if (dev) {
-        return device_ioctl(dev, mode, (uintptr_t)arg);
+        return cdev_ioctl(dev, mode, (uintptr_t)arg);
     }
 
     return 0;
@@ -68,7 +68,7 @@ devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 
     list_get_iter(&device_list, &iter);
 
-    struct device *dev;
+    struct cdev *dev;
     
     int res = -1;
 
@@ -97,17 +97,17 @@ devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 int
 devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset)
 {
-    struct device *dev = (struct device*)node->state;
+    struct cdev *dev = (struct cdev*)node->state;
 
     if (dev && node->inode != 0) {
-        return device_mmap(dev, addr, size, prot, offset);
+        return cdev_mmap(dev, addr, size, prot, offset);
     }
 
     return -(ENOTSUP); 
 }
 
 static int
-devfs_mount(struct vnode *parent, struct device *dev, struct vnode **root)
+devfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
 {
     struct vnode *node = vn_new(parent, dev, &devfs_file_ops);
 
@@ -125,10 +125,10 @@ static int
 devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
 
-    struct device *dev = (struct device*)node->state;
+    struct cdev *dev = (struct cdev*)node->state;
 
     if (dev && node->inode != 0) {
-        return device_read(dev, buf, nbyte, pos);
+        return cdev_read(dev, buf, nbyte, pos);
     }
 
     return -1;
@@ -141,7 +141,7 @@ devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 
     list_get_iter(&device_list, &iter);
 
-    struct device *dev;
+    struct cdev *dev;
 
     int res = -1;
 
@@ -178,7 +178,7 @@ devfs_stat(struct vnode *node, struct stat *stat)
         return 0;
     }
 
-    struct device *dev = (struct device*)node->state;
+    struct cdev *dev = (struct cdev*)node->state;
 
     if (!dev) {
         return -1;    
@@ -192,13 +192,13 @@ devfs_stat(struct vnode *node, struct stat *stat)
 static int
 devfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 {
-    struct device *dev = (struct device*)node->state;
+    struct cdev *dev = (struct cdev*)node->state;
 
     if (!dev) {
         return -1;
     }
 
-    return device_write(dev, buf, nbyte, pos);
+    return cdev_write(dev, buf, nbyte, pos);
 }
 
 __attribute__((constructor))

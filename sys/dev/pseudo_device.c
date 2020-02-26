@@ -2,14 +2,14 @@
 #include <sys/devices.h>
 #include <sys/errno.h>
 
-static int full_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
-static int null_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
-static int pseudo_close(struct device *dev);
-static int pseudo_open(struct device *dev);
-static int zero_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
-static int zero_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int full_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int null_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
+static int pseudo_close(struct cdev *dev);
+static int pseudo_open(struct cdev *dev);
+static int zero_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
+static int zero_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
-struct device full_device = {
+struct cdev full_device = {
     .name       =   "full",
     .mode       =   0666,
     .majorno    =   DEV_MAJOR_PSEUDO,
@@ -21,7 +21,7 @@ struct device full_device = {
     .write      =   full_write
 };
 
-struct device null_device = {
+struct cdev null_device = {
     .name       =   "null",
     .mode       =   0666,
     .majorno    =   DEV_MAJOR_PSEUDO,
@@ -33,7 +33,7 @@ struct device null_device = {
     .write      =   zero_write
 };
 
-struct device zero_device = {
+struct cdev zero_device = {
     .name       =   "zero",
     .mode       =   0666,
     .majorno    =   DEV_MAJOR_PSEUDO,
@@ -47,31 +47,31 @@ struct device zero_device = {
 };
 
 static int
-full_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
+full_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     return -(ENOSPC);
 }
 
 static int
-null_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
+null_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     return -1;
 }
 
 static int
-pseudo_close(struct device *dev)
+pseudo_close(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-pseudo_open(struct device *dev)
+pseudo_open(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-zero_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
+zero_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     for (int i = 0; i < nbyte; i++) {
         buf[i] = 0;
@@ -81,7 +81,7 @@ zero_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-zero_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
+zero_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     return nbyte;
 }
@@ -90,7 +90,7 @@ __attribute__((constructor))
 void
 _init_pseudo_devices()
 {
-    device_register(&full_device);
-    device_register(&null_device);
-    device_register(&zero_device);
+    cdev_register(&full_device);
+    cdev_register(&null_device);
+    cdev_register(&zero_device);
 }

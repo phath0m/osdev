@@ -16,7 +16,7 @@
 
 int kmain(const char *args);
 void puts(const char *str);
-void set_kernel_output(struct device *dev);
+void set_kernel_output(struct cdev *dev);
 void panic(const char *fmt, ...);
 void shutdown();
 void create_pipe(struct file **files);

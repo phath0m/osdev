@@ -34,7 +34,7 @@ getfsbyname(const char *name)
 }
 
 int
-fs_open(struct device *dev, struct vnode **root, const char *fsname, int flags)
+fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags)
 {
     struct filesystem *fs = getfsbyname(fsname);
 
@@ -66,7 +66,7 @@ fs_register(char *name, struct fs_ops *ops)
 }
 
 int
-fs_mount(struct vnode *root, struct device *dev, const char *fsname, const char *path, int flags)
+fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *path, int flags)
 {
     struct vnode *mount;
     struct file *file;

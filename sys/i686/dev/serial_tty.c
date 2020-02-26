@@ -12,12 +12,12 @@ struct serial_state {
     int     port;
 };
 
-static int serial_close(struct device *dev);
-static int serial_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
-static int serial_isatty(struct device *dev);
-static int serial_open(struct device *dev);
-static int serial_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
-static int serial_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int serial_close(struct cdev *dev);
+static int serial_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
+static int serial_isatty(struct cdev *dev);
+static int serial_open(struct cdev *dev);
+static int serial_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
+static int serial_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct serial_state serial0_state = {
     .port   =   PORT0
@@ -35,7 +35,7 @@ struct serial_state serial3_state = {
     .port   =   PORT3
 };
 
-struct device serial0_device = {
+struct cdev serial0_device = {
     .name       =   "ttyS0",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
@@ -49,7 +49,7 @@ struct device serial0_device = {
     .state      =   &serial0_state
 };
 
-struct device serial1_device = {
+struct cdev serial1_device = {
     .name       =   "ttyS1",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
@@ -63,7 +63,7 @@ struct device serial1_device = {
     .state      =   &serial1_state
 };
 
-struct device serial2_device = {
+struct cdev serial2_device = {
     .name       =   "ttyS2",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
@@ -77,7 +77,7 @@ struct device serial2_device = {
     .state      =   &serial2_state
 };
 
-struct device serial3_device = {
+struct cdev serial3_device = {
     .name       =   "ttyS3",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
@@ -133,31 +133,31 @@ read_char(struct serial_state *state)
 }
 
 static int
-serial_close(struct device *dev)
+serial_close(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-serial_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
+serial_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
     return 0;
 }
 
 static int
-serial_isatty(struct device *dev)
+serial_isatty(struct cdev *dev)
 {
     return 1;
 }
 
 static int
-serial_open(struct device *dev)
+serial_open(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-serial_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
+serial_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     struct serial_state *state = (struct serial_state*)dev->state;
 
@@ -177,7 +177,7 @@ serial_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-serial_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
+serial_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     struct serial_state *state = (struct serial_state*)dev->state;
 
@@ -197,9 +197,9 @@ _init_serial_tty()
     init_serial_device(PORT2);
     init_serial_device(PORT3);
 
-    device_register(&serial0_device);
-    device_register(&serial1_device);
-    device_register(&serial2_device);
-    device_register(&serial3_device);
+    cdev_register(&serial0_device);
+    cdev_register(&serial1_device);
+    cdev_register(&serial2_device);
+    cdev_register(&serial3_device);
 }
 

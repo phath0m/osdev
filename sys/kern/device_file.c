@@ -18,20 +18,20 @@ struct vops dev_file_ops = {
     .write      = dev_file_write
 };
 
-struct device_file {
+struct cdev_file {
     struct vnode *      host;
-    struct device *     device;
+    struct cdev *     device;
 };
 
 struct vnode *
-device_file_open(struct vnode *parent, dev_t devno)
+cdev_file_open(struct vnode *parent, dev_t devno)
 {
     struct vnode *node = vn_new(NULL, NULL, &dev_file_ops);
-    struct device_file *file = calloc(1, sizeof(struct device_file));
+    struct cdev_file *file = calloc(1, sizeof(struct cdev_file));
 
     node->state = file;
     file->host = parent;
-    file->device = device_from_devno(devno);
+    file->device = cdev_from_devno(devno);
 
     return node;
 }
@@ -39,7 +39,7 @@ device_file_open(struct vnode *parent, dev_t devno)
 static int
 dev_file_destroy(struct vnode *node)
 {
-    struct device_file *file = (struct device_file*)node->state;
+    struct cdev_file *file = (struct cdev_file*)node->state;
 
     free(file);
 
@@ -49,15 +49,15 @@ dev_file_destroy(struct vnode *node)
 static int
 dev_file_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
-    struct device_file *file = (struct device_file*)node->state;
+    struct cdev_file *file = (struct cdev_file*)node->state;
 
-    return device_read(file->device, buf, nbyte, pos);
+    return cdev_read(file->device, buf, nbyte, pos);
 }
 
 static int
 dev_file_stat(struct vnode *node, struct stat *stat)
 {
-    struct device_file *file = (struct device_file*)node->state;
+    struct cdev_file *file = (struct cdev_file*)node->state;
     struct vnode *host = file->host;
     struct vops *ops = host->ops;
 
@@ -71,7 +71,7 @@ dev_file_stat(struct vnode *node, struct stat *stat)
 static int
 dev_file_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 {
-    struct device_file *file = (struct device_file*)node->state;
+    struct cdev_file *file = (struct cdev_file*)node->state;
 
-    return device_write(file->device, buf, nbyte, pos);
+    return cdev_write(file->device, buf, nbyte, pos);
 }

@@ -41,13 +41,13 @@ struct lfb_state {
 
 static int default_color_palette[] = {0x0, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b};
 
-static int lfb_close(struct device *dev);
-static int lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
-static int lfb_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset);
-static int lfb_open(struct device *dev);
-static int lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int lfb_close(struct cdev *dev);
+static int lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
+static int lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset);
+static int lfb_open(struct cdev *dev);
+static int lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
-struct device lfb_device = {
+struct cdev lfb_device = {
     .name       =   "lfb",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_CON,
@@ -259,13 +259,13 @@ clear_line(struct lfb_state *state, int n)
 }
 
 static int
-lfb_close(struct device *dev)
+lfb_close(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
+lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
     struct lfb_state *state = (struct lfb_state*)dev->state;
 
@@ -320,7 +320,7 @@ lfb_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 }
 
 static intptr_t
-lfb_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset)
+lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
 {
     /* defined in sys/i686/kern/preinit.c */
     extern multiboot_info_t *multiboot_header;
@@ -345,13 +345,13 @@ lfb_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset
 }
 
 static int
-lfb_open(struct device *dev)
+lfb_open(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-lfb_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
+lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     struct lfb_state *state = (struct lfb_state*)dev->state;
 
@@ -434,7 +434,7 @@ _init_lfb()
     state.foreground_color = 0xFFFFFF;
     spinlock_unlock(&state.lock);
     lfb_device.state = &state;
-    device_register(&lfb_device);
+    cdev_register(&lfb_device);
 
     timer_new(lfb_tick, 300, &state);
 }

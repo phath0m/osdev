@@ -24,10 +24,10 @@ static int ptm_close(struct vnode *node, struct file *fp);
 static int ptm_destroy(struct vnode *node);
 static int ptm_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
 static int ptm_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
-static int pts_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
-static int pts_isatty(struct device *dev);
-static int pts_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos);
-static int pts_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
+static int pts_isatty(struct cdev *dev);
+static int pts_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
+static int pts_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
 struct vops ptm_ops = {
     .close      = ptm_close,
@@ -39,7 +39,7 @@ struct vops ptm_ops = {
 struct pty {
     struct file *   input_pipe[2];
     struct file *   output_pipe[2];
-    struct device * slave;
+    struct cdev * slave;
     struct termios  termios;
     int             line_buf_pos;
     char            line_buf[PTY_LINEBUF_SIZE];
@@ -48,10 +48,10 @@ struct pty {
 
 static int pty_counter = 0;
 
-static struct device *
+static struct cdev *
 mkpty_slave(struct pty *pty)
 {
-    struct device *pts_dev = calloc(1, sizeof(struct device) + 14);
+    struct cdev *pts_dev = calloc(1, sizeof(struct cdev) + 14);
     char *name = (char*)&pts_dev[1];
 
     sprintf(name, "pt%d", pty_counter++);
@@ -67,7 +67,7 @@ mkpty_slave(struct pty *pty)
     pts_dev->read = pts_read;
     pts_dev->write = pts_write;
 
-    device_register(pts_dev);
+    cdev_register(pts_dev);
 
     return pts_dev;
 }
@@ -181,7 +181,7 @@ ptm_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-pts_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
+pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
     struct pty *pty = (struct pty*)dev->state; 
     switch (request) {
@@ -223,13 +223,13 @@ pts_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 }
 
 static int
-pts_isatty(struct device *dev)
+pts_isatty(struct cdev *dev)
 {
         return 1;
 }
 
 static int
-pts_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
+pts_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     struct pty *pty = (struct pty*)dev->state;
 
@@ -237,7 +237,7 @@ pts_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-pts_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
+pts_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     struct pty *pty = (struct pty*)dev->state;
 

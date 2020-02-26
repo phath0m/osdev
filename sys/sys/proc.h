@@ -39,7 +39,7 @@ struct cred {
 struct session {
     struct list         groups;
     struct proc *       leader;
-    struct device *     ctty;
+    struct cdev *     ctty;
     pid_t               sid;
 };
 

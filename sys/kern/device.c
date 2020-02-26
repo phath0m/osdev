@@ -5,8 +5,8 @@
 
 struct list device_list;
 
-struct device *
-device_from_devno(dev_t devno)
+struct cdev *
+cdev_from_devno(dev_t devno)
 {
     uint16_t dev_minor = minor(devno);
     uint16_t dev_major = major(devno);
@@ -15,8 +15,8 @@ device_from_devno(dev_t devno)
 
     list_get_iter(&device_list, &iter);
 
-    struct device *dev;
-    struct device *ret = NULL;
+    struct cdev *dev;
+    struct cdev *ret = NULL;
 
     while (iter_move_next(&iter, (void**)&dev)) {
         if (dev->majorno == dev_major && dev->minorno == dev_minor) {
@@ -32,7 +32,7 @@ device_from_devno(dev_t devno)
 }
 
 int
-device_close(struct device *dev)
+cdev_close(struct cdev *dev)
 {
     if (dev->close) {
         return dev->close(dev);
@@ -42,13 +42,13 @@ device_close(struct device *dev)
 }
 
 int
-device_destroy(struct device *dev)
+cdev_destroy(struct cdev *dev)
 {
     return 0;
 }
 
 int
-device_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
+cdev_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
     if (dev->ioctl) {
         return dev->ioctl(dev, request, argp);
@@ -58,7 +58,7 @@ device_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 }
 
 int
-device_isatty(struct device *dev)
+cdev_isatty(struct cdev *dev)
 {
     if (dev->isatty) {
         return dev->isatty(dev);
@@ -68,7 +68,7 @@ device_isatty(struct device *dev)
 }
 
 int
-device_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t offset)
+cdev_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
 {
     if (dev->mmap) {
         return dev->mmap(dev, addr, size, prot, offset);
@@ -78,7 +78,7 @@ device_mmap(struct device *dev, uintptr_t addr, size_t size, int prot, off_t off
 }
 
 int
-device_open(struct device *dev)
+cdev_open(struct cdev *dev)
 {
     if (dev->open) {
         return dev->open(dev);
@@ -88,7 +88,7 @@ device_open(struct device *dev)
 }
 
 int
-device_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
+cdev_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     if (dev->read) {
         return dev->read(dev, buf, nbyte, pos);
@@ -98,14 +98,14 @@ device_read(struct device *dev, char *buf, size_t nbyte, uint64_t pos)
 }
 
 int
-device_register(struct device *dev)
+cdev_register(struct cdev *dev)
 {
     list_append(&device_list, dev);
     return 0;
 }
 
 int
-device_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
+cdev_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     if (dev->write) {
         return dev->write(dev, buf, nbyte, pos);

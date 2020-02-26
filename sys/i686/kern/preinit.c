@@ -47,7 +47,7 @@ void
 _preinit(multiboot_info_t *multiboot_hdr)
 {
     extern void _init();
-    extern struct device serial0_device;
+    extern struct cdev serial0_device;
 
     uint32_t initrd = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr));
     uint32_t heap = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr + 4));
@@ -61,10 +61,9 @@ _preinit(multiboot_info_t *multiboot_hdr)
 
     set_kernel_output(&serial0_device);
 
-    printf("base   = 0x%p\n", KERNEL_VIRTUAL_BASE);
-    printf("initrd = 0x%p\n", initrd);
-    printf("heap   = 0x%p\n", heap);
+    printf("base=0x%p initrd=0x%p heap=0x%p\n", KERNEL_VIRTUAL_BASE, initrd, heap);
     printf("usable memory map:\n"); 
+
     uint32_t usable_memory = 0;
 
     for (int i = 0; i < multiboot_hdr->mmap_length; i+= sizeof(struct multiboot_mmap_entry)) {

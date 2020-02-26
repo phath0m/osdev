@@ -107,12 +107,12 @@ struct vga_state {
 
 struct vga_state state;
 
-static int vga_close(struct device *dev);
-static int vga_ioctl(struct device *dev, uint64_t request, uintptr_t argp);
-static int vga_open(struct device *dev);
-static int vga_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int vga_close(struct cdev *dev);
+static int vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
+static int vga_open(struct cdev *dev);
+static int vga_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
-struct device vga_device = {
+struct cdev vga_device = {
     .name       =   "vga",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_CON,
@@ -339,13 +339,13 @@ textscreen_scroll(uint8_t attr)
 }
 
 static int
-vga_close(struct device *dev)
+vga_close(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-vga_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
+vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
     struct vga_state *statep = (struct vga_state*)dev->state;
 
@@ -380,13 +380,13 @@ vga_ioctl(struct device *dev, uint64_t request, uintptr_t argp)
 }
 
 static int
-vga_open(struct device *dev)
+vga_open(struct cdev *dev)
 {
     return 0;
 }
 
 static int
-vga_write(struct device *dev, const char *buf, size_t nbyte, uint64_t pos)
+vga_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
     struct vga_state *statep = (struct vga_state*)dev->state;
 
@@ -424,7 +424,7 @@ __attribute__((constructor))
 void
 _init_vga()
 {
-    device_register(&vga_device);
+    cdev_register(&vga_device);
     state.position = 0;
     state.foreground_color = 15;
     state.background_color = 0;
