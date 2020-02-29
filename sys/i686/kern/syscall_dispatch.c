@@ -61,5 +61,5 @@ __attribute__((constructor))
 void
 _init_syscall_handler()
 {
-    register_intr_handler(0x80, syscall_handler);
+    bus_register_intr(0x80, syscall_handler);
 }

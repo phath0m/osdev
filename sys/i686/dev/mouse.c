@@ -117,7 +117,6 @@ _init_mouse()
     mouse_send_cmd(0xF4);
     mouse_recv_resp();
 
-    register_intr_handler(12, mouse_irq_handler);
-    register_intr_handler(12+32, mouse_irq_handler);
+    bus_register_intr(44, mouse_irq_handler);
 }
 

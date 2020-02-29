@@ -72,6 +72,6 @@ _init_keyboard()
 {
     keyboard_buf = fifo_new(4096);
     cdev_register(&keyboard_device);
-    register_intr_handler(33, keyboard_irq_handler);
+    bus_register_intr(33, keyboard_irq_handler);
 }
 

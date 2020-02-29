@@ -13,7 +13,7 @@ dispatch_to_intr_handler(int inum, struct regs *regs)
 }
 
 int
-register_intr_handler(int inum, intr_handler_t handler)
+bus_register_intr(int inum, intr_handler_t handler)
 {
     intr_handlers[inum] = handler;
     

@@ -142,8 +142,8 @@ void
 _init_exceptions()
 {
     for (int i = 0; i < 14; i++) {
-        register_intr_handler(i, handle_generic_exception);
+        bus_register_intr(i, handle_generic_exception);
     }
 
-    register_intr_handler(14, handle_page_fault);
+    bus_register_intr(14, handle_page_fault);
 }
