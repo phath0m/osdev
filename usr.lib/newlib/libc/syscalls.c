@@ -16,27 +16,211 @@
 
 char **environ;
 
-struct mmap_args {
-    uintptr_t   addr;
-    size_t      length;
-    int         prot;
-    int         flags;
-    int         fd;
-    off_t       offset;
-};
-
-/* Begin things that I've been too lazy to implement */
-long
-sysconf(int name)
+void
+_exit(int status)
 {
-    switch (name) {
-        case 8:
-            return 4096;
-        case 11:
-            return 10000;
-        default:
-            return -1;
+    _SYSCALL1(void, SYS_EXIT, status);
+}
+
+int
+accept(int fd, struct sockaddr *address, socklen_t *address_size)
+{
+    int ret = _SYSCALL3(int, SYS_ACCEPT, fd, address, address_size);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
     }
+
+    return ret;
+}
+
+int
+access(const char *path, int mode)
+{
+    int ret = _SYSCALL2(int, SYS_ACCESS, path, mode);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+bind(int fd, const struct sockaddr *address, socklen_t address_size)
+{
+    int ret = _SYSCALL3(int, SYS_BIND, fd, address, address_size);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+chdir(const char *path)
+{
+    int ret = _SYSCALL1(int, SYS_CHDIR, path);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+chmod(const char *path, mode_t mode)
+{
+    int ret = _SYSCALL2(int, SYS_CHMOD, path, mode);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+chown(const char *path, uid_t owner, gid_t group)
+{
+    int ret = _SYSCALL3(int, SYS_CHOWN, path, owner, group);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+close(int file)
+{
+    int ret = _SYSCALL1(int, SYS_CLOSE, file);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+creat(const char *path, mode_t mode)
+{
+    int ret = _SYSCALL2(int, SYS_CREAT, path, mode);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+connect(int fd, const struct sockaddr *address, socklen_t address_size)
+{
+    int ret = _SYSCALL3(int, SYS_CONNECT, fd, address, address_size);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+pid_t
+clone(int (*func)(void *arg), void *stack, int flags, void *arg)
+{
+    int ret = _SYSCALL4(int, SYS_CLONE, func, stack, flags, arg);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return (pid_t)ret;
+}
+
+int
+dup(int oldfd)
+{
+    int ret = _SYSCALL1(int, SYS_DUP, oldfd);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+dup2(int oldfd, int newfd)
+{
+    int ret = _SYSCALL2(int, SYS_DUP2, oldfd, newfd);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+execv(char *name, char **argv)
+{
+    return execve(name, argv, environ);
+}
+
+int
+execve(char *name, char **argv, char **env)
+{
+    int ret = _SYSCALL3(int, SYS_EXECVE, name, argv, env);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+fchmod(int file, mode_t mode)
+{
+    int ret = _SYSCALL2(int, SYS_FCHMOD, file, mode);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
+fchown(int file, uid_t owner, gid_t group)
+{
+    int ret = _SYSCALL3(int, SYS_FCHOWN, file, owner, group);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 int
@@ -51,9 +235,7 @@ fcntl(int fd, int cmd, ...)
     void *arg = va_arg(argp, void*);
     va_end(argp);
 
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FCNTL), "b"(fd), "c"(cmd), "d"(arg));
+    int ret = _SYSCALL3(int, SYS_FCNTL, fd, cmd, arg);
 
     if (ret < 0) {
         errno = -ret;
@@ -63,11 +245,17 @@ fcntl(int fd, int cmd, ...)
     return 0;
 }
 
-
-long
-pathconf(char *path, int name)
+int
+fork()
 {
-    return 0;
+    int ret = _SYSCALL0(int, SYS_FORK);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
 }
 
 int
@@ -77,292 +265,9 @@ fpathconf(int file, int name)
 }
 
 int
-utime(const char *filename, const struct utimbuf *times)
-{
-    return 0;
-}
-
-unsigned int
-msleep(unsigned int miliseconds)
-{
-    asm volatile("int $0x80" : : "a"(SYS_SLEEP), "b"(miliseconds));
-    return 0;
-}
-
-unsigned int
-sleep(unsigned int seconds)
-{
-    return msleep(seconds * 1000);
-}
-
-char *
-getlogin(void)
-{
-    static char login_buf[512];
-
-    uid_t uid = getuid();
-    
-    struct passwd *pwd = getpwuid(uid);
-    
-    if (pwd) {
-        strcpy(login_buf, pwd->pw_name, 512);
-
-        return login_buf;
-    }
-
-    return "unknown";
-}
-
-/* here are the actual syscalls */
-
-void
-_exit(int status)
-{
-    asm volatile("int $0x80" : : "a"(SYS_EXIT), "b"(status));
-}
-
-int
-accept(int fd, struct sockaddr *address, socklen_t *address_size)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_ACCEPT), "b"(fd), "c"(address), "d"(address_size));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-access(const char *path, int mode)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_ACCESS), "b"(path), "c"(mode));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-bind(int fd, const struct sockaddr *address, socklen_t address_size)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_BIND), "b"(fd), "c"(address), "d"(address_size));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-chdir(const char *path)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHDIR), "b"(path));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-chmod(const char *path, mode_t mode)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHMOD), "b"(path), "c"(mode));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-chown(const char *path, uid_t owner, gid_t group)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CHOWN), "b"(path), "c"(owner), "d"(group));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-close(int file)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CLOSE), "b"(file));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-creat(const char *path, mode_t mode)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_CREAT), "b"(path), "c"(mode));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-connect(int fd, const struct sockaddr *address, socklen_t address_size)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_CONNECT), "b"(fd), "c"(address), "d"(address_size));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-pid_t
-clone(int (*func)(void *arg), void *stack, int flags, void *arg)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_CLONE), "b"(func), "c"(stack), "d"(flags), "S"(arg));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return (pid_t)ret;
-}
-
-int
-dup(int oldfd)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_DUP), "b"(oldfd));
-
-    return ret;
-}
-
-int
-dup2(int oldfd, int newfd)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_DUP2), "b"(oldfd), "c"(newfd));
-
-    return ret;
-}
-
-int
-execv(char *name, char **argv)
-{
-    return execve(name, argv, environ);
-}
-
-int
-execve(char *name, char **argv, char **env)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_EXECVE), "b"(name), "c"(argv), "d"(env));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-fchmod(int file, mode_t mode)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FCHMOD), "b"(file), "c"(mode));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-fchown(int file, uid_t owner, gid_t group)
-{
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FCHOWN), "b"(file), "c"(owner), "d"(group));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
-fork()
-{
-    int ret = 0;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FORK));
-
-    if (ret < 0) {
-        errno = -ret;
-        return -1;
-    }
-
-    return ret;
-}
-
-int
 fstat(int file, struct stat *st)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FSTAT), "b"(file), "c"(st));
+    int ret = _SYSCALL2(int, SYS_FSTAT, file, st);
 
     if (ret < 0) {
         errno = -ret;
@@ -375,9 +280,7 @@ fstat(int file, struct stat *st)
 int
 ftruncate(int file, off_t length)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FTRUNCATE), "b"(file), "c"(length));
+    int ret = _SYSCALL2(int, SYS_FTRUNCATE, file, length);
 
     if (ret < 0) {
         errno = -ret;
@@ -390,9 +293,7 @@ ftruncate(int file, off_t length)
 char *
 getcwd(char *buf, size_t size)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETCWD), "b"(buf), "c"(size));
+    int ret = _SYSCALL2(int, SYS_GETCWD, buf, size);
 
     if (ret < 0) {
         errno = -ret;
@@ -411,9 +312,7 @@ getwd(char *buf)
 int
 getegid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETEGID));
+    int ret = _SYSCALL0(int, SYS_GETEGID);
 
     if (ret < 0) {
         errno = -ret;
@@ -426,9 +325,7 @@ getegid()
 int
 geteuid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETEUID));
+    int ret = _SYSCALL0(int, SYS_GETEUID);
 
     if (ret < 0) {
         errno = -ret;
@@ -441,9 +338,7 @@ geteuid()
 int
 getgid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETGID));
+    int ret = _SYSCALL0(int, SYS_GETGID);
 
     if (ret < 0) {
         errno = -ret;
@@ -453,12 +348,28 @@ getgid()
     return ret;
 }
 
+char *  
+getlogin(void) 
+{   
+    static char login_buf[512];
+    
+    uid_t uid = getuid();
+
+    struct passwd *pwd = getpwuid(uid);
+    
+    if (pwd) {
+        strcpy(login_buf, pwd->pw_name, 512);
+    
+        return login_buf;
+    }
+
+    return "unknown";
+}
+
 int
 getpgrp(pid_t pid)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETPGRP), "b"(pid));
+    int ret = _SYSCALL1(int, SYS_GETPGRP, pid);
 
     if (ret < 0) {
         errno = -ret;
@@ -471,9 +382,7 @@ getpgrp(pid_t pid)
 int
 getpid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETPID));
+    int ret = _SYSCALL0(int, SYS_GETPID);
 
     if (ret < 0) {
         errno = -ret;
@@ -486,9 +395,7 @@ getpid()
 int
 getppid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETPPID));
+    int ret = _SYSCALL0(int, SYS_GETPPID);
 
     if (ret < 0) {
         errno = -ret;
@@ -501,9 +408,7 @@ getppid()
 int
 getsid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETSID));
+    int ret = _SYSCALL0(int, SYS_GETSID);
 
     if (ret < 0) {
         errno = -ret;
@@ -516,9 +421,7 @@ getsid()
 int
 gettid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETTID));
+    int ret = _SYSCALL0(int, SYS_GETTID);
 
     if (ret < 0) {
         errno = -ret;
@@ -531,9 +434,7 @@ gettid()
 int
 gettimeofday(struct timeval *p, void *z)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_TIME), "b"(0));
+    int ret = _SYSCALL1(int, SYS_TIME, 0);
 
     if (ret < 0) {
         errno = -ret;
@@ -548,9 +449,7 @@ gettimeofday(struct timeval *p, void *z)
 int
 getuid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_GETUID));
+    int ret = _SYSCALL0(int, SYS_GETUID);
 
     if (ret < 0) {
         errno = -ret;
@@ -563,9 +462,7 @@ getuid()
 int
 ioctl(int fd, unsigned long request, void *arg)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_IOCTL), "b"(fd), "c"((uint32_t)request), "d"(arg));
+    int ret = _SYSCALL3(int, SYS_IOCTL, fd, (uint32_t)request, arg);
 
     if (ret < 0) {
         errno = -ret;
@@ -584,9 +481,7 @@ isatty(int file)
 int
 kill(int pid, int sig)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_KILL), "b"(pid), "c"(sig));
+    int ret = _SYSCALL2(int, SYS_KILL, pid, sig);
 
     if (ret < 0) {
         errno = -ret;
@@ -605,9 +500,7 @@ link(char *old, char *new)
 int
 lseek(int file, int ptr, int dir)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_LSEEK), "b"(file), "c"(ptr), "d"(dir));
+    int ret = _SYSCALL3(int, SYS_LSEEK, file, ptr, dir);
 
     if (ret < 0) {
         errno = -ret;
@@ -620,9 +513,7 @@ lseek(int file, int ptr, int dir)
 int
 lstat(const char *file, struct stat *st)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_STAT), "b"(file), "c"(st));
+    int ret = _SYSCALL2(int, SYS_STAT, file, st);
 
     if (ret < 0) {
         errno = -ret;
@@ -632,13 +523,10 @@ lstat(const char *file, struct stat *st)
     return ret;
 }
 
-
 int
 mkdir(const char *path, mode_t mode)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MKDIR), "b"(path), "c"(mode));
+    int ret = _SYSCALL2(int, SYS_MKDIR, path, mode);
 
     if (ret < 0) {
         errno = -ret;
@@ -651,9 +539,7 @@ mkdir(const char *path, mode_t mode)
 int
 mknod(const char *path, mode_t mode, dev_t dev)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MKNOD), "b"(path), "c"(mode), "d"(dev));
+    int ret = _SYSCALL3(int, SYS_MKNOD, path, mode, dev);
 
     if (ret < 0) {
         errno = -ret;
@@ -672,9 +558,7 @@ mkfifo(const char *path, mode_t mode)
 int
 mkpty()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MKPTY));
+    int ret = _SYSCALL0(int, SYS_MKPTY);
 
     if (ret < 0) {
         errno = -ret;
@@ -697,9 +581,7 @@ mmap(void *addr, size_t length, int prot, int flags,
     args.fd = fd;
     args.offset = offset;
 
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_MMAP), "b"(&args));
+    int ret = _SYSCALL1(int, SYS_MMAP, &args);
 
     if (ret < 0) {
         errno = -ret;
@@ -709,12 +591,18 @@ mmap(void *addr, size_t length, int prot, int flags,
     return (void*)ret;
 }
 
+unsigned int
+msleep(unsigned int miliseconds)
+{
+    _SYSCALL1(void, SYS_SLEEP, miliseconds);
+
+    return 0;
+}
+
 int
 open(const char *name, int flags, ...)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_OPEN), "b"(name), "c"(flags));
+    int ret = _SYSCALL2(int, SYS_OPEN, name, flags);
 
     if (ret < 0) {
         errno = -ret;
@@ -724,12 +612,16 @@ open(const char *name, int flags, ...)
     return ret;
 }
 
+long
+pathconf(char *path, int name)
+{
+    return 0;
+}
+
 int
 pause()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_PAUSE));
+    int ret = _SYSCALL0(int, SYS_PAUSE);
 
     if (ret < 0) {
         errno = -ret;
@@ -742,9 +634,7 @@ pause()
 int
 pipe(int pipefd[2])
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_PIPE), "b"(pipefd));
+    int ret = _SYSCALL1(int, SYS_PIPE, pipefd);
 
     if (ret < 0) {
         errno = -ret;
@@ -757,9 +647,7 @@ pipe(int pipefd[2])
 int
 read(int file, char *ptr, int len)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_READ), "b"(file), "c"(ptr), "d"(len));
+    int ret = _SYSCALL3(int, SYS_READ, file, ptr, len);
 
     if (ret < 0) {
         errno = -ret;
@@ -772,9 +660,7 @@ read(int file, char *ptr, int len)
 int
 rmdir(const char *path)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_RMDIR), "b"(path));
+    int ret = _SYSCALL1(int, SYS_RMDIR, path);
 
     if (ret < 0) {
         errno = -ret;
@@ -787,19 +673,13 @@ rmdir(const char *path)
 caddr_t
 sbrk(int incr)
 {
-    caddr_t ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SBRK), "b"(incr));
-
-    return ret;
+    return _SYSCALL1(caddr_t, SYS_SBRK, incr);
 }
 
 int
 setegid(gid_t gid)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETEGID), "b"(gid));
+    int ret = _SYSCALL1(int, SYS_SETEGID, gid);
 
     if (ret < 0) {
         errno = -ret;
@@ -812,9 +692,7 @@ setegid(gid_t gid)
 int
 seteuid(uid_t uid)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETEUID), "b"(uid));
+    int ret = _SYSCALL1(int, SYS_SETEUID, uid);
 
     if (ret < 0) {
         errno = -ret;
@@ -827,9 +705,7 @@ seteuid(uid_t uid)
 int
 setgid(gid_t gid)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETGID), "b"(gid));
+    int ret = _SYSCALL1(int, SYS_SETGID, gid);
 
     if (ret < 0) {
         errno = -ret;
@@ -842,9 +718,7 @@ setgid(gid_t gid)
 int
 setpgid(pid_t pid, pid_t pgid)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETPGID), "b"(pid), "c"(pgid));
+    int ret = _SYSCALL2(int, SYS_SETPGID, pid, pgid);
 
     if (ret < 0) {
         errno = -ret;
@@ -857,9 +731,7 @@ setpgid(pid_t pid, pid_t pgid)
 int
 setsid()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETSID));
+    int ret = _SYSCALL0(int, SYS_SETSID);
 
     if (ret < 0) {
         errno = -ret;
@@ -872,9 +744,7 @@ setsid()
 int
 setuid(uid_t uid)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SETUID), "b"(uid));
+    int ret = _SYSCALL1(int, SYS_SETUID, uid);
 
     if (ret < 0) {
         errno = -ret;
@@ -887,9 +757,7 @@ setuid(uid_t uid)
 int 
 shm_open(const char *path, int oflag, mode_t mode)
 {       
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SHM_OPEN), "b"(path), "c"(oflag), "d"(mode));
+    int ret = _SYSCALL3(int, SYS_SHM_OPEN, path, oflag, mode);
 
     if (ret < 0) {
         errno = -ret;
@@ -902,9 +770,7 @@ shm_open(const char *path, int oflag, mode_t mode)
 int
 shm_unlink(const char *path)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SHM_UNLINK), "b"(path));
+    int ret = _SYSCALL1(int, SYS_SHM_UNLINK, path);
 
     if (ret < 0) {
         errno = -ret;
@@ -917,9 +783,7 @@ shm_unlink(const char *path)
 int
 sigrestore()
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SIGRESTORE));
+    int ret = _SYSCALL0(int, SYS_SIGRESTORE);
 
     if (ret < 0) {
         errno = -ret;
@@ -929,12 +793,21 @@ sigrestore()
     return ret;
 }
 
+unsigned int
+sleep(unsigned int seconds)
+{   
+    return msleep(seconds * 1000);
+}
+
 int
 socket(int domain, int type, int protocol)
 {
-    int ret;
+    int ret = _SYSCALL3(int, SYS_SOCKET, domain, type, protocol);
 
-    asm volatile("int $0x80" : "=a"(ret) : "A"(SYS_SOCKET), "b"(domain), "c"(type), "d"(protocol));
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
 
     return ret;
 }
@@ -942,9 +815,7 @@ socket(int domain, int type, int protocol)
 int
 stat(const char *file, struct stat *st)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_STAT), "b"(file), "c"(st));
+    int ret = _SYSCALL2(int, SYS_STAT, file, st);
 
     if (ret < 0) {
         errno = -ret;
@@ -952,6 +823,19 @@ stat(const char *file, struct stat *st)
     }
 
     return ret;
+}
+
+long
+sysconf(int name)
+{
+    switch (name) {
+        case 8:
+            return 4096;
+        case 11:
+            return 10000;
+        default:
+            return -1;
+    }
 }
 
 clock_t
@@ -963,9 +847,7 @@ times(struct tms *buf)
 int
 truncate(const char *path, off_t length)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_TRUNCATE), "b"(path), "c"(length));
+    int ret = _SYSCALL2(int, SYS_TRUNCATE, path, length);
 
     if (ret < 0) {
         errno = -ret;
@@ -978,9 +860,7 @@ truncate(const char *path, off_t length)
 int
 ttyname_r(int fd, char *buf, size_t buflen)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_TTYNAME), "b"(fd), "c"(buf), "d"(buflen));
+    int ret = _SYSCALL3(int, SYS_TTYNAME, fd, buf, buflen);
 
     if (ret < 0) {
         errno = -ret;
@@ -1005,19 +885,13 @@ ttyname(int fd)
 mode_t
 umask(mode_t newmode)
 {
-    mode_t ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_UMASK), "b"(newmode));
-
-    return ret;
+    return _SYSCALL1(mode_t, SYS_UMASK, newmode);
 }
 
 int
 unlink(char *path)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_UNLINK), "b"(path));
+    int ret = _SYSCALL1(int, SYS_UNLINK, path);
 
     if (ret < 0) {
         errno = -ret;
@@ -1030,9 +904,7 @@ unlink(char *path)
 int
 uname(struct utsname *buf)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_UNAME), "b"(buf));
+    int ret = _SYSCALL1(int, SYS_UNAME, buf);
 
     if (ret < 0) {
         errno = -ret;
@@ -1043,15 +915,18 @@ uname(struct utsname *buf)
 }
 
 int
+utime(const char *filename, const struct utimbuf *times)
+{
+    return 0;
+}
+
+int
 wait(int *status)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WAIT), "b"(status));
+    int ret = _SYSCALL1(int, SYS_WAIT, status);
 
     if (ret < 0) {
         errno = -ret;
-
         return -1;
     }
 
@@ -1061,9 +936,7 @@ wait(int *status)
 int
 waitpid(pid_t pid, int *status)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WAITPID), "b"(pid), "c"(status));
+    int ret = _SYSCALL2(int, SYS_WAITPID, pid, status);
 
     if (ret < 0) {
         errno = -ret;
@@ -1077,13 +950,10 @@ waitpid(pid_t pid, int *status)
 int
 write(int file, char *ptr, int len)
 {
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_WRITE), "b"(file), "c"(ptr), "d"(len));
+    int ret = _SYSCALL3(int, SYS_WRITE, file, ptr, len);
 
     if (ret < 0) {
         errno = -ret;
-
         return -1;
     }
 
