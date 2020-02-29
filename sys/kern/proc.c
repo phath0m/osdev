@@ -222,6 +222,7 @@ session_new(struct proc *leader)
 {
     struct session *session = calloc(1, sizeof(struct session));
 
+    session->sid = leader->pid;
     session->leader = leader;
 
     return session;  

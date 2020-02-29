@@ -22,6 +22,8 @@
 
 /* retrieve the current session for a process */
 #define PROC_GET_SESSION(s) ((s)->group->session)
+#define PROC_SID(s) ((s)->group->session->sid)
+#define PROC_PGID(s) ((s)->group->pgid)
 
 typedef int (*kthread_entry_t)(void *state);
 

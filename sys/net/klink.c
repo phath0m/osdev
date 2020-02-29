@@ -45,6 +45,8 @@ struct klink_proc_info {
     uint16_t    ppid;
     uint16_t    uid;
     uint16_t    gid;
+    uint16_t    sid;
+    uint16_t    pgid;
 } __attribute__((packed));
 
 struct klink_proc_stat {
@@ -162,6 +164,8 @@ klink_send_proclist(struct klink_session *session)
         info->pid = proc->pid;
         info->uid = proc->creds.uid;
         info->gid = proc->creds.gid;
+        info->sid = PROC_SID(proc);
+        info->pgid = PROC_PGID(proc);
 
         if (proc->parent) {
             info->ppid = proc->parent->pid;
