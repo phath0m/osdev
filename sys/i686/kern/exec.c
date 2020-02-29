@@ -151,19 +151,19 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     struct file *exe;
 
-    if (vops_open(proc, &exe, path, O_RDONLY) != 0) {
+    if (vfs_open(proc, &exe, path, O_RDONLY) != 0) {
         return -(ENOENT);
     }
 
-    vops_seek(exe, 0, SEEK_END);
+    fop_seek(exe, 0, SEEK_END);
 
-    size_t size = vops_tell(exe);
+    size_t size = FILE_POSITION(exe);
 
-    vops_seek(exe, 0, SEEK_SET);
+    fop_seek(exe, 0, SEEK_SET);
 
     struct elf32_ehdr *elf = (struct elf32_ehdr*)malloc(size);
 
-    vops_read(exe, (char*)elf, size);
+    fop_read(exe, (char*)elf, size);
 
     int argc;
     int envc;
@@ -181,7 +181,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
     elf_load_image(space, elf, &prog_low, &prog_high);
     elf_zero_sections(space, elf);
 
-    vops_close(exe);
+    fop_close(exe);
 
     proc->base = prog_low;
     proc->brk = prog_high;
@@ -232,7 +232,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
         if (fp && (fp->flags & O_CLOEXEC)) {
             proc->files[i] = NULL;
-            vops_close(fp);
+            fop_close(fp);
         }
     }
 

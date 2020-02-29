@@ -132,3 +132,89 @@ vn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 
     return res;
 }
+
+int     
+vop_fchmod(struct vnode *node, mode_t mode)
+{       
+    struct vops *ops = node->ops;
+    
+    if (ops && ops->chmod) {
+        return ops->chmod(node, mode);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
+vop_fchown(struct vnode *node, uid_t owner, gid_t group)
+{
+    struct vops *ops = node->ops;
+
+    if (ops && ops->chown) {
+        return ops->chown(node, owner, group);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
+vop_ftruncate(struct vnode *node, off_t length)
+{
+    struct vops *ops = node->ops;
+
+    if (ops && ops->truncate) {
+        return ops->truncate(node, length);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
+vop_read(struct vnode *node, char *buf, size_t nbyte, off_t offset)
+{
+    struct vops *ops = node->ops;
+
+    if (ops && ops->read) {
+        return ops->read(node, buf, nbyte, offset);
+    }
+
+    return -(EPERM);
+}
+
+int
+vop_readdirent(struct vnode *node, struct dirent *dirent, int dirno)
+{
+    struct vops *ops = node->ops;
+
+    if (ops && ops->readdirent) {
+        return ops->readdirent(node, dirent, dirno);
+    }
+
+    return -(EPERM);
+}
+
+int
+vop_stat(struct vnode *node, struct stat *stat)
+{
+    struct vops *ops = node->ops;
+
+    if (ops->stat) {
+        return ops->stat(node, stat);
+    }
+
+    return -(ENOTSUP);
+}
+
+int
+vop_write(struct vnode *node, const char *buf, size_t nbyte, off_t offset)
+{
+    struct vops *ops = node->ops;
+
+    if (ops->write) {
+        int written = ops->write(node, buf, nbyte, offset);
+
+        return written;
+    }
+
+    return -(EPERM);
+}

@@ -6,7 +6,6 @@
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/types.h>
-#include <sys/vnode.h>
 #include <sys/wait.h>
 
 struct pipe {
@@ -26,13 +25,13 @@ struct pipe {
     int                 write_refs;
 };
 
-static int pipe_close(struct vnode *node, struct file *fp);
-static int pipe_destroy(struct vnode *node);
-static int pipe_duplicate(struct vnode *node, struct file *newfile);
-static int pipe_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
-static int pipe_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
+static int pipe_close(struct file *fp);
+static int pipe_destroy(struct file *fp);
+static int pipe_duplicate(struct file *newfile);
+static int pipe_read(struct file *fp, void *buf, size_t nbyte);
+static int pipe_write(struct file *fp, const void *buf, size_t nbyte);
 
-struct vops pipe_ops = {
+struct fops pipe_ops = {
     .close      = pipe_close,
     .destroy    = pipe_destroy,
     .duplicate  = pipe_duplicate,
@@ -43,7 +42,7 @@ struct vops pipe_ops = {
 struct pipe *
 pipe_new()
 {
-    struct pipe *pipe = (struct pipe*)calloc(0, sizeof(struct pipe));
+    struct pipe *pipe = (struct pipe*)calloc(1, sizeof(struct pipe));
     pipe->buf = (char*)malloc(4096);
     pipe->buf_size = 4096;
     pipe->ref_count = 2;
@@ -55,13 +54,13 @@ pipe_new()
 void
 create_pipe(struct file **pipes)
 {
-    struct vnode *node = vn_new(NULL, NULL, &pipe_ops);
-    struct file *read_end = file_new(node);
-    struct file *write_end = file_new(node);
-   
-    node->state = pipe_new();
-
+    struct pipe *pipe = pipe_new();
+    struct file *read_end = file_new(&pipe_ops, NULL);
+    struct file *write_end = file_new(&pipe_ops, NULL);
+  
+    read_end->state = pipe; 
     read_end->flags = O_RDONLY;
+    write_end->state = pipe;
     write_end->flags = O_WRONLY;
 
     pipes[0] = read_end;
@@ -69,11 +68,11 @@ create_pipe(struct file **pipes)
 }
 
 static int
-pipe_close(struct vnode *node, struct file *file)
+pipe_close(struct file *fp)
 {
-    struct pipe *pipe = (struct pipe*)node->state;
+    struct pipe *pipe = (struct pipe*)fp->state;
 
-    if (file->flags & O_WRONLY) {
+    if (fp->flags & O_WRONLY) {
         pipe->write_refs--;
     } else {
         pipe->read_refs--;
@@ -90,9 +89,9 @@ pipe_close(struct vnode *node, struct file *file)
 }
 
 static int
-pipe_destroy(struct vnode *node)
+pipe_destroy(struct file *fp)
 {
-    struct pipe *pipe = (struct pipe*)node->state;
+    struct pipe *pipe = (struct pipe*)fp->state;
 
     free(pipe->buf);
     free(pipe);
@@ -101,9 +100,9 @@ pipe_destroy(struct vnode *node)
 }
 
 static int
-pipe_duplicate(struct vnode *node, struct file *newfile)
+pipe_duplicate(struct file *newfile)
 {
-    struct pipe *pipe = (struct pipe*)node->state;
+    struct pipe *pipe = (struct pipe*)newfile->state;
 
     if (newfile->flags & O_WRONLY) {
         pipe->write_refs++;
@@ -115,9 +114,9 @@ pipe_duplicate(struct vnode *node, struct file *newfile)
 }
 
 static int
-pipe_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
+pipe_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct pipe *pipe = (struct pipe*)node->state;
+    struct pipe *pipe = (struct pipe*)fp->state;
 
     if (!pipe) {
         return -1;
@@ -164,9 +163,9 @@ pipe_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 
 
 static int
-pipe_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
+pipe_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct pipe *pipe = (struct pipe*)node->state;
+    struct pipe *pipe = (struct pipe*)fp->state;
 
     if (!pipe) {
         return -1;

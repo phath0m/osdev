@@ -12,6 +12,8 @@
 #include <sys/socket.h>
 #include <sys/string.h>
 #include <sys/types.h>
+// delete me
+#include <sys/systm.h>
 
 #define AF_KLINK    40
 
@@ -193,7 +195,7 @@ klink_send_procstat(struct klink_session *session, int target)
         if (proc && proc->pid == target) {
             size_t resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_proc_stat);
 
-            resp = (struct klink_dgram*)(calloc(0, resp_sz));
+            resp = (struct klink_dgram*)(calloc(1, resp_sz));
 
             struct klink_proc_stat *stat = (struct klink_proc_stat*)(resp + 1);
             
@@ -202,6 +204,7 @@ klink_send_procstat(struct klink_session *session, int target)
             strncpy(stat->cmd, proc->name, 255);
             
             if (tty) {
+                printf("proc tty %s\n", tty);
                 strncpy(stat->tty, tty, 31);
             } else {
                 stat->tty[0] = '\x00';

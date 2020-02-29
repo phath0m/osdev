@@ -21,18 +21,18 @@
 
 #define PTY_LINEBUF_SIZE    4096
 
-static int ptm_close(struct vnode *node, struct file *fp);
-static int ptm_destroy(struct vnode *node);
-static int ptm_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
-static int ptm_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
+static int ptm_close(struct file *fp);
+static int ptm_getdev(struct file *fp, struct cdev **result);
+static int ptm_read(struct file *fp, void *buf, size_t nbyte);
+static int ptm_write(struct file *fp, const void *buf, size_t nbyte);
 static int pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int pts_isatty(struct cdev *dev);
 static int pts_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 static int pts_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
-struct vops ptm_ops = {
+struct fops ptm_ops = {
     .close      = ptm_close,
-    .destroy    = ptm_destroy,
+    .getdev     = ptm_getdev,
     .read       = ptm_read,
     .write      = ptm_write
 };
@@ -88,11 +88,9 @@ mkpty()
 
     pty->slave = mkpty_slave(pty);
 
-    struct vnode *node = vn_new(NULL, NULL, &ptm_ops);
+    struct file *res = file_new(&ptm_ops, NULL);
 
-    node->state = pty;
-    node->device = pty->slave;
-    struct file *res = file_new(node);
+    res->state = pty;
 
     res->flags = O_RDWR;
 
@@ -102,7 +100,7 @@ mkpty()
 static void
 pty_flush_buf(struct pty *pty)
 {
-    vops_write(pty->input_pipe[1], pty->line_buf, pty->line_buf_pos);
+    fop_write(pty->input_pipe[1], pty->line_buf, pty->line_buf_pos);
 
     pty->line_buf_pos = 0;
 }
@@ -115,54 +113,66 @@ pty_outprocess(struct pty *pty, const char *buf, size_t nbyte)
 
     for (int i = 0; i < nbyte; i++) {
         if (buf[i] == '\n') {
-            if (i != last_chunk_pos) vops_write(pty->output_pipe[1], last_chunk, i - last_chunk_pos);
-            vops_write(pty->output_pipe[1], "\r\n", 2);
+            if (i != last_chunk_pos) fop_write(pty->output_pipe[1], last_chunk, i - last_chunk_pos);
+            fop_write(pty->output_pipe[1], "\r\n", 2);
             last_chunk = &buf[i + 1];
             last_chunk_pos = i + 1;
         }
     }
 
     if(last_chunk_pos < nbyte) {
-        vops_write(pty->output_pipe[1], last_chunk, nbyte - last_chunk_pos);
+        fop_write(pty->output_pipe[1], last_chunk, nbyte - last_chunk_pos);
     }
 }
 
 static int
-ptm_close(struct vnode *node, struct file *fp)
+ptm_close(struct file *fp)
 {
     return 0;
 }
 
+static int
+ptm_getdev(struct file *fp, struct cdev **result)
+{
+    struct pty *pty = (struct pty*)fp->state;
+
+    *result = pty->slave;
+
+    return 0;
+}
+
+/*
 static int
 ptm_destroy(struct vnode *node)
 {
     return 0;
 }
+*/
 
 static int
-ptm_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
+ptm_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct pty *pty = (struct pty*)node->state;
+    struct pty *pty = (struct pty*)fp->state;
 
-    return vops_read(pty->output_pipe[0], buf, nbyte);
+    return fop_read(pty->output_pipe[0], buf, nbyte);
 }
 
 static int
-ptm_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
+ptm_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct pty *pty = (struct pty*)node->state;
+    struct pty *pty = (struct pty*)fp->state;
     uint8_t *buf8 = (uint8_t*)buf;
 
     if (pty->termios.c_lflag & ECHO) {
         if (pty->termios.c_oflag & OPOST) {
             pty_outprocess(pty, buf, nbyte);
         } else {
-            vops_write(pty->output_pipe[1], buf, nbyte);
+            fop_write(pty->output_pipe[1], buf, nbyte);
         }
     }
 
     if (!(pty->termios.c_lflag & ICANON)) {
-        return vops_write(pty->input_pipe[1], buf, nbyte);
+        return fop_write(pty->input_pipe[1], buf, nbyte);
     }
 
     for (int i = 0; i < nbyte; i++) {
@@ -171,7 +181,7 @@ ptm_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
             pty->line_buf_pos--;
         } else if (buf8[i] == '\r' || pty->line_buf_pos > PTY_LINEBUF_SIZE) {
             pty->line_buf[pty->line_buf_pos++] = '\n';
-            vops_write(pty->output_pipe[1], "\r\n", 2);
+            fop_write(pty->output_pipe[1], "\r\n", 2);
             pty_flush_buf(pty);
         } else {
             pty->line_buf[pty->line_buf_pos++] = buf8[i];
@@ -234,7 +244,7 @@ pts_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
     struct pty *pty = (struct pty*)dev->state;
 
-    return vops_read(pty->input_pipe[0], buf, nbyte);
+    return fop_read(pty->input_pipe[0], buf, nbyte);
 }
 
 static int
@@ -243,7 +253,7 @@ pts_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
     struct pty *pty = (struct pty*)dev->state;
 
     if (!(pty->termios.c_oflag & OPOST)) {
-        return vops_write(pty->output_pipe[1], buf, nbyte);
+        return fop_write(pty->output_pipe[1], buf, nbyte);
     }
 
     pty_outprocess(pty, buf, nbyte);

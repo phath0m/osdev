@@ -19,11 +19,11 @@ can_execute_file(const char *path)
 
     struct file *file;
 
-    if (vops_open(current_proc, &file, path, O_RDONLY) == 0) {
+    if (vfs_open(current_proc, &file, path, O_RDONLY) == 0) {
 
-        vops_stat(file, &buf);
+        fop_stat(file, &buf);
 
-        vops_close(file);
+        fop_close(file);
         
         if ((buf.st_mode & S_IXUSR) && buf.st_uid == current_proc->creds.euid) {
             return 0;
@@ -52,16 +52,19 @@ sys_chdir(syscall_args_t args)
 
     struct file *file;
 
-    int res = vops_open_r(current_proc, &file, path, O_RDONLY);
+    int res = vfs_open_r(current_proc, &file, path, O_RDONLY);
 
     if (res == 0) {
         if (current_proc->cwd) {
             VN_DEC_REF(current_proc->cwd);
         }
 
-        current_proc->cwd = file->node;
+        struct vnode *newdir;
+        
+        if (fop_getvn(file, &newdir) == 0)
+            current_proc->cwd = newdir;
 
-        vops_close(file);
+        fop_close(file);
     }
 
     return res;
@@ -116,13 +119,13 @@ sys_execve(syscall_args_t args)
         return exec_err;
     }
 
-    int status = vops_open(current_proc, &fd, file, O_RDONLY);
+    int status = vfs_open(current_proc, &fd, file, O_RDONLY);
 
     if (status == 0) {
         char interpreter[512];
 
-        if (vops_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
-            vops_read(fd, interpreter, 512);
+        if (fop_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
+            fop_read(fd, interpreter, 512);
         
             for (int i = 0; i < 512; i++) {
                 if (interpreter[i] == '\n') {
@@ -140,7 +143,7 @@ sys_execve(syscall_args_t args)
             new_argv[0] = interpreter;
             new_argv[1] = (char*)file;
 
-            vops_close(fd);
+            fop_close(fd);
 
             exec_err = can_execute_file(file);
 
@@ -150,7 +153,7 @@ sys_execve(syscall_args_t args)
             return proc_execve(interpreter, (const char **)new_argv, envp);
 
         } else {
-            vops_close(fd);
+            fop_close(fd);
         }
     }
 

@@ -1,3 +1,4 @@
+#include <sys/file.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/string.h>
@@ -36,14 +37,14 @@ extract_file(struct vnode *root, const char *name, void *data, size_t size, mode
 {
     struct file *fp;
 
-    if (vops_creat(current_proc, &fp, name, mode) != 0) {
+    if (vfs_creat(current_proc, &fp, name, mode) != 0) {
         panic("could not extract %s", name);
         return;
     }
 
-    vops_write(fp, data, size);
+    fop_write(fp, data, size);
 
-    vops_close(fp);
+    fop_close(fp);
 }
 
 void
@@ -86,7 +87,7 @@ tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive)
                     extract_file(root, name, data, size, mode);
                     break;
                 case TAR_DIR:
-                    vops_mkdir(current_proc, name, mode);
+                    vfs_mkdir(current_proc, name, mode);
                     break;
             }
         }

@@ -45,6 +45,7 @@ typedef int (*vn_unlink_t)(struct vnode *parent, const char *name);
 typedef int (*vn_utimes_t)(struct vnode *node, struct timeval times[2]);
 typedef int (*vn_write_t)(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
 
+/* vnode methods */
 struct vops {
     vn_node_destroy_t        destroy;
     vn_chmod_t               chmod;
@@ -68,15 +69,20 @@ struct vops {
     vn_write_t               write;
 };
 
-
+/*
+ * vnode struct, a vnode represents a file within the actual virtual file
+ * system. The contents are populated by the actual filesystem driver. All
+ * traditional file operations (mkdir(), write(), unlink(), ect) are centered
+ * around vnodes.
+ */
 struct vnode {
-    struct cdev *     device;
+    struct cdev *       device;
     struct dict         children;
     struct vops *       ops;
     struct vnode *      mount;
     struct vnode *      parent;
     union {
-        struct cdev * device;
+        struct cdev *   device;
         struct list     fifo_readers;
         struct list     un_connections;
     } un;
@@ -93,64 +99,34 @@ struct vnode {
 };
 
 
-void vn_destroy(struct vnode *node);
+void            vn_destroy(struct vnode *node);
+int             vn_lookup(struct vnode *parent, struct vnode **result, const char *name);
+struct vnode *  vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops);
+int             vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char *path);
 
-int vn_lookup(struct vnode *parent, struct vnode **result, const char *name);
 
-struct vnode *vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops);
+/*
+ * new functions
+ */
+int             vop_fchmod(struct vnode *node, mode_t mode);
+int             vop_fchown(struct vnode *node, uid_t owner, gid_t group);
+int             vop_ftruncate(struct vnode *node, off_t length);
+int             vop_read(struct vnode *node, char *buf, size_t nbyte, off_t offset);
+int             vop_readdirent(struct vnode *node, struct dirent *dirent, int dirno);
+int             vop_stat(struct vnode *node, struct stat *stat);
+int             vop_write(struct vnode *node, const char *buf, size_t nbyte, off_t offset);
 
-int vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char *path);
-
-struct vnode *fifo_open(struct vnode *parent, mode_t mode);
-
-int vops_close(struct file *file);
-
-int vops_open(struct proc *proc, struct file **result, const char *path, int flags);
-
-int vops_open_r(struct proc *proc, struct file **result, const char *path, int flags);
-
-int vops_access(struct proc *proc, const char *path, int mode);
-
-int vops_fchmod(struct file *file, mode_t mode);
-
-int vops_fchown(struct file *file, uid_t owner, gid_t group);
-
-int vops_ftruncate(struct file *fp, off_t length);
-
-int vops_chmod(struct proc *proc, const char *path, mode_t mode);
-
-int vops_chown(struct proc *proc, const char *path, uid_t owner, gid_t group);
-
-int vops_close(struct file *file);
-
-int vops_creat(struct proc *proc, struct file **result, const char *path, mode_t mode);
-
-int vops_ioctl(struct file *fp, uint64_t request, void *arg);
-
-int vops_mkdir(struct proc *proc, const char *path, mode_t mode);
-
-int vops_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev);
-
-int vops_mmap(struct file *file, uintptr_t addr, size_t size, int prot, off_t offset);
-
-int vops_read(struct file *file, char *buf, size_t nbyte);
-
-int vops_readdirent(struct file *file, struct dirent *dirent);
-
-int vops_rmdir(struct proc *proc, const char *path);
-
-int vops_seek(struct file *file, off_t off, int whence);
-
-int vops_stat(struct file *file, struct stat *stat);
-
-off_t vops_tell(struct file *file);
-
-int vops_truncate(struct proc *proc, const char *path, off_t length);
-
-int vops_unlink(struct proc *proc, const char *path);
-
-int vops_utimes(struct proc *proc, const char *path, struct timeval times[2]);
-
-int vops_write(struct file *file, const char *buf, size_t nbyte);
+int             vfs_open(struct proc *proc, struct file **result, const char *path, int flags);
+int             vfs_open_r(struct proc *proc, struct file **result, const char *path, int flags);
+int             vfs_access(struct proc *proc, const char *path, int mode);
+int             vfs_chmod(struct proc *proc, const char *path, mode_t mode);
+int             vfs_chown(struct proc *proc, const char *path, uid_t owner, gid_t group);
+int             vfs_creat(struct proc *proc, struct file **result, const char *path, mode_t mode);
+int             vfs_mkdir(struct proc *proc, const char *path, mode_t mode);
+int             vfs_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev);
+int             vfs_rmdir(struct proc *proc, const char *path);
+int             vfs_truncate(struct proc *proc, const char *path, off_t length);
+int             vfs_unlink(struct proc *proc, const char *path);
+int             vfs_utimes(struct proc *proc, const char *path, struct timeval times[2]);
 
 #endif

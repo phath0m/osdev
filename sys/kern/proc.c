@@ -62,7 +62,7 @@ proc_destroy(struct proc *proc)
         struct file *fp = proc->files[i];
 
         if (fp) {
-            vops_close(fp);
+            fop_close(fp);
         }
     }
 

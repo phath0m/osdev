@@ -106,7 +106,7 @@ un_bind(struct socket *socket, void *address, size_t address_len)
 
     socket->state = state;
 
-    int res = vops_mknod(current_proc, addr_un->sun_path, 0777 | S_IFSOCK, 0);
+    int res = vfs_mknod(current_proc, addr_un->sun_path, 0777 | S_IFSOCK, 0);
     
     if (res != 0) {
         return res;
@@ -158,8 +158,8 @@ un_close(struct socket *sock)
     if (conn->refs == 0) {
         KASSERT("un tx/rx pipes should not have been closed already",
                 conn->rx_pipe[0] != NULL && conn->tx_pipe[1] != NULL);
-        vops_close(conn->rx_pipe[0]);
-        vops_close(conn->tx_pipe[1]);
+        fop_close(conn->rx_pipe[0]);
+        fop_close(conn->tx_pipe[1]);
         
         conn->rx_pipe[0] = NULL;
         conn->tx_pipe[1] = NULL;
@@ -209,7 +209,7 @@ un_recv(struct socket *sock, void *buf, size_t size)
         return -(ECONNRESET);
     }
 
-    int ret = vops_read(conn->rx_pipe[0], buf, size);
+    int ret = fop_read(conn->rx_pipe[0], buf, size);
     
     if (ret == -(EPIPE)) {
         return -(ECONNRESET);
@@ -227,7 +227,7 @@ un_send(struct socket *sock, const void *buf, size_t size)
         return -(ECONNRESET);
     }
 
-    int ret = vops_write(conn->tx_pipe[1], buf, size);
+    int ret = fop_write(conn->tx_pipe[1], buf, size);
     
     if (ret == -(ESPIPE)) {
         return -(ECONNRESET);

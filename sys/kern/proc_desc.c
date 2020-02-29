@@ -34,7 +34,7 @@ procdesc_dup2(int oldfd, int newfd)
     struct file *existing_fp = current_proc->files[newfd];
 
     if (existing_fp) {
-        vops_close(existing_fp);   
+        fop_close(existing_fp);   
     }
 
     struct file *fp = current_proc->files[oldfd];

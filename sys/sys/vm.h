@@ -61,8 +61,8 @@ extern struct vm_statistics vm_stat;
 #define VMSTAT_DEC_FRAME_COUNT(v) ((v)->frame_count--)
 #define VMSTAT_DEC_PAGE_COUNT(v) ((v)->page_count--)
 #define VMSTAT_DEC_PAGE_TABLE_COUNT(v) ((v)->page_table_count--)
+#define VMSTAT_DEC_VM_SPACE_COUNT(v) ((v)->vmspace_count--)
 
-#define VMSTAT_DEC_VM_SPACE_COUNT(v) ((v)->vmspace_count++)
 #define VMSTAT_INC_FRAME_COUNT(v) ((v)->frame_count++)
 #define VMSTAT_INC_PAGE_COUNT(v) ((v)->page_count++)
 #define VMSTAT_INC_PAGE_TABLE_COUNT(v) ((v)->page_table_count++)

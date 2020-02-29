@@ -19,10 +19,10 @@ struct shm_object {
 };
 
 
-static intptr_t shm_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset);
-static int shm_truncate(struct vnode *node, off_t length);
+static intptr_t shm_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset);
+static int shm_truncate(struct file *fp, off_t length);
 
-struct vops shm_ops = {
+struct fops shm_ops = {
     .close = NULL,
     .destroy = NULL,
     .mmap = shm_mmap,
@@ -38,7 +38,7 @@ shm_open(struct proc *proc, struct file **result, const char *name, int oflag, m
     struct cred *creds = &proc->creds;
 
     if (!dict_get(&shm_objects, name, (void**)&node)) {
-        node = vn_new(NULL, NULL, &shm_ops);
+        node = vn_new(NULL, NULL, NULL);
 
         struct shm_object *shm = calloc(1, sizeof(struct shm_object));
         node->state = shm;
@@ -67,9 +67,9 @@ shm_open(struct proc *proc, struct file **result, const char *name, int oflag, m
         return -(EPERM);
     }
 
-    struct file *file = file_new(node);
-
-    *result = file;
+    struct file *fp = file_new(&shm_ops, node);
+    fp->state = node->state;
+    *result = fp;
 
     return 0;  
 }
@@ -103,9 +103,9 @@ shm_unlink(struct proc *proc, const char *name)
 }
 
 static intptr_t
-shm_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset)
+shm_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset)
 {
-    struct shm_object *obj = (struct shm_object*)node->state;
+    struct shm_object *obj = (struct shm_object*)fp->state;
 
     if (size != obj->size) {
         return -1;
@@ -125,9 +125,9 @@ shm_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset
 }
 
 static int
-shm_truncate(struct vnode *node, off_t length)
+shm_truncate(struct file *fp, off_t length)
 {
-    struct shm_object *obj = (struct shm_object*)node->state;
+    struct shm_object *obj = (struct shm_object*)fp->state;
 
     obj->size = length;
 

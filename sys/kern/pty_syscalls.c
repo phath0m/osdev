@@ -27,15 +27,9 @@ sys_isatty(syscall_args_t argv)
         return -(EBADF);
     }
 
-    struct vnode *node = file->node;
+    struct cdev *tty;
 
-    if (!node) {
-        return -(ENOTTY);
-    }
-
-    struct cdev *tty = file->node->device;
-
-    if (!node) {
+    if (fop_getdev(file, &tty) != 0) {
         return -(ENOTTY);
     }
 
@@ -60,15 +54,9 @@ sys_ttyname(syscall_args_t argv)
         return -(EBADF);
     }
 
-    struct vnode *node = file->node;
+    struct cdev *tty;
 
-    if (!node) {
-        return -(ENOTTY);
-    }
-
-    struct cdev *tty = file->node->device;
-
-    if (!node) {
+    if (fop_getdev(file, &tty) != 0) {
         return -(ENOTTY);
     }
 
@@ -101,7 +89,7 @@ sys_mkpty(syscall_args_t argv)
     int fd = procdesc_getfd();
 
     if (fd < 0) {
-        vops_close(fp);
+        fop_close(fp);
         return -1;
     } else {
         current_proc->files[fd] = fp;

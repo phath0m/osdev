@@ -3,7 +3,8 @@
 
 #include <sys/file.h>
 
-void create_pipe(struct file **files);
+void            create_pipe(struct file **files);
+struct file *   fifo_to_file(struct vnode *parent, mode_t mode);
 
 #endif
 

@@ -1,3 +1,11 @@
+/*
+ * socket.c - Socket implementation
+ *
+ * This file is responsible for providing the core functionality required to
+ * interact with sockets via a struct file instance. No actual networking logic
+ * is implemented here, rather, this acts as the "interface" to interact with
+ * protocols that define their own type of sockets
+ */
 #include <ds/list.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
@@ -10,21 +18,20 @@
 static struct list protocol_list;
 
 /*
- * Wrapper functions to connect socket API to underlying virtual system
+ * Wrapper functions to connect socket API to underlying file instance
  */
-
 static int
-sock_file_close(struct vnode *node, struct file *fp)
+sock_file_close(struct file *fp)
 {
-    struct socket *sock = (struct socket*)node->state;
+    struct socket *sock = (struct socket*)fp->state;
 
     return sock_close(sock);
 }
 
 static int
-sock_file_destroy(struct vnode *node)
+sock_file_destroy(struct file *fp)
 {
-    struct socket *sock = (struct socket*)node->state;
+    struct socket *sock = (struct socket*)fp->state;
 
     sock_destroy(sock);
 
@@ -32,30 +39,30 @@ sock_file_destroy(struct vnode *node)
 }
 
 static int
-sock_file_duplicate(struct vnode *node, struct file *fp)
+sock_file_duplicate(struct file *fp)
 {
-    struct socket *sock = (struct socket*)node->state;
+    struct socket *sock = (struct socket*)fp->state;
 
     return sock_duplicate(sock); 
 }
 
 static int
-sock_file_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
+sock_file_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct socket *sock = (struct socket*)node->state;
+    struct socket *sock = (struct socket*)fp->state;
 
     return sock_recv(sock, buf, nbyte);
 }
 
 static int
-sock_file_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
+sock_file_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct socket *sock = (struct socket*)node->state;
+    struct socket *sock = (struct socket*)fp->state;
 
     return sock_send(sock, buf, nbyte);
 }
 
-struct vops sock_file_ops = {
+struct fops sock_file_ops = {
     .close      = sock_file_close,
     .destroy    = sock_file_destroy,
     .duplicate  = sock_file_duplicate,
@@ -241,32 +248,24 @@ sock_send(struct socket *sock, const void *buf, size_t nbyte)
     }
 
     return prot->ops->send(sock, buf, nbyte);
-
 }
 
 struct file *
 sock_to_file(struct socket *sock)
 {
-    struct vnode *node = vn_new(NULL, NULL, &sock_file_ops);
-    
-    node->state = sock;
+    struct file *ret = file_new(&sock_file_ops, NULL);
 
-    struct file *ret = file_new(node);
-
+    ret->state = sock;
     ret->flags = O_RDWR;
     sock->refs++;
 
-    //VN_INC_REF(node);
-    
     return ret;
 }
 
 struct socket *
 file_to_sock(struct file *file)
 {
-    struct vnode *node = file->node;
-
-    struct socket *sock = (struct socket*)node->state;
+    struct socket *sock = (struct socket*)file->state;
 
     return sock;
 }

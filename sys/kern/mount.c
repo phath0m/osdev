@@ -72,14 +72,15 @@ fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *p
     struct file *file;
 
     if (fs_open(dev, &mount, fsname, flags) == 0) {
-        if (vops_open(current_proc, &file, path, O_RDONLY) == 0) {
-            struct vnode *mount_point = file->node;
+        if (vfs_open(current_proc, &file, path, O_RDONLY) == 0) {
+            struct vnode *mount_point;
+
+            if (fop_getvn(file, &mount_point) == 0) { 
+                mount_point->ismount = true;
+                mount_point->mount = mount;
             
-            mount_point->ismount = true;
-            mount_point->mount = mount;
-
-            VN_INC_REF(mount);
-
+                VN_INC_REF(mount);
+            }
             return 0;
         }
     }

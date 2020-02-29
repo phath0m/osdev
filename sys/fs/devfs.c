@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <sys/vnode.h>
 
+// delete me
+#include <sys/systm.h>
 
 static int devfs_destroy(struct vnode *node);
 static int devfs_ioctl(struct vnode *node, uint64_t mode, void *arg);
@@ -53,7 +55,7 @@ static int
 devfs_ioctl(struct vnode *node, uint64_t mode, void *arg)
 {
     struct cdev *dev = (struct cdev*)node->state;
-
+    
     if (dev) {
         return cdev_ioctl(dev, mode, (uintptr_t)arg);
     }
@@ -81,7 +83,7 @@ devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
             node->uid = 0;
             node->state = (void*)dev;
             node->devno = makedev(dev->majorno, dev->minorno);
-
+            node->mode = dev->mode | S_IFCHR; 
             *result = node;
 
             res = 0;
@@ -100,6 +102,7 @@ devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offs
     struct cdev *dev = (struct cdev*)node->state;
 
     if (dev && node->inode != 0) {
+        panic("mmap");
         return cdev_mmap(dev, addr, size, prot, offset);
     }
 
