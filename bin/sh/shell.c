@@ -156,6 +156,8 @@ exec_binary(const char *name, int argc, const char *argv[])
     int status = -1;
 
     if (id == 0) {
+        setpgid(0, 0);
+        tcsetpgrp(STDIN_FILENO, getpid());
         execv(full_path, (char ** const)argv);
     } else {
         wait(&status);
@@ -222,9 +224,7 @@ handle_pipe(struct ast_node *root)
         close(STDIN_FILENO);
         wait(&status);
         dup2(tmp, STDIN_FILENO);
-
     } else {
-        
         dup2(fds[1], STDOUT_FILENO);
         close(fds[0]);
         eval_ast_node(left);
