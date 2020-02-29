@@ -50,6 +50,18 @@ tcgetattr(int fd, struct termios *buf)
     return ioctl(fd, TCGETS, buf);
 }
 
+pid_t
+tcgetpgrp(int fd)
+{   
+    pid_t ret;
+
+    if (ioctl(fd, TIOCGPGRP, &ret) == 0) {
+        return ret;
+    }
+    
+    return -1;
+}
+
 int
 tcsendbreak(int fd, int duration)
 {
@@ -70,4 +82,10 @@ tcsetattr(int fd, int mode, struct termios *buf)
             errno = EINVAL;
             return -1;
     }
+}
+
+int
+tcsetpgrp(int fd, pid_t pgrp)
+{
+    return ioctl(fd, TIOCSPGRP, &pgrp);
 }

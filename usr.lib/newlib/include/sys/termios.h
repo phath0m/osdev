@@ -114,15 +114,17 @@ struct termios {
 
 speed_t cfgetispeed(const struct termios *);
 speed_t cfgetospeed(const struct termios *);
-int cfsetispeed(struct termios *, speed_t);
-int cfsetospeed(struct termios *, speed_t);
-int tcdrain(int);
-int tcflow(int, int);
-int tcflush(int, int);
-int tcgetattr(int, struct termios *);
-pid_t tcgetsid(int);
-int tcsendbreak(int, int);
-int tcsetattr(int, int, struct termios *);
+int     cfsetispeed(struct termios *, speed_t);
+int     cfsetospeed(struct termios *, speed_t);
+int     tcdrain(int);
+int     tcflow(int, int);
+int     tcflush(int, int);
+int     tcgetattr(int, struct termios *);
+pid_t   tcgetsid(int);
+pid_t   tcgetpgrp(int fd);
+int     tcsendbreak(int, int);
+int     tcsetattr(int, int, struct termios *);
+int     tcsetpgrp(int fd, pid_t pgrp);
 
 #define TCSANOW     0x00
 #define TCSADRAIN   0x01
@@ -137,5 +139,7 @@ int tcsetattr(int, int, struct termios *);
 #define TIOCGWINSZ  0x04
 #define TIOCSWINSZ  0x05
 #define TIOCSCTTY   0x06
+#define TIOCSPGRP   0x07
+#define TIOCGPGRP   0x08
 
 #endif
