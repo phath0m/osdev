@@ -25,6 +25,8 @@ struct klink_proc_info {
     uint16_t    ppid;
     uint16_t    uid;
     uint16_t    gid;
+    uint16_t    sid;
+    uint16_t    pgid;
 } __attribute__((packed));
 
 struct klink_proc_stat {

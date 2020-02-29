@@ -345,8 +345,8 @@ fchown(int file, uid_t owner, gid_t group)
 int
 fork()
 {
-    int ret;
-    
+    int ret = 0;
+
     asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_FORK));
 
     if (ret < 0) {

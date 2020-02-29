@@ -14,6 +14,8 @@ struct ps_entry {
     int     ppid;
     int     gid;
     int     uid;
+    int     sid;
+    int     pgid;
     char    cmd[256];
     char    tty[32];
     time_t  stime;
@@ -78,10 +80,8 @@ ps_print_procs(struct ps_options *options, struct list *listp)
     } else {
         printf("  PID TTY        CMD\n");
     }
-    
-    char *ttydev = ttyname(0);
 
-    const char *actual_tty = strrchr(ttydev, '/') + 1;
+    pid_t sid = getsid(0);
 
     list_iter_t iter;
 
@@ -90,7 +90,7 @@ ps_print_procs(struct ps_options *options, struct list *listp)
     struct ps_entry *entry;
 
     while (iter_move_next(&iter, (void**)&entry)) {
-        if (!options->display_all && strcmp(entry->tty, actual_tty)) {
+        if (!options->display_all && entry->sid != sid) {
             continue;
         }
 
@@ -185,6 +185,8 @@ read_procs(struct list *listp)
         entry->ppid = proc->ppid;
         entry->gid = proc->gid;
         entry->uid = proc->uid;
+        entry->sid = proc->sid;
+        entry->pgid = proc->pgid;
 
         struct klink_dgram pstat[sizeof(struct klink_dgram)+sizeof(struct klink_proc_stat)];
         klink_query(sfd, KWHAT_PROCSTAT, entry->pid, pstat, sizeof(pstat));

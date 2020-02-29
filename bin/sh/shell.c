@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
 
 #include <fcntl.h>
@@ -425,7 +427,7 @@ print_prompt_escape(char ch)
         }
         case '$': {
             if (getuid() == 0) putchar('#');
-            else putchar('$');          
+            else putchar('%');          
             break;
         }
         case '\\': {
@@ -485,6 +487,8 @@ load_rc()
 void
 shell_repl()
 {
+    ioctl(STDIN_FILENO, TIOCSCTTY, NULL);
+
     setenv("PS1", "\\$ ", false);
     load_rc();
 
@@ -515,6 +519,8 @@ main(int argc, const char *argv[])
     dict_set(&builtin_commands, "pwd", builtin_pwd);
     dict_set(&builtin_commands, "setenv", builtin_setenv);
     dict_set(&builtin_commands, "source", builtin_source);
+
+    setsid();
 
     if (argc > 1) {
         run_file(argv[1]);

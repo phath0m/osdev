@@ -136,5 +136,6 @@ int tcsetattr(int, int, struct termios *);
 
 #define TIOCGWINSZ  0x04
 #define TIOCSWINSZ  0x05
+#define TIOCSCTTY   0x06
 
 #endif
