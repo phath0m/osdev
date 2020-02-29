@@ -40,11 +40,12 @@ struct fops ptm_ops = {
 struct pty {
     struct file *   input_pipe[2];
     struct file *   output_pipe[2];
-    struct cdev * slave;
+    struct cdev *   slave;
     struct termios  termios;
     int             line_buf_pos;
     char            line_buf[PTY_LINEBUF_SIZE];
     struct winsize  winsize;
+    pid_t           foreground;
 };
 
 static int pty_counter = 0;
@@ -224,6 +225,22 @@ pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
         }
 
         return -1;
+    }
+    case TIOCSPGRP: {
+        pid_t pgid = *((pid_t*)argp);
+        struct pgrp *pgrp = pgrp_find(pgid);
+
+        if (pgrp) {
+            pty->foreground = pgid;
+            return 0;
+        }
+
+        return -(ESRCH);
+    }
+    case TIOCGPGRP: {
+        *((pid_t*)argp) = pty->foreground;
+        
+        return 0;
     }
     default:
         printf("got unknown IOCTL %d!\n", request);

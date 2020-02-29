@@ -116,6 +116,7 @@ thread_exit_requested()
  */
 extern struct proc *current_proc;
 
+struct pgrp *   pgrp_find(pid_t pgid);
 void            pgrp_leave_session(struct pgrp *group, struct session *session);
 struct pgrp *   pgrp_new(struct proc *leader, struct session *session);
 

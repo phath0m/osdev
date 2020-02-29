@@ -95,5 +95,7 @@ struct termios {
 #define TIOCGWINSZ  0x04
 #define TIOCSWINSZ  0x05
 #define TIOCSCTTY   0x06
+#define TIOCSPGRP   0x07
+#define TIOCGPGRP   0x08
 
 #endif

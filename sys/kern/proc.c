@@ -20,6 +20,29 @@ int proc_count = 0;
  */
 struct list process_list;
 struct list thread_list;
+struct list pgrp_list;
+
+struct pgrp *
+pgrp_find(pid_t pgid)
+{
+    list_iter_t iter;
+
+    list_get_iter(&pgrp_list, &iter);
+
+    struct pgrp *pgrp = NULL;
+    struct pgrp *ret = NULL;
+    
+    while (iter_move_next(&iter, (void**)&pgrp)) {
+        if (pgrp && pgrp->pgid == pgid) {
+            ret = pgrp;
+            break;
+        }
+    }
+
+    iter_close(&iter);
+
+    return ret;
+}
 
 void
 pgrp_leave_session(struct pgrp *group, struct session *session)
@@ -28,6 +51,7 @@ pgrp_leave_session(struct pgrp *group, struct session *session)
 
     if (LIST_SIZE(&session->groups) == 0) {
         free(session);
+        list_remove(&pgrp_list, group);
     }
 }
 
@@ -42,7 +66,7 @@ pgrp_new(struct proc *leader, struct session *session)
 
     list_append(&group->members, leader);
     list_append(&session->groups, group);
-
+    list_append(&pgrp_list, group);
     return group;
 }
 
