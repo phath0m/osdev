@@ -1,4 +1,4 @@
-#include <sys/interrupt.h>
+#include <sys/bus.h>
 
 intr_handler_t intr_handlers[256];
 

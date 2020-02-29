@@ -1,5 +1,5 @@
 #include <machine/reg.h>
-#include <sys/interrupt.h>
+#include <sys/bus.h>
 #include <sys/proc.h>
 #include <sys/systm.h>
 

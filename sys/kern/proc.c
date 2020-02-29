@@ -52,8 +52,6 @@ proc_destroy(struct proc *proc)
     KASSERT(proc != LIST_FIRST(&process_list), "init died");
     KASSERT(proc->parent != NULL, "cannot have NULL parent");
 
-    printf("leave group (proc=0x%p group=0x%p)\n", proc, proc->group);
-
     proc_leave_group(proc, proc->group);
 
     struct thread *thread = proc->thread;

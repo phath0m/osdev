@@ -1,5 +1,7 @@
-#ifndef SYS_INTERRUPT_H
-#define SYS_INTERRUPT_H
+#ifndef _SYS_BUS_H
+#define _SYS_BUS_H
+
+#include <machine/bus.h>
 
 struct regs;
 

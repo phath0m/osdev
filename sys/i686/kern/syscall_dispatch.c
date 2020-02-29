@@ -3,7 +3,7 @@
  * x86 system call implementation via interrupt 0x80
  */
 #include <machine/reg.h>
-#include <sys/interrupt.h>
+#include <sys/bus.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/syscall.h>

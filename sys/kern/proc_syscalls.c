@@ -1,3 +1,4 @@
+#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
@@ -482,7 +483,7 @@ sys_sleep(syscall_args_t argv)
 
     int wakeup_time = timer_ticks + required_ticks;
 
-    asm volatile("sti");
+    bus_interrupts_on();
 
     while (timer_ticks < wakeup_time) {
         thread_yield();
@@ -502,9 +503,8 @@ sys_wait(syscall_args_t argv)
 
     if (child) {
 
-        if (/*child->thread->state != SDEAD && */!child->exited) {
-            asm volatile("sti");
-
+        if (!child->exited) {
+            bus_interrupts_on();
             wq_wait(&child->waiters);
         }
         if (status) {
@@ -541,9 +541,8 @@ sys_waitpid(syscall_args_t argv)
         return -1;
     }
 
-    if (/*needle->thread->state != SDEAD && */!needle->exited) {
-        asm volatile("sti");
-
+    if (!needle->exited) {
+        bus_interrupts_on();
         wq_wait(&needle->waiters);
     }
 
@@ -594,7 +593,7 @@ sys_pause(syscall_args_t argv)
 {
     TRACE_SYSCALL("pause", "void");
 
-    asm volatile("sti");
+    bus_interrupts_on();
 
     thread_schedule(SSLEEP, current_proc->thread);
 
@@ -610,7 +609,7 @@ sys_thread_sleep(syscall_args_t argv)
 
     thread_schedule(SSLEEP, sched_curr_thread);
 
-    asm volatile("sti");
+    bus_interrupts_on();
 
     thread_yield();
 

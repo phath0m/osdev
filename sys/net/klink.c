@@ -7,6 +7,7 @@
  * but radically different in terms of use/purpose
  */
 #include <ds/list.h>
+#include <sys/bus.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/socket.h>
@@ -147,6 +148,8 @@ klink_send_proclist(struct klink_session *session)
      */
     extern struct list process_list;
 
+    bus_interrupts_off();
+
     list_iter_t iter;
 
     list_get_iter(&process_list, &iter);
@@ -171,11 +174,14 @@ klink_send_proclist(struct klink_session *session)
             info->ppid = proc->parent->pid;
         }
     }
+    
+    iter_close(&iter);
+
+    bus_interrupts_on();
+
     resp->size = LIST_SIZE(&process_list) * sizeof(struct klink_proc_info);
 
     list_append(&session->resp_queue, resp);
-
-    iter_close(&iter);
 
     return 0;
 }
@@ -187,7 +193,10 @@ klink_send_procstat(struct klink_session *session, int target)
      * defined in sys/kern/proc.c
      */
     extern struct list process_list;
-    
+
+    /* turn off interrupts while holding lock on process_list */    
+    bus_interrupts_off();
+
     list_iter_t iter;
     
     list_get_iter(&process_list, &iter);
@@ -208,7 +217,6 @@ klink_send_procstat(struct klink_session *session, int target)
             strncpy(stat->cmd, proc->name, 255);
             
             if (tty) {
-                printf("proc tty %s\n", tty);
                 strncpy(stat->tty, tty, 31);
             } else {
                 stat->tty[0] = '\x00';
@@ -219,6 +227,9 @@ klink_send_procstat(struct klink_session *session, int target)
     }
 
     iter_close(&iter);
+
+    /* re-enable interrupts*/
+    bus_interrupts_on();
 
     if (resp) {
         resp->what = KWHAT_PROCSTAT;
@@ -248,6 +259,7 @@ klink_query(struct klink_session *session, struct klink_dgram *req)
             klink_send_heapstat(session);
             break;
     }
+
     return 0;
 }
 

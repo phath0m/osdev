@@ -1,7 +1,7 @@
 #include <machine/portio.h>
+#include <sys/bus.h>
 #include <sys/device.h>
 #include <sys/devno.h>
-#include <sys/interrupt.h>
 #include <sys/types.h>
 
 static int mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);

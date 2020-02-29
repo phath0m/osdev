@@ -1,9 +1,9 @@
 #include <ds/fifo.h>
 #include <machine/portio.h>
+#include <sys/bus.h>
 #include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/errno.h>
-#include <sys/interrupt.h>
 #include <sys/ioctl.h>
 #include <sys/proc.h>
 #include <sys/types.h>
