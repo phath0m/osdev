@@ -8,7 +8,6 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/string.h>
-#include <sys/uio.h>
 #include <sys/unistd.h>
 #include <sys/vnode.h>
 
@@ -215,12 +214,12 @@ fop_seek(struct file *fp, off_t off, int whence)
 }
 
 int
-fop_stat(struct file *fp, struct uio *uio)
+fop_stat(struct file *fp, struct stat *stat)
 {
     struct fops *ops = fp->ops;
 
     if (ops->stat) {
-        return ops->stat(fp, uio);
+        return ops->stat(fp, stat);
     }
 
     return -(ENOTSUP);

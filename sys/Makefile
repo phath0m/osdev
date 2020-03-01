@@ -40,7 +40,6 @@ KERNEL_OBJECTS += kern/socket.o
 KERNEL_OBJECTS += kern/socket_syscalls.o
 KERNEL_OBJECTS += kern/timer.o
 KERNEL_OBJECTS += kern/extract_tar.o
-KERNEL_OBJECTS += kern/uio.o
 KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/vfs_syscalls.o
 KERNEL_OBJECTS += kern/vm.o

@@ -116,7 +116,7 @@ va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
 
 /* validates a pointer */
 int
-vm_access(struct vm_space *space, void *buf, size_t nbyte, int prot)
+vm_access(struct vm_space *space, const void *buf, size_t nbyte, int prot)
 {
     struct va_map *vamap = NULL;
 
