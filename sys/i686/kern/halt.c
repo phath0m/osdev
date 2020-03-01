@@ -1,8 +1,8 @@
-
+#include <sys/bus.h>
 
 void
 shutdown()
 {
-    asm volatile("cli");
+    bus_interrupts_off();
     asm volatile("hlt");
 }

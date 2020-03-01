@@ -1,4 +1,5 @@
 #include <machine/reg.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/file.h>
 #include <sys/proc.h>
@@ -58,7 +59,7 @@ proc_clone(void *func, void *stack, int flags, void *arg)
         return -(ENOTSUP);
     }
 
-    asm volatile("cli");
+    bus_interrupts_off();
 
     extern struct vm_space *sched_curr_address_space;
 

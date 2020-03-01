@@ -106,8 +106,8 @@ thread_interrupt_leave(struct thread *thread, struct regs *regs)
 { 
     if (thread->terminated) {
         thread_schedule(SDEAD, thread);
-        
-        asm volatile("sti");
+       
+        bus_interrupts_on(); 
 
         for (;;) {
             thread_yield();
@@ -180,7 +180,7 @@ thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 void
 thread_yield()
 {
-    asm volatile("sti");
+    bus_interrupts_on();
     asm volatile("hlt");
 }
 

@@ -8,6 +8,7 @@
 #include <machine/vm.h>
 #include <machine/vm_private.h>
 #include <sys/malloc.h>
+#include <sys/mutex.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/types.h>
@@ -22,6 +23,8 @@ struct frame {
 struct list frames_allocated;       /* list of frames that have been allocated */
 struct list frames_free;            /* lists of frames that are free and available for re-use */
 uintptr_t   kernel_physical_brk;    /* physical memory highwater mark */
+
+static spinlock_t   frame_alloc_lock;
 
 /* global statistics for VM structures allocated in kernel space */
 struct vm_statistics vm_stat;
@@ -43,6 +46,8 @@ get_free_frame()
 static uintptr_t
 frame_alloc(struct frame **res)
 {
+    spinlock_lock(&frame_alloc_lock);
+
     struct frame *frame = get_free_frame();
 
     if (!frame) {
@@ -54,6 +59,8 @@ frame_alloc(struct frame **res)
 
     list_append(&frames_allocated, frame);
 
+    spinlock_unlock(&frame_alloc_lock);
+
     *res = frame;
 
     return frame->addr;
@@ -63,6 +70,8 @@ frame_alloc(struct frame **res)
 static void
 frame_free(void *addr)
 {
+    spinlock_lock(&frame_alloc_lock);
+
     list_iter_t iter;
 
     list_get_iter(&frames_allocated, &iter);
@@ -84,6 +93,8 @@ frame_free(void *addr)
         list_remove(&frames_allocated, to_remove);
         free(to_remove);
     }
+
+    spinlock_unlock(&frame_alloc_lock);
 }
 
 /* actually map a virtual address to a physical address  */

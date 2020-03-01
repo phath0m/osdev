@@ -1,5 +1,6 @@
 #include <machine/multiboot.h>
 #include <machine/vm.h>
+#include <sys/bus.h>
 #include <sys/device.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
@@ -37,7 +38,7 @@ run_kernel(void *state)
 
     printf("You may now shutdown your computer");
     
-    asm volatile("cli");
+    bus_interrupts_off();
     asm volatile("hlt");
 
     return 0;
@@ -52,7 +53,7 @@ _preinit(multiboot_info_t *multiboot_hdr)
     uint32_t initrd = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr));
     uint32_t heap = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr + 4));
 
-    asm volatile("cli");
+    bus_interrupts_off();
 
     start_initramfs = (void*)(initrd);
     multiboot_header = multiboot_hdr;
@@ -92,7 +93,7 @@ _preinit(multiboot_info_t *multiboot_hdr)
      * Here, we just need to wait for it to fire before surrendering execution
      */
 
-    asm volatile("sti");    
+    bus_interrupts_on();    
     
     for (;;) {
         asm volatile("hlt");

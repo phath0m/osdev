@@ -1,5 +1,6 @@
 #include <ds/list.h>
 #include <machine/elf32.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
@@ -138,7 +139,7 @@ unload_userspace(struct vm_space *space)
 int
 proc_execve(const char *path, const char **argv, const char **envp)
 {
-    asm volatile("cli");
+    bus_interrupts_off();
 
     /* defined in sys/i686/sched.c */
     struct proc *proc = current_proc;
@@ -240,7 +241,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     free(elf);
 
-    asm volatile("sti");
+    bus_interrupts_on();
 
     /* defined in sys/i686/kern/usermode.asm */
     extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t ebp, uintptr_t eax);

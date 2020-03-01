@@ -1,4 +1,5 @@
 #include <machine/reg.h>
+#include <sys/bus.h>
 #include <sys/file.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
@@ -18,8 +19,10 @@ struct fork_state {
 static void
 copy_image(struct proc *proc, struct vm_space *new_space)
 {
-    size_t image_size = ((proc->brk - proc->base));
-    
+    ssize_t image_size = ((proc->brk - proc->base));
+
+    KASSERT("proc image size should not be zero or negative", image_size > 0);
+
     vm_map(new_space, (void*)proc->base, image_size, PROT_READ | PROT_WRITE);
 
     void *image = vm_share(proc->thread->address_space, new_space, NULL, (void*)proc->base,
@@ -57,6 +60,8 @@ copy_stack(struct thread *thread, struct vm_space *new_space)
 static int
 init_child_proc(void *statep)
 {
+    bus_interrupts_off();
+
     struct fork_state *state = (struct fork_state*)statep;
     struct proc *proc = state->proc;
 
@@ -80,6 +85,8 @@ init_child_proc(void *statep)
 
     free(statep);
 
+    bus_interrupts_on();
+
     /* defined in sys/i686/kern/usermode.asm */
     extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);
 
@@ -91,7 +98,7 @@ init_child_proc(void *statep)
 int
 proc_fork(struct regs *regs)
 {
-    asm volatile("cli");
+    bus_interrupts_off();
 
     struct proc *proc = current_proc;
     struct proc *new_proc = proc_new();
@@ -132,7 +139,7 @@ proc_fork(struct regs *regs)
 
     thread_run(init_child_proc, new_space, (void*)state);
 
-    asm volatile("sti");
+    bus_interrupts_on();
 
     thread_yield();
 

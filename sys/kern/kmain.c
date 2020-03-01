@@ -11,9 +11,9 @@ kmain(const char *args)
 {
     /* this is sort of a hack because it assumes we're using LFB for output*/
     /* TODO: something that makes less assumptions */
-    //extern struct cdev lfb_device;
+    extern struct cdev lfb_device;
     
-    //kset_output(&lfb_device);
+    set_kernel_output(&lfb_device);
 
     struct vnode *root;
 

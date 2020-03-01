@@ -181,7 +181,7 @@ sys_ioctl(struct thread *th, syscall_args_t argv)
     struct file *file = procdesc_getfile(fd);
 
     if (file) {
-        asm volatile("sti");
+        bus_interrupts_on();
         return fop_ioctl(file, (uint64_t)request, arg);
     }
 
@@ -274,7 +274,7 @@ sys_read(struct thread *th, syscall_args_t argv)
 
     TRACE_SYSCALL("read", "%d, %p, %d", fildes, buf, nbyte);
 
-    asm volatile("sti");
+    bus_interrupts_on();
 
     struct file *file = procdesc_getfile(fildes);
 

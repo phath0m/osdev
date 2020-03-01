@@ -55,7 +55,7 @@ static void print_regs(struct regs *regs);
 static int
 handle_generic_exception(int inum, struct regs *regs)
 {
-    asm volatile("cli");
+    bus_interrupts_off();
 
     printf("\n");
     print_regs(regs);
@@ -71,7 +71,7 @@ handle_generic_exception(int inum, struct regs *regs)
 static int
 handle_page_fault(int inum, struct regs *regs)
 {
-    asm volatile("cli");
+    bus_interrupts_off();
 
     int err = regs->error_code;
 
@@ -95,10 +95,10 @@ handle_page_fault(int inum, struct regs *regs)
         return 0;
     }
     
-    printf("\n");
-
+    printf("\n\r");
     print_regs(regs);
-    print_stack(regs, 4);
+    printf("\n\r");
+    print_stack(regs, 6);
 
     if (!present) {
         printf("page not present\n\r");
@@ -111,7 +111,7 @@ handle_page_fault(int inum, struct regs *regs)
     printf("\n\r");
     
     panic("page fault at %p", fault_addr);
-    asm volatile("cli");
+    bus_interrupts_off();
     asm volatile("hlt");
     
     return 0;
