@@ -1,5 +1,5 @@
-#ifndef SYS_SYSCALL_H
-#define SYS_SYSCALL_H
+#ifndef _SYS_SYSCALL_H
+#define _SYS_SYSCALL_H
 
 #include <sys/systm.h>
 #include <sys/types.h>
@@ -91,9 +91,10 @@ struct syscall_args {
     uintptr_t * args;
 };
 
-typedef struct syscall_args * syscall_args_t;
+struct thread;
 
-typedef int (*syscall_t)(syscall_args_t argv);
+typedef struct syscall_args * syscall_args_t;
+typedef int (*syscall_t)(struct thread *th, syscall_args_t argv);
 
 struct syscall {
     uint8_t     num;

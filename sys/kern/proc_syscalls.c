@@ -1,3 +1,9 @@
+/*
+ * proc_syscalls.c
+ * 
+ * This file implements system calls related to process creation, destruction,
+ * and manipulation.
+ */
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
@@ -45,9 +51,13 @@ can_execute_file(const char *path)
 }
 
 static int
-sys_chdir(syscall_args_t args)
+sys_chdir(struct thread *th, syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("chdir", "%s", path);
 
@@ -72,9 +82,13 @@ sys_chdir(syscall_args_t args)
 }
 
 static int
-sys_chroot(syscall_args_t args)
+sys_chroot(struct thread *th, syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("chroot", "%s", path);
 
@@ -90,7 +104,7 @@ sys_chroot(syscall_args_t args)
 }
 
 static int
-sys_clone(syscall_args_t argv)
+sys_clone(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(void *, func, 0, argv);
     DEFINE_SYSCALL_PARAM(void *, stack, 1, argv);
@@ -104,7 +118,7 @@ sys_clone(syscall_args_t argv)
 
 
 static int
-sys_execve(syscall_args_t args)
+sys_execve(struct thread *th, syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, file, 0, args);
     DEFINE_SYSCALL_PARAM(const char **, argv, 1, args);
@@ -162,7 +176,7 @@ sys_execve(syscall_args_t args)
 }
 
 static int
-sys_exit(syscall_args_t args)
+sys_exit(struct thread *th, syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(int, status, 0, args);
 
@@ -188,10 +202,14 @@ sys_exit(syscall_args_t args)
 }
 
 static int
-sys_getcwd(syscall_args_t argv)
+sys_getcwd(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(char *, buf, 0, argv);
     DEFINE_SYSCALL_PARAM(size_t, size, 1, argv);
+
+    if (vm_access(th->address_space, buf, size, PROT_WRITE)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("getcwd", "0x%p, %d", buf, size);
 
@@ -201,7 +219,7 @@ sys_getcwd(syscall_args_t argv)
 }
 
 static int
-sys_getgid(syscall_args_t argv)
+sys_getgid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("getid", "void");
 
@@ -209,7 +227,7 @@ sys_getgid(syscall_args_t argv)
 }
 
 static int
-sys_getegid(syscall_args_t argv)
+sys_getegid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("geteid", "void");
 
@@ -217,7 +235,7 @@ sys_getegid(syscall_args_t argv)
 }
 
 static int
-sys_getsid(syscall_args_t argv)
+sys_getsid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("getsid", "void");
 
@@ -225,7 +243,7 @@ sys_getsid(syscall_args_t argv)
 }
 
 static int
-sys_getuid(syscall_args_t argv)
+sys_getuid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("getuid", "void");
 
@@ -233,7 +251,7 @@ sys_getuid(syscall_args_t argv)
 }
 
 static int
-sys_geteuid(syscall_args_t argv)
+sys_geteuid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("geteuid", "void");
 
@@ -241,7 +259,7 @@ sys_geteuid(syscall_args_t argv)
 }
 
 static int
-sys_getpgrp(syscall_args_t argv)
+sys_getpgrp(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
 
@@ -255,7 +273,7 @@ sys_getpgrp(syscall_args_t argv)
 }
 
 static int
-sys_getpid(syscall_args_t argv)
+sys_getpid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("getpid", "void");
 
@@ -271,7 +289,7 @@ sys_getppid()
 }
 
 static int
-sys_gettid(syscall_args_t argv)
+sys_gettid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("gettid", "void");
 
@@ -281,7 +299,7 @@ sys_gettid(syscall_args_t argv)
 }
 
 static int
-sys_fcntl(syscall_args_t argv)
+sys_fcntl(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(int, cmd, 1, argv);
@@ -293,7 +311,7 @@ sys_fcntl(syscall_args_t argv)
 }
 
 static int
-sys_fork(syscall_args_t argv)
+sys_fork(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("fork", "void");
 
@@ -301,7 +319,7 @@ sys_fork(syscall_args_t argv)
 }
 
 static int
-sys_kill(syscall_args_t argv)
+sys_kill(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(int, sig, 1, argv);
@@ -320,7 +338,7 @@ sys_kill(syscall_args_t argv)
 }
 
 static int
-sys_setgid(syscall_args_t argv)
+sys_setgid(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(gid_t, gid, 0, argv);
 
@@ -336,7 +354,7 @@ sys_setgid(syscall_args_t argv)
 }
 
 static int
-sys_setegid(syscall_args_t argv)
+sys_setegid(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(gid_t, gid, 0, argv);
 
@@ -351,7 +369,7 @@ sys_setegid(syscall_args_t argv)
 }
 
 static int
-sys_setpgid(syscall_args_t argv)
+sys_setpgid(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(pid_t, pgid, 1, argv);
@@ -373,7 +391,7 @@ sys_setpgid(syscall_args_t argv)
 }
 
 static int
-sys_setsid(syscall_args_t argv)
+sys_setsid(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("setsid", "(void)");
     
@@ -394,7 +412,7 @@ sys_setsid(syscall_args_t argv)
 }
 
 static int
-sys_setuid(syscall_args_t argv)
+sys_setuid(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(uid_t, uid, 0, argv);
 
@@ -410,7 +428,7 @@ sys_setuid(syscall_args_t argv)
 }
 
 static int
-sys_seteuid(syscall_args_t argv)
+sys_seteuid(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(uid_t, uid, 0, argv);
 
@@ -425,7 +443,7 @@ sys_seteuid(syscall_args_t argv)
 }
 
 static int
-sys_sbrk(syscall_args_t argv)
+sys_sbrk(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(ssize_t, increment, 0, argv);
 
@@ -447,7 +465,7 @@ sys_sbrk(syscall_args_t argv)
 }
 
 static int
-sys_sigaction(syscall_args_t argv)
+sys_sigaction(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, sig, 0, argv);
     DEFINE_SYSCALL_PARAM(struct signal_args *, sargs, 1, argv);
@@ -458,7 +476,7 @@ sys_sigaction(syscall_args_t argv)
 }
 
 static int
-sys_sigrestore(syscall_args_t argv)
+sys_sigrestore(struct thread *th, syscall_args_t argv)
 {
     struct thread *curr_thread = current_proc->thread;
 
@@ -472,7 +490,7 @@ sys_sigrestore(syscall_args_t argv)
 }
 
 static int
-sys_sleep(syscall_args_t argv)
+sys_sleep(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, seconds, 0, argv);
 
@@ -493,9 +511,13 @@ sys_sleep(syscall_args_t argv)
 }
 
 static int
-sys_wait(syscall_args_t argv)
+sys_wait(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, status, 0, argv);
+
+    if (status && vm_access(th->address_space, status, sizeof(int), PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("wait", "%p", status);
 
@@ -515,10 +537,14 @@ sys_wait(syscall_args_t argv)
 }
 
 static int
-sys_waitpid(syscall_args_t argv)
+sys_waitpid(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(int *, status, 1, argv);
+
+    if (status && vm_access(th->address_space, status, sizeof(int), PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("waitpid", "%d, %p", pid, status);
 
@@ -554,7 +580,7 @@ sys_waitpid(syscall_args_t argv)
 }
 
 static int
-sys_dup(syscall_args_t argv)
+sys_dup(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, oldfd, 0, argv);
 
@@ -564,7 +590,7 @@ sys_dup(syscall_args_t argv)
 }
 
 static int
-sys_dup2(syscall_args_t argv)
+sys_dup2(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, oldfd, 0, argv);
     DEFINE_SYSCALL_PARAM(int, newfd, 1, argv);
@@ -575,7 +601,7 @@ sys_dup2(syscall_args_t argv)
 }
 
 static int
-sys_umask(syscall_args_t argv)
+sys_umask(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(mode_t, mask, 0, argv);
 
@@ -589,7 +615,7 @@ sys_umask(syscall_args_t argv)
 }
 
 static int
-sys_pause(syscall_args_t argv)
+sys_pause(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("pause", "void");
 
@@ -601,7 +627,7 @@ sys_pause(syscall_args_t argv)
 }
 
 static int
-sys_thread_sleep(syscall_args_t argv)
+sys_thread_sleep(struct thread *th, syscall_args_t argv)
 {
     TRACE_SYSCALL("thread_sleep", "void");
 
@@ -617,7 +643,7 @@ sys_thread_sleep(syscall_args_t argv)
 }
 
 static int
-sys_thread_wake(syscall_args_t argv)
+sys_thread_wake(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(pid_t, tid, 0, argv);
 

@@ -1,9 +1,14 @@
 /*
  * vfs_syscalls.c
  *
- * This file is responsible for implementing generic filesystem system calls
+ * This file is responsible for implementing generic filesystem system calls. 
+ * Pretty much all system calls that actually perform I/O to files are here.
  *
+ * It should be noted that things that manipulate file descriptors (IE: dup)
+ * are in proc_syscalls.c, since they don't actually perform I/O, rather, they
+ * just manipulate the process descriptor's file descriptor table
  */
+#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/pipe.h>
@@ -15,10 +20,14 @@
 #include <sys/vnode.h>
 
 static int
-sys_access(syscall_args_t argv)
+sys_access(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("access", "\"%s\", %d", path, mode);
 
@@ -26,10 +35,14 @@ sys_access(syscall_args_t argv)
 }
 
 static int
-sys_chmod(syscall_args_t argv)
+sys_chmod(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("chmod", "\"%s\", %d", path, mode);
 
@@ -37,11 +50,15 @@ sys_chmod(syscall_args_t argv)
 }
 
 static int
-sys_chown(syscall_args_t argv)
+sys_chown(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(uid_t, owner, 1, argv);
     DEFINE_SYSCALL_PARAM(gid_t, group, 2, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("chown", "\"%s\", %d, %d", path, owner, group);
 
@@ -49,7 +66,7 @@ sys_chown(syscall_args_t argv)
 }
 
 static int
-sys_close(syscall_args_t argv)
+sys_close(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
 
@@ -69,10 +86,14 @@ sys_close(syscall_args_t argv)
 }
 
 static int
-sys_creat(syscall_args_t argv)
+sys_creat(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
+    
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("creat", "\"%s\", %d", path, mode);
 
@@ -97,7 +118,7 @@ sys_creat(syscall_args_t argv)
 }
 
 static int
-sys_fchmod(syscall_args_t argv)
+sys_fchmod(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
@@ -114,7 +135,7 @@ sys_fchmod(syscall_args_t argv)
 }
 
 static int
-sys_fchown(syscall_args_t argv)
+sys_fchown(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(uid_t, owner, 1, argv);
@@ -132,7 +153,7 @@ sys_fchown(syscall_args_t argv)
 }
 
 static int
-sys_ftruncate(syscall_args_t argv)
+sys_ftruncate(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(off_t, length, 1, argv);
@@ -149,7 +170,7 @@ sys_ftruncate(syscall_args_t argv)
 }
 
 static int
-sys_ioctl(syscall_args_t argv)
+sys_ioctl(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(uint32_t, request, 1, argv);
@@ -168,10 +189,14 @@ sys_ioctl(syscall_args_t argv)
 }
 
 static int
-sys_fstat(syscall_args_t argv)
+sys_fstat(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
+
+    if (vm_access(th->address_space, buf, sizeof(struct stat), PROT_WRITE)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("fstat", "%d, %p", fd, buf);
 
@@ -185,10 +210,14 @@ sys_fstat(syscall_args_t argv)
 }
 
 static int
-sys_open(syscall_args_t argv)
+sys_open(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("open", "\"%s\", %d", path, mode);
 
@@ -212,9 +241,13 @@ sys_open(syscall_args_t argv)
 }
 
 static int
-sys_pipe(syscall_args_t argv)
+sys_pipe(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, pipefd, 0, argv);
+
+    if (vm_access(th->address_space, pipefd, sizeof(int[2]), PROT_WRITE)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("pipe", "%p", pipefd);
 
@@ -229,11 +262,15 @@ sys_pipe(syscall_args_t argv)
 }
 
 static int
-sys_read(syscall_args_t argv)
+sys_read(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(char*, buf, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, nbyte, 2, argv);
+
+    if (vm_access(th->address_space, buf, nbyte, PROT_WRITE)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("read", "%d, %p, %d", fildes, buf, nbyte);
 
@@ -249,10 +286,14 @@ sys_read(syscall_args_t argv)
 }
 
 static int
-sys_readdir(syscall_args_t argv)
+sys_readdir(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(struct dirent *, dirent, 1, argv);
+
+    if (vm_access(th->address_space, dirent, sizeof(struct dirent), PROT_WRITE)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("readdir", "%d, %p", fildes, dirent);
 
@@ -266,9 +307,13 @@ sys_readdir(syscall_args_t argv)
 }
 
 static int
-sys_rmdir(syscall_args_t argv)
+sys_rmdir(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("rmdir", "\"%s\"", path);
 
@@ -276,7 +321,7 @@ sys_rmdir(syscall_args_t argv)
 }
 
 static int
-sys_lseek(syscall_args_t argv)
+sys_lseek(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(off_t, offset, 1, argv);
@@ -294,11 +339,15 @@ sys_lseek(syscall_args_t argv)
 }
 
 static int
-sys_mkdir(syscall_args_t argv)
+sys_mkdir(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
-    
+   
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
+
     TRACE_SYSCALL("mkdir", "\"%s\", %x", path, mode);
 
     mode &= current_proc->umask;
@@ -307,12 +356,16 @@ sys_mkdir(syscall_args_t argv)
 }
 
 static int
-sys_mknod(syscall_args_t argv)
+sys_mknod(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
     DEFINE_SYSCALL_PARAM(dev_t, dev, 2, argv);
     
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
+
     TRACE_SYSCALL("mknod", "\"%s\", %x, %d", path, mode, dev);
 
     mode_t extra = mode & ~(0777);
@@ -323,10 +376,18 @@ sys_mknod(syscall_args_t argv)
 }
 
 static int
-sys_stat(syscall_args_t argv)
+sys_stat(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
+
+    if (vm_access(th->address_space, buf, sizeof(struct stat), PROT_WRITE)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("stat", "\"%s\", %p", path, buf);
 
@@ -344,10 +405,14 @@ sys_stat(syscall_args_t argv)
 }
 
 static int
-sys_truncate(syscall_args_t argv)
+sys_truncate(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(off_t, length, 1, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("truncate", "\"%s\", %d", path, length);
 
@@ -355,9 +420,13 @@ sys_truncate(syscall_args_t argv)
 }
 
 static int
-sys_unlink(syscall_args_t argv)
+sys_unlink(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("unlink", "\"%s\"", path);
 
@@ -365,24 +434,36 @@ sys_unlink(syscall_args_t argv)
 }
 
 static int
-sys_utimes(syscall_args_t argv)
+sys_utimes(struct thread *th, syscall_args_t argv)
 {
-    DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
+    DEFINE_SYSCALL_PARAM(char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(struct timeval *, tv, 1, argv);
+
+    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+        return -(EFAULT);
+    }
+
+    if (vm_access(th->address_space, tv, sizeof(struct timeval), PROT_READ)) {
+        return -(EFAULT);
+    }
 
     return vfs_utimes(current_proc, path, tv);
 }
 
 static int
-sys_write(syscall_args_t argv)
+sys_write(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
-    DEFINE_SYSCALL_PARAM(const char *, buf, 1, argv);
+    DEFINE_SYSCALL_PARAM(void *, buf, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, nbyte, 2, argv);
 
     TRACE_SYSCALL("write", "%d, %p, %d", fildes, buf, nbyte);
 
-    asm volatile("sti");
+    if (vm_access(th->address_space, buf, nbyte, PROT_READ)) {
+        return -(EFAULT);
+    }
+
+    bus_interrupts_on();
 
     struct file *file = procdesc_getfile(fildes);
 

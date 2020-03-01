@@ -15,7 +15,7 @@
 #include <sys/vnode.h>
 
 static int
-sys_isatty(syscall_args_t argv)
+sys_isatty(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
 
@@ -41,7 +41,7 @@ sys_isatty(syscall_args_t argv)
 }
 
 static int
-sys_ttyname(syscall_args_t argv)
+sys_ttyname(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(char *, buf, 1, argv);
@@ -73,7 +73,7 @@ sys_ttyname(syscall_args_t argv)
 }
 
 static int
-sys_mkpty(syscall_args_t argv)
+sys_mkpty(struct thread *th, syscall_args_t argv)
 {
 
     TRACE_SYSCALL("mkpty", "void");

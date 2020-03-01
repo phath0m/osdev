@@ -1,3 +1,10 @@
+/*
+ * device_file.c
+ * This is responsible for connecting the character device interface to the file
+ * interface. When a file with S_IFCHR is opened, cdev_to_file() will be called
+ * and will lookup the device's major/minor number. If it is a registered device
+ * then it will return a file struct instances that wraps the underlying device
+ */
 #include <sys/device.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>

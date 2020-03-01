@@ -7,7 +7,7 @@
 #include <sys/utsname.h>
 
 static int
-sys_time(syscall_args_t argv)
+sys_time(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(time_t *, tloc, 0, argv);
 
@@ -17,7 +17,7 @@ sys_time(syscall_args_t argv)
 }
 
 static int
-sys_uname(syscall_args_t argv)
+sys_uname(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(struct utsname *, buf, 0, argv);
 

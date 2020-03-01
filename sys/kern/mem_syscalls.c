@@ -18,7 +18,7 @@ struct mmap_args {
 };
 
 static int
-sys_mmap(syscall_args_t argv)
+sys_mmap(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(struct mmap_args*, args, 0, argv);
 
@@ -34,7 +34,7 @@ sys_mmap(syscall_args_t argv)
 }
 
 static int
-sys_munmap(syscall_args_t argv)
+sys_munmap(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(void *, addr, 0, argv);
     DEFINE_SYSCALL_PARAM(size_t, length, 1, argv);
@@ -49,7 +49,7 @@ sys_munmap(syscall_args_t argv)
 }
 
 static int
-sys_shm_open(syscall_args_t argv)
+sys_shm_open(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, name, 0, argv);
     DEFINE_SYSCALL_PARAM(int, oflag, 1, argv);
@@ -71,7 +71,7 @@ sys_shm_open(syscall_args_t argv)
 }
 
 static int
-sys_shm_unlink(syscall_args_t argv)
+sys_shm_unlink(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, name, 0, argv);
    

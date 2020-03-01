@@ -114,6 +114,36 @@ va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
     }
 }
 
+/* validates a pointer */
+int
+vm_access(struct vm_space *space, void *buf, size_t nbyte, int prot)
+{
+    struct va_map *vamap = NULL;
+
+    if (VM_IS_KERN(prot) && VA_BOUNDCHECK(space->kva_map, buf, nbyte)) {
+        vamap = space->kva_map;
+    } else if (VA_BOUNDCHECK(space->uva_map, buf, nbyte)) {
+        vamap = space->uva_map;
+    }
+
+    if (!vamap) {
+        return -1;
+    }
+
+    int start_page = PAGE_INDEX((uintptr_t)buf - vamap->base);
+    size_t required_pages = PAGE_COUNT(nbyte);
+
+    uint8_t *bitmap = vamap->bitmap;
+
+    for (int i = 0; i < required_pages; i++) {
+        if (!BITMAP_GET(bitmap, start_page + i)) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 /* finds a page from a given virtual address */
 struct vm_block *
 vm_find_block(struct vm_space *space, uintptr_t vaddr)

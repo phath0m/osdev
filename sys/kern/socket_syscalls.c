@@ -6,7 +6,7 @@
 #include <sys/types.h>
 
 static int
-sys_accept(syscall_args_t argv)
+sys_accept(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
@@ -33,7 +33,7 @@ sys_accept(syscall_args_t argv)
 }
 
 static int
-sys_bind(syscall_args_t argv)
+sys_bind(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
@@ -51,7 +51,7 @@ sys_bind(syscall_args_t argv)
 }
 
 static int
-sys_connect(syscall_args_t argv)
+sys_connect(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
@@ -69,7 +69,7 @@ sys_connect(syscall_args_t argv)
 }
 
 static int
-sys_socket(syscall_args_t argv)
+sys_socket(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, domain, 0, argv);
     DEFINE_SYSCALL_PARAM(int, type, 1, argv);

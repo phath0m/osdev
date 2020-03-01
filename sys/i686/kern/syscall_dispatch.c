@@ -45,7 +45,8 @@ syscall_handler(int inum, struct regs *regs)
         args.args = (uintptr_t*)&arguments;
         args.state = regs;
 
-        int res = syscall->handler(&args);
+        extern struct thread *sched_curr_thread;
+        int res = syscall->handler(sched_curr_thread, &args);
 
         regs->eax = res;
 
