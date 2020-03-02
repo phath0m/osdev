@@ -1,0 +1,54 @@
+#ifndef _LIBVT_H
+#define _LIBVT_H
+
+typedef enum {
+    VT_ATTR_BACKGROUND,
+    VT_ATTR_FOREGROUND,
+} vt_attr_t;
+
+typedef enum {
+    VT_KEY_UP_ARROW,
+    VT_KEY_DOWN_ARROW,
+    VT_KEY_LEFT_ARROW,
+    VT_KEY_RIGHT_ARROW,
+    VT_KEY_PAGE_UP,
+    VT_KEY_PAGE_DOWN
+} vt_key_t;
+
+typedef struct vtemu vtemu_t;
+
+typedef int     (*vt_set_attributes_t)(vtemu_t *emu, vt_attr_t attr, int val);
+typedef int     (*vt_set_cursor_t)(vtemu_t *emu, int x, int y);
+typedef int     (*vt_get_cursor_t)(vtemu_t *emu, int *x, int *y);
+typedef int     (*vt_erase_area_t)(vtemu_t *emu, int start_x, int start_y, int end_x, int end_y);
+typedef void    (*vt_put_text_t)(vtemu_t *emu, char *text, size_t nbyte);
+
+struct vtops {
+    vt_set_attributes_t set_attributes;
+    vt_set_cursor_t     set_cursor;
+    vt_get_cursor_t     get_cursor;
+    vt_erase_area_t     erase_area;
+    vt_put_text_t       put_text;
+};
+
+typedef struct vtemu {
+    struct vtops    ops;
+    void *          state;      /* user defined state */
+    void *          _private;   /* private data */ 
+    
+} vtemu_t;
+
+#define VTOPS_SET_ATTR(emu,attr,val) ((emu)->ops.set_attributes(emu, attr, val))
+#define VTOPS_PUT_TEXT(emu,text,nbyte) ((emu)->ops.put_text(emu, text, nbyte))
+#define VTOPS_ERASE_AREA(emu,x,y,ex,ey) ((emu)->ops.erase_area(emu, x, y, ex, ey))
+#define VTOPS_GET_CURSOR(emu,x,y) ((emu)->ops.get_cursor(emu, x, y))
+#define VTOPS_SET_CURSOR(emu,x,y) ((emu)->ops.set_cursor(emu, x, y))
+
+vtemu_t *   vtemu_new(struct vtops *ops, void *state);
+void        vtemu_resize(vtemu_t *emu, int width, int height);
+void        vtemu_run(vtemu_t *emu);
+void        vtemu_sendchar(vtemu_t *emu, char ch);
+void        vtemu_sendkey(vtemu_t *emu, vt_key_t key);
+int         vtemu_spawn(vtemu_t *emu, char *bin);
+
+#endif
