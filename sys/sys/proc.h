@@ -129,7 +129,7 @@ pid_t           proc_get_new_pid();
 void            proc_destroy(struct proc *);
 int             proc_kill(struct proc *proc, int sig);
 void            proc_leave_group(struct proc *proc, struct pgrp *group);
-struct proc *   proc_getbypid(int pid);
+struct proc *   proc_find(int pid);
 struct proc *   proc_new();
 int             proc_signal(struct proc *proc, int sig, struct signal_args *sargs);
 
@@ -147,5 +147,6 @@ void            thread_run(kthread_entry_t entrypoint, struct vm_space *space, v
 void            thread_yield();
 void            thread_schedule(int state, struct thread *thread);
 void            thread_destroy(struct thread *thread);
+struct thread * thread_new(struct vm_space *space);
 
 #endif

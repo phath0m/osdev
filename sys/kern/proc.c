@@ -5,6 +5,7 @@
 #include <sys/file.h>
 #include <sys/wait.h>
 #include <sys/malloc.h>
+#include <sys/pool.h>
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
@@ -21,6 +22,10 @@ int proc_count = 0;
 struct list process_list;
 struct list thread_list;
 struct list pgrp_list;
+
+/* pool to manage allocation of proc structures */
+struct pool process_pool;
+struct pool thread_pool;
 
 struct pgrp *
 pgrp_find(pid_t pgid)
@@ -112,11 +117,11 @@ proc_destroy(struct proc *proc)
 
     proc_count--;
 
-    free(proc);
+    pool_put(&process_pool, proc);
 }
 
 struct proc *
-proc_getbypid(int pid)
+proc_find(int pid)
 {
     list_iter_t iter;
 
@@ -228,7 +233,8 @@ proc_get_new_pid()
 struct proc *
 proc_new()
 {
-    struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
+    //struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
+    struct proc *proc = pool_get(&process_pool);
 
     proc->start_time = time(NULL);    
     proc->pid = proc_get_new_pid();
@@ -250,10 +256,46 @@ session_new(struct proc *leader)
     return session;  
 }
 
-struct thread *
-thread_new()
+void
+thread_destroy(struct thread *thread)
 {
-    struct thread *thread = calloc(1, sizeof(struct thread));
+    struct proc *proc = thread->proc;
+
+    list_destroy(&thread->joined_queues, true);
+
+    free((void*)thread->stack_base);
+
+    pool_put(&thread_pool, thread);
+
+    if (!proc) {
+        return;
+    }
+
+    list_remove(&proc->threads, thread);
+
+    if (LIST_SIZE(&proc->threads) == 0) {
+        proc_destroy(proc);
+    }
+}
+
+struct thread *
+thread_new(struct vm_space *space)
+{
+    struct thread *thread = pool_get(&thread_pool);
+
+    if (space) {
+        thread->address_space = space;
+    } else {
+        thread->address_space = vm_space_new();
+    }
 
     return thread;
+}
+
+__attribute__((constructor))
+static void
+proc_init()
+{
+    pool_init(&process_pool, sizeof(struct proc));
+    pool_init(&thread_pool, sizeof(struct thread));
 }

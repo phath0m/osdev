@@ -326,7 +326,7 @@ sys_kill(struct thread *th, syscall_args_t argv)
         
     TRACE_SYSCALL("kill", "%d, %d", pid, sig);
 
-    struct proc *proc = proc_getbypid(pid);
+    struct proc *proc = proc_find(pid);
 
     if (!proc) {
         return -(ESRCH);

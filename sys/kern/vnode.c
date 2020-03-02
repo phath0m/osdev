@@ -5,10 +5,13 @@
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
+#include <sys/pool.h>
 #include <sys/string.h>
 #include <sys/vnode.h>
 
 int vfs_node_count = 0;
+
+struct pool vn_pool;
 
 static void
 free_vfs_node_child(void *p)
@@ -29,14 +32,14 @@ vn_destroy(struct vnode *node)
     
     vfs_node_count--;
 
-    free(node);
+    pool_put(&vn_pool, node);
 }
 
 struct vnode *
 vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops)
 {
-    struct vnode *node = (struct vnode*)calloc(0, sizeof(struct vnode));
-    
+    struct vnode *node = pool_get(&vn_pool);
+
     if (parent) {
         VN_INC_REF(parent);
     }
@@ -217,4 +220,11 @@ vop_write(struct vnode *node, const char *buf, size_t nbyte, off_t offset)
     }
 
     return -(EPERM);
+}
+
+__attribute__((constructor))
+static void
+vnode_init()
+{
+    pool_init(&vn_pool, sizeof(struct vnode));
 }

@@ -6,6 +6,7 @@
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
+#include <sys/pool.h>
 #include <sys/stat.h>
 #include <sys/string.h>
 #include <sys/unistd.h>
@@ -16,16 +17,14 @@
 
 int vfs_file_count = 0;
 
+struct pool file_pool;
+
 struct file *
 file_new(struct fops *ops, void *state)
 {
-    struct file *file = (struct file*)calloc(1, sizeof(struct file));
+    struct file *file = pool_get(&file_pool);
 
     file->ops = ops;
-
-    //VN_INC_REF(node);
-
-    //file->node = node;
     file->state = state;
     file->refs = 1;
     
@@ -48,7 +47,8 @@ fop_close(struct file *file)
     }
 
     vfs_file_count--;
-    free(file);
+    
+    pool_put(&file_pool, file);
 
     return 0; 
 }
@@ -60,7 +60,7 @@ vfs_duplicate_file(struct file *file)
         return NULL;
     }
 
-    struct file *new_file = (struct file*)malloc(sizeof(struct file));
+    struct file *new_file = pool_get(&file_pool);
 
     memcpy(new_file, file, sizeof(struct file));
 
@@ -251,4 +251,11 @@ fop_write(struct file *fp, const char *buf, size_t nbyte)
     }
 
     return -(EPERM);
+}
+
+__attribute__((constructor))
+static void
+file_init()
+{
+    pool_init(&file_pool, sizeof(struct file));
 }

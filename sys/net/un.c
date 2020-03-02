@@ -52,6 +52,7 @@ struct un_conn {
     struct file *       tx_pipe[2];
     struct file *       rx_pipe[2];
     struct un_conn *    peer;
+    bool                accepted;
     bool                closed;
     int                 refs;
     struct vnode *      host;
@@ -90,7 +91,7 @@ un_accept(struct socket *socket, struct socket **result, void *address, size_t *
     server_conn->tx_pipe[1] = client_conn->rx_pipe[1];
     server_conn->peer = client_conn;
     client_conn->peer = server_conn;
-
+    client_conn->accepted = true;
     client->state = server_conn;
     client->protocol = &un_domain;
     *result = client;
@@ -190,6 +191,10 @@ un_connect(struct socket *socket, void *address, size_t address_len)
     create_pipe(conn->rx_pipe);
 
     list_append(&host->un.un_connections, conn);
+
+    while (!conn->accepted) {
+        thread_yield();
+    }
 
     return 0;
 }

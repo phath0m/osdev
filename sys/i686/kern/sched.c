@@ -137,7 +137,7 @@ thread_interrupt_leave(struct thread *thread, struct regs *regs)
 void
 thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 {
-    struct thread *thread = calloc(1, sizeof(struct thread));
+    struct thread *thread = thread_new(space);
 
     if (space) {
         thread->address_space = space;
@@ -197,27 +197,6 @@ thread_schedule(int state, struct thread *thread)
             list_append(&dead_threads, thread);
             break;
     }
-}
-
-void
-thread_destroy(struct thread *thread)
-{
-    struct proc *proc = thread->proc;
-
-    list_destroy(&thread->joined_queues, true); 
-
-    free((void*)thread->stack_base);
-    free(thread);
-    
-    if (!proc) {
-        return;
-    }
-
-    list_remove(&proc->threads, thread);
-     
-    if (LIST_SIZE(&proc->threads) == 0) {
-        proc_destroy(proc);
-    }   
 }
 
 __attribute__((constructor))

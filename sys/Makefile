@@ -29,6 +29,7 @@ KERNEL_OBJECTS += kern/misc_syscalls.o
 KERNEL_OBJECTS += kern/mount.o
 KERNEL_OBJECTS += kern/panic.o
 KERNEL_OBJECTS += kern/pipe.o
+KERNEL_OBJECTS += kern/pool.o
 KERNEL_OBJECTS += kern/printf.o
 KERNEL_OBJECTS += kern/proc.o
 KERNEL_OBJECTS += kern/proc_desc.o
