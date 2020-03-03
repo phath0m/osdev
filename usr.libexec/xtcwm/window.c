@@ -18,8 +18,8 @@ extern int ftruncate(int fd, off_t length);
 bool
 window_boundcheck(struct window *window, int x, int y)
 {
-    int max_x = window->x + window->width;
-    int max_y = window->y + window->height;
+    int max_x = window->x + window->absolute_width;
+    int max_y = window->y + window->absolute_height;
     return x >= window->x && x < max_x && y >= window->y && y < max_y;
 }
 
@@ -74,6 +74,7 @@ void
 window_set_title(struct window *win, const char *title)
 {
     strncpy(win->title, title, sizeof(win->title));
+    win->redraw = 1;
 }
 
 void
@@ -83,14 +84,23 @@ window_draw(struct window *win, canvas_t *canvas)
         
         int title_color = WINDOW_TITLE_COLOR;
         int text_color = WINDOW_TEXT_COLOR;
+        int chisel_color_dark = CHISEL_INACTIVE_DARK;
+        int chisel_color_light = CHISEL_INACTIVE_LIGHT;
 
         if (win->active) {
             title_color = WINDOW_ACTIVE_TITLE_COLOR;
             text_color = WINDOW_ACTIVE_TEXT_COLOR;
+            chisel_color_dark = CHISEL_ACTIVE_DARK;
+            chisel_color_light = CHISEL_ACTIVE_LIGHT;
         }
 
-        canvas_fill(canvas, win->x, win->y, win->width + 1, 20, title_color);
-        canvas_rect(canvas, win->x, win->y, win->width + 1, win->height + 20, WINDOW_BORDER_COLOR);
+        canvas_fill(canvas, win->x + 1, win->y, win->width - 1, 19, title_color);
+        canvas_fill(canvas, win->x + 2, win->y + 1, win->width - 2, 1, chisel_color_light);
+        canvas_fill(canvas, win->x + 2, win->y + 18, win->width - 2, 1, chisel_color_dark);
+        canvas_fill(canvas, win->x + 1, win->y + 1, 1, 19, chisel_color_light);
+        canvas_fill(canvas, win->x + win->width - 1, win->y + 1, 1, 19, chisel_color_dark); 
+        canvas_rect(canvas, win->x, win->y, win->width, 19, WINDOW_BORDER_COLOR);
+        canvas_rect(canvas, win->x, win->y, win->width, win->height + 20, WINDOW_BORDER_COLOR);
 
         int text_width = strlen(win->title) * 10;
 
@@ -103,6 +113,7 @@ window_draw(struct window *win, canvas_t *canvas)
         canvas_invalidate_region(canvas, win->prev_x, win->prev_y,
                 win->absolute_width,
                 win->absolute_height);
+
 
         win->redraw = 0;
     }
@@ -123,7 +134,6 @@ window_draw(struct window *win, canvas_t *canvas)
 void
 window_click(struct window *self, struct click_event *event)
 {
-    int relative_x = event->x - self->x;
     int relative_y = event->y - self->y;
 
     if (relative_y < 20) {
@@ -137,13 +147,7 @@ window_click(struct window *self, struct click_event *event)
         return;
     }
 
-    struct window_event *winevent = calloc(1, sizeof(struct window_event));
-
-    winevent->type = WINEVENT_CLICK;
-    winevent->x = relative_x;
-    winevent->y = relative_y;
- 
-    window_post_event(self, winevent);
+    self->mouse_down = true;
 }
 
 void
@@ -159,6 +163,20 @@ window_keypress(struct window *self, uint8_t scancode)
 void
 window_hover(struct window *self, struct click_event *event)
 {
+    if (self->mouse_down) {
+        int relative_x = event->x - self->x;
+        int relative_y = event->y - self->y;
+
+        struct window_event *winevent = calloc(1, sizeof(struct window_event));
+    
+        winevent->type = WINEVENT_CLICK;
+        winevent->x = relative_x - 1;
+        winevent->y = relative_y - 21;
+
+        window_post_event(self, winevent);
+
+        self->mouse_down = false;
+    }
 }
 
 void

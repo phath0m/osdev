@@ -29,6 +29,9 @@
 #include "wm.h"
 
 static void set_redraw(struct wmctx *ctx);
+// delete
+static int actual_mouse_delta_x = 0;
+static int actual_mouse_delta_y = 0;
 
 void
 wm_add_window(struct wmctx *ctx, struct window *win)
@@ -164,11 +167,15 @@ handle_mouse_event(struct wmctx *ctx, struct mouse_event *eventbuf)
     if (eventbuf->y == 1 || eventbuf->y == -1) {
         eventbuf->y = 0;
     }
+    /*
+    actual_mouse_delta_x = eventbuf->x;
+    actual_mouse_delta_y = eventbuf->y;
 
     switch (eventbuf->event) {
         case MOUSE_LEFT_CLICK:
         case MOUSE_RIGHT_CLICK:
         case MOUSE_MOVE:
+            
             ctx->mouse_delta_x = eventbuf->x;
             ctx->mouse_delta_y = eventbuf->y;
             break;
@@ -178,6 +185,16 @@ handle_mouse_event(struct wmctx *ctx, struct mouse_event *eventbuf)
             return;
         default:
             break;
+    }*/
+
+    if (eventbuf->x != 0 && eventbuf->x != actual_mouse_delta_x) {
+        ctx->mouse_delta_x = eventbuf->x;
+        actual_mouse_delta_x = eventbuf->x;
+    }
+
+    if (eventbuf->y != 0 && eventbuf->y != actual_mouse_delta_x) {
+        ctx->mouse_delta_y = eventbuf->y;
+        actual_mouse_delta_y = eventbuf->y;
     }
 
     struct click_event event;
@@ -273,7 +290,7 @@ display_loop(void *argp)
     canvas_t *frontbuffer = canvas_new(width, height, CANVAS_PARTIAL_RENDER);
     
     canvas_t *bg = canvas_new(width, height, 0);//canvas_from_targa("/usr/share/wallpapers/weeb.tga", 0);
-    canvas_clear(bg, 0x777777);
+    canvas_clear(bg, 0x505170);
     //canvas_scale(bg, width, height);
 
     ctx->redraw_flag = 1;
@@ -397,12 +414,13 @@ run_term()
     pid_t child = fork();
 
     if (!child) {
+        sleep(3);
         char *argv[] = {
-            "xtcterm",
+            "sh",
+            "/etc/xtc/xtcinit.rc",
             NULL
         };
-        sleep(3);
-        execv("/usr/bin/xtcterm", argv);
+        execv("/bin/sh", argv);
         exit(-1);
     }
 }
@@ -410,7 +428,6 @@ run_term()
 int
 main(int argc, const char *argv[])
 {
-
     /* 
      * First, set the output to the serial device
      * 
@@ -432,7 +449,7 @@ main(int argc, const char *argv[])
     thread_create(&display_thread, display_loop, &ctx);
 
     run_term();
-    //run_term();
+
     server_listen(&ctx);
 
     return 0;

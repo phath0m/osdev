@@ -340,7 +340,7 @@ server_listen(void *ctx)
     memset(&addr, 0, sizeof(struct sockaddr_un));
     addr.sun_family = AF_UNIX;
 
-    strcpy(addr.sun_path, "/tmp/xtc_socket");
+    strcpy(addr.sun_path, XTC_SOCK_PATH);
 
     bind(fd, (struct sockaddr*)&addr, sizeof(addr));
 
