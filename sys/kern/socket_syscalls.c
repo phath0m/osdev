@@ -90,7 +90,7 @@ sys_socket(struct thread *th, syscall_args_t argv)
 
 __attribute__((constructor))
 void
-_init_net_syscalls()
+socket_syscalls_init()
 {
     register_syscall(SYS_ACCEPT, 3, sys_accept);
     register_syscall(SYS_BIND, 3, sys_bind);

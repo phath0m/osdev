@@ -82,7 +82,7 @@ sys_shm_unlink(struct thread *th, syscall_args_t argv)
 
 __attribute__((constructor))
 void
-_init_mem_syscalls()
+mem_syscalls_init()
 {
     register_syscall(SYS_MMAP, 1, sys_mmap);
     register_syscall(SYS_MUNMAP, 2, sys_munmap);

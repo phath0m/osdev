@@ -33,7 +33,7 @@ sys_uname(struct thread *th, syscall_args_t argv)
 
 __attribute__((constructor))
 void
-_init_misc_syscalls()
+misc_syscalls_init()
 {
     register_syscall(SYS_TIME, 1, sys_time);
     register_syscall(SYS_UNAME, 1, sys_uname);

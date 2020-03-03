@@ -671,7 +671,7 @@ sys_thread_wake(struct thread *th, syscall_args_t argv)
 
 __attribute__((constructor))
 void
-_init_proc_syscalls()
+proc_syscalls_init()
 {
     register_syscall(SYS_CHDIR, 1, sys_chdir);
     register_syscall(SYS_CHROOT, 1, sys_chroot);

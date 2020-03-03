@@ -43,14 +43,13 @@ extract_file(struct vnode *root, const char *name, void *data, size_t size, mode
     }
 
     fop_write(fp, data, size);
-
     fop_close(fp);
 }
 
 void
 tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive)
 {
-    printf("kernel: extracting files for initial ramdisk...\n\r");
+    printf("kernel: extracting files to ramdisk...\n\r");
 
     for (int i = 0; ;i++) {
         struct tar_header *header = (struct tar_header*)archive;

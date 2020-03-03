@@ -116,6 +116,9 @@ proc_destroy(struct proc *proc)
     wq_empty(&proc->waiters);
 
     proc_count--;
+    
+    /* send SIGCHLD */ 
+    proc_kill(proc->parent, 17);
 
     pool_put(&process_pool, proc);
 }
@@ -233,7 +236,6 @@ proc_get_new_pid()
 struct proc *
 proc_new()
 {
-    //struct proc *proc = (struct proc*)calloc(0, sizeof(struct proc));
     struct proc *proc = pool_get(&process_pool);
 
     proc->start_time = time(NULL);    
@@ -293,7 +295,7 @@ thread_new(struct vm_space *space)
 }
 
 __attribute__((constructor))
-static void
+void
 proc_init()
 {
     pool_init(&process_pool, sizeof(struct proc));

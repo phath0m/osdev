@@ -476,7 +476,7 @@ sys_write(struct thread *th, syscall_args_t argv)
 
 __attribute__((constructor))
 void
-_init_vfs_syscalls()
+vfs_syscalls_init()
 {
     register_syscall(SYS_CLOSE, 1, sys_close);
     register_syscall(SYS_CREAT, 2, sys_creat);

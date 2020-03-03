@@ -101,7 +101,7 @@ sys_mkpty(struct thread *th, syscall_args_t argv)
 
 __attribute__((constructor))
 void
-_init_pty_syscalls()
+pty_syscalls_init()
 {
     register_syscall(SYS_ISATTY, 1, sys_isatty);
     register_syscall(SYS_MKPTY, 0, sys_mkpty);
