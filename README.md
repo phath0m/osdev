@@ -2,7 +2,7 @@
 
 This repository contains the source code for a hobbyist 32-bit monolithic kernel inspired by several UNIX like operating systems. Nothing too significant this project at this time.
 
-![screenshot](https://i.imgur.com/JZqrQQA.png "Screenshot")
+![screenshot](https://i.imgur.com/YcRNyIB.png "Screenshot")
 
 ### Goals
 My main goal with this project is simply to develop self-hosted UNIX clone for my own benefit. 
