@@ -3,6 +3,7 @@
 
 #include <ds/list.h>
 #include <sys/types.h>
+#include <sys/pool.h>
 #include <sys/proc.h>
 #include <sys/signal.h>
 #include <sys/vm.h>
@@ -115,6 +116,8 @@ thread_exit_requested()
  * Pointer to the currently running process, defined in architecture specific scheduler implementation 
  */
 extern struct proc *current_proc;
+extern struct pool  proc_pool;
+extern struct pool  thread_pool;
 
 struct pgrp *   pgrp_find(pid_t pgid);
 void            pgrp_leave_session(struct pgrp *group, struct session *session);

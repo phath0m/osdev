@@ -11,6 +11,7 @@ struct cdev;
 
 /* character device methods */
 typedef int (*cdev_close_t)(struct cdev *dev);
+typedef int (*cdev_init_t)(struct cdev *dev);
 typedef int (*cdev_ioctl_t)(struct cdev *dev, uint64_t request, uintptr_t argp);
 typedef int (*cdev_isatty_t)(struct cdev *dev);
 typedef int (*cdev_mmap_t)(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset);
@@ -25,6 +26,7 @@ struct cdev {
     int             majorno;    /* device major; identifies type of device */
     int             minorno;    /* device minor; identifies instance of device */
     cdev_close_t    close;
+    cdev_init_t     init;
     cdev_ioctl_t    ioctl;
     cdev_isatty_t   isatty;
     cdev_mmap_t     mmap;

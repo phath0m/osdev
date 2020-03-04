@@ -199,9 +199,8 @@ thread_schedule(int state, struct thread *thread)
     }
 }
 
-__attribute__((constructor))
 void
-_init_pit_timer()
+sched_init()
 {
     init_pit(1000);
 

@@ -88,7 +88,7 @@ struct socket_ops klink_ops = {
     .send       = klink_send
 };
 
-struct protocol klink_domain = {
+struct protocol klink_protocol = {
     .address_family = AF_KLINK,
     .ops            = &klink_ops
 };
@@ -327,11 +327,4 @@ klink_send(struct socket *sock, const void *buf, size_t size)
     }
 
     return size;
-}
-
-__attribute__((constructor))
-void
-_init_klink()
-{
-    register_protocol(&klink_domain);
 }

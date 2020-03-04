@@ -252,10 +252,3 @@ fop_write(struct file *fp, const char *buf, size_t nbyte)
 
     return -(EPERM);
 }
-
-__attribute__((constructor))
-static void
-file_init()
-{
-    pool_init(&file_pool, sizeof(struct file));
-}

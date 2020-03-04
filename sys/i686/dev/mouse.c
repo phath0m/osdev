@@ -4,6 +4,7 @@
 #include <sys/devno.h>
 #include <sys/types.h>
 
+static int mouse_init(struct cdev *dev);
 static int mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 
 struct cdev mouse_device = {
@@ -12,6 +13,7 @@ struct cdev mouse_device = {
     .majorno    =   DEV_MAJOR_MOUSE,
     .minorno    =   0,
     .close      =   NULL,
+    .init       =   mouse_init,
     .ioctl      =   NULL,
     .isatty     =   NULL,
     .open       =   NULL,
@@ -78,28 +80,8 @@ mouse_irq_handler(int inum, struct regs *regs)
 }
 
 static int
-mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
+mouse_init(struct cdev *dev)
 {
-    if (nbyte != 3) {
-        return 0;
-    }
-
-//    while (!received_mouse_data) {
-//        __sync_lock_test_and_set(&received_mouse_data, 0);
-//    }
-
-    buf[0] = mouse_buttons;
-    buf[1] = mouse_x;
-    buf[2] = mouse_y;
-
-    return nbyte;
-}
-
-__attribute__((constructor))
-static void
-_init_mouse()
-{
-    cdev_register(&mouse_device);
     mouse_wait(1);
     io_write_byte(0x64, 0xA8);
     mouse_wait(1);
@@ -118,5 +100,24 @@ _init_mouse()
     mouse_recv_resp();
 
     bus_register_intr(44, mouse_irq_handler);
+
+    return 0;
 }
 
+static int
+mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
+{
+    if (nbyte != 3) {
+        return 0;
+    }
+
+//    while (!received_mouse_data) {
+//        __sync_lock_test_and_set(&received_mouse_data, 0);
+//    }
+
+    buf[0] = mouse_buttons;
+    buf[1] = mouse_x;
+    buf[2] = mouse_y;
+
+    return nbyte;
+}

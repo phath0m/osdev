@@ -42,6 +42,7 @@ struct lfb_state {
 static int default_color_palette[] = {0x0, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b};
 
 static int lfb_close(struct cdev *dev);
+static int lfb_init(struct cdev *dev);
 static int lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset);
 static int lfb_open(struct cdev *dev);
@@ -53,6 +54,7 @@ struct cdev lfb_device = {
     .majorno    =   DEV_MAJOR_CON,
     .minorno    =   1,
     .close      =   lfb_close,
+    .init       =   lfb_init,
     .ioctl      =   lfb_ioctl,
     .isatty     =   NULL,
     .mmap       =   lfb_mmap,
@@ -258,9 +260,61 @@ clear_line(struct lfb_state *state, int n)
     }
 }
 
+static void
+lfb_tick(struct timer *timer, void *argp)
+{
+    struct lfb_state *state = (struct lfb_state*)argp;
+
+    if (!state->enable_cursor || state->position >= state->textscreen_size) {
+        timer_renew(timer, 1000);
+        return;
+    }
+
+    if (state->position != state->last_position) {
+        fb_draw_cursor(state, state->last_position, true);
+    }
+
+    fb_draw_cursor(state, state->position, state->show_cursor_next_tick);
+    state->last_position = state->position;
+    state->show_cursor_next_tick = !state->show_cursor_next_tick;
+
+    timer_renew(timer, 500);
+}
+
 static int
 lfb_close(struct cdev *dev)
 {
+    return 0;
+}
+
+static int
+lfb_init(struct cdev *dev)
+{
+    /* defined in sys/i686/kern/preinit.c */
+    extern multiboot_info_t *multiboot_header;
+    
+    static struct lfb_state state;
+    state.vbe = (vbe_info_t*)(0xC0000000 + multiboot_header->vbe_mode_info);
+    state.pitch = state.vbe->pitch;
+    state.depth = state.vbe->pitch / state.vbe->Xres;
+    state.frame_buffer = (uint8_t*)state.vbe->physbase;
+    state.textscreen_width = state.vbe->Xres / FONT_WIDTH;
+    state.textscreen_height = state.vbe->Yres / FONT_HEIGHT;
+    state.textscreen_size = state.textscreen_width * state.textscreen_height;
+    state.width = state.vbe->Xres;
+    state.height = state.vbe->Yres;
+    state.buffer_size = state.vbe->Xres * state.vbe->Yres * 4;
+    state.position = 0; 
+    state.color_palette = default_color_palette;
+    state.foreground = calloc(1, state.buffer_size);
+    state.background = calloc(1, state.buffer_size);
+    state.backbuffer = calloc(1, state.buffer_size);
+    state.foreground_color = 0xFFFFFF;
+    spinlock_unlock(&state.lock);
+    lfb_device.state = &state;
+    
+    timer_new(lfb_tick, 300, &state);
+    
     return 0;
 }
 
@@ -386,57 +440,3 @@ lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 
     return nbyte;
 }
-
-static void
-lfb_tick(struct timer *timer, void *argp)
-{
-    struct lfb_state *state = (struct lfb_state*)argp;
-
-    if (!state->enable_cursor || state->position >= state->textscreen_size) {
-        timer_renew(timer, 1000);
-        return;
-    }
-
-    if (state->position != state->last_position) {
-        fb_draw_cursor(state, state->last_position, true);
-    }
-
-    fb_draw_cursor(state, state->position, state->show_cursor_next_tick);
-    state->last_position = state->position;
-    state->show_cursor_next_tick = !state->show_cursor_next_tick;
-
-    timer_renew(timer, 500);
-}
-
-__attribute__((constructor))
-void
-_init_lfb()
-{
-    /* defined in sys/i686/kern/preinit.c */
-    extern multiboot_info_t *multiboot_header;
-
-    static struct lfb_state state;
-    state.vbe = (vbe_info_t*)(0xC0000000 + multiboot_header->vbe_mode_info);
-    state.pitch = state.vbe->pitch;
-    state.depth = state.vbe->pitch / state.vbe->Xres;
-    state.frame_buffer = (uint8_t*)state.vbe->physbase;
-    state.textscreen_width = state.vbe->Xres / FONT_WIDTH;
-    state.textscreen_height = state.vbe->Yres / FONT_HEIGHT;
-    state.textscreen_size = state.textscreen_width * state.textscreen_height;
-    state.width = state.vbe->Xres;
-    state.height = state.vbe->Yres;
-    state.buffer_size = state.vbe->Xres * state.vbe->Yres * 4;
-    state.position = 0;
-    state.color_palette = default_color_palette;
-    state.foreground = calloc(1, state.buffer_size);
-    state.background = calloc(1, state.buffer_size);
-    state.backbuffer = calloc(1, state.buffer_size);
-    state.foreground_color = 0xFFFFFF;
-    spinlock_unlock(&state.lock);
-    lfb_device.state = &state;
-    cdev_register(&lfb_device);
-
-    timer_new(lfb_tick, 300, &state);
-}
-
-

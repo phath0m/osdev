@@ -13,6 +13,7 @@ struct serial_state {
 };
 
 static int serial_close(struct cdev *dev);
+static int serial_init(struct cdev *dev);
 static int serial_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int serial_isatty(struct cdev *dev);
 static int serial_open(struct cdev *dev);
@@ -41,6 +42,7 @@ struct cdev serial0_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   0,
     .close      =   serial_close,
+    .init       =   serial_init,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
@@ -55,6 +57,7 @@ struct cdev serial1_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   1,
     .close      =   serial_close,
+    .init       =   serial_init,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
@@ -69,6 +72,7 @@ struct cdev serial2_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   2,
     .close      =   serial_close,
+    .init       =   serial_init,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
@@ -83,6 +87,7 @@ struct cdev serial3_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   3,
     .close      =   serial_close,
+    .init       =   serial_init,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
@@ -99,18 +104,6 @@ echo_char(struct serial_state *state, char ch)
     while ((io_read_byte(port + 5) & 0x20) == 0);
 
     io_write_byte(port, ch);
-}
-
-static void
-init_serial_device(int port)
-{
-    io_write_byte(port + 1, 0x00); // disable all interupts
-    io_write_byte(port + 3, 0x80);  // enable DLAB
-    io_write_byte(port + 0, 0x01);
-    io_write_byte(port + 1, 0x00);
-    io_write_byte(port + 3, 0x03);
-    io_write_byte(port + 2, 0xC7);
-    io_write_byte(port + 4, 0x0B);
 }
 
 static char
@@ -135,6 +128,24 @@ read_char(struct serial_state *state)
 static int
 serial_close(struct cdev *dev)
 {
+    return 0;
+}
+
+static int
+serial_init(struct cdev *dev)
+{
+    struct serial_state *state = (struct serial_state*)dev->state;
+
+    int port = state->port;
+    
+    io_write_byte(port + 1, 0x00); // disable all interupts
+    io_write_byte(port + 3, 0x80);  // enable DLAB
+    io_write_byte(port + 0, 0x01);
+    io_write_byte(port + 1, 0x00);
+    io_write_byte(port + 3, 0x03);
+    io_write_byte(port + 2, 0xC7);
+    io_write_byte(port + 4, 0x0B);
+
     return 0;
 }
 
@@ -187,19 +198,3 @@ serial_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 
     return nbyte;
 }
-
-__attribute__((constructor))
-void
-_init_serial_tty()
-{
-    init_serial_device(PORT0);
-    init_serial_device(PORT1);
-    init_serial_device(PORT2);
-    init_serial_device(PORT3);
-
-    cdev_register(&serial0_device);
-    cdev_register(&serial1_device);
-    cdev_register(&serial2_device);
-    cdev_register(&serial3_device);
-}
-

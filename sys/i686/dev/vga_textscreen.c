@@ -108,6 +108,7 @@ struct vga_state {
 struct vga_state state;
 
 static int vga_close(struct cdev *dev);
+static int vga_init(struct cdev *dev);
 static int vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int vga_open(struct cdev *dev);
 static int vga_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
@@ -118,6 +119,7 @@ struct cdev vga_device = {
     .majorno    =   DEV_MAJOR_CON,
     .minorno    =   0,
     .close      =   vga_close,
+    .init       =   vga_init,
     .ioctl      =   vga_ioctl,
     .open       =   vga_open,
     .isatty     =   NULL,
@@ -345,6 +347,17 @@ vga_close(struct cdev *dev)
 }
 
 static int
+vga_init(struct cdev *dev)
+{
+    state.position = 0;
+    state.foreground_color = 15;
+    state.background_color = 0;
+    state.video_buffer = (uint8_t*)0xC00A0000;
+
+    return 0;
+}
+
+static int
 vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
     struct vga_state *statep = (struct vga_state*)dev->state;
@@ -418,15 +431,4 @@ vga_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
     textscreen_update_cursor(statep->position);
 
     return nbyte;
-}
-
-__attribute__((constructor))
-void
-_init_vga()
-{
-    cdev_register(&vga_device);
-    state.position = 0;
-    state.foreground_color = 15;
-    state.background_color = 0;
-    state.video_buffer = (uint8_t*)0xC00A0000;
 }

@@ -1,14 +1,10 @@
 LDFLAGS = -T linker.ld --freestanding -O2 -nostdlib
 
-KERNEL_BEGIN_I686_OBJECTS += rtl/crti.o
-KERNEL_END_I686_OBJECTS += rtl/crtn.o
-
-KERNEL_I686_OBJECTS += rtl/crti.o
-KERNEL_I686_OBJECTS += rtl/crtbegin.o
 KERNEL_I686_OBJECTS += rtl/malloc.o
 
 KERNEL_I686_OBJECTS += $(KERNEL_OBJECT)
 
+KERNEL_I686_OBJECTS += dev/dev_init.o
 KERNEL_I686_OBJECTS += dev/serial_tty.o
 KERNEL_I686_OBJECTS += dev/kbd.o
 KERNEL_I686_OBJECTS += dev/lfb.o
@@ -34,17 +30,12 @@ KERNEL_I686_OBJECTS += kern/traps.o
 KERNEL_I686_OBJECTS += kern/usermode.o
 KERNEL_I686_OBJECTS += kern/vm.o
 
-KERNEL_I686_OBJECTS += rtl/crtend.o
-KERNEL_I686_OBJECTS += rtl/crtn.o
-
 KERNEL_I686 = kernel.i686.bin
 
 all: $(KERNEL_I686)
 
 $(KERNEL_I686): $(KERNEL_I686_OBJECTS)
 	$(CC) -o $@ $(LDFLAGS) $^ -lgcc
-rtl/crtbegin.o rtl/crtend.o:
-	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 %.o: %.asm

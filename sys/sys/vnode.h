@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/device.h>
 #include <sys/limits.h>
+#include <sys/pool.h>
 #include <sys/proc.h>
 
 #define SEEK_SET    0x00
@@ -98,6 +99,8 @@ struct vnode {
     int                 refs;
 };
 
+
+extern struct pool  vn_pool;
 
 void            vn_destroy(struct vnode *node);
 int             vn_lookup(struct vnode *parent, struct vnode **result, const char *name);

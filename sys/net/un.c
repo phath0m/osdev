@@ -42,7 +42,7 @@ struct socket_ops un_ops = {
     .send       = un_send
 };
 
-struct protocol un_domain = {
+struct protocol un_protocol = {
     .address_family = AF_UNIX,
     .ops            = &un_ops
 };
@@ -93,7 +93,7 @@ un_accept(struct socket *socket, struct socket **result, void *address, size_t *
     client_conn->peer = server_conn;
     client_conn->accepted = true;
     client->state = server_conn;
-    client->protocol = &un_domain;
+    client->protocol = &un_protocol;
     *result = client;
 
     return 0;
@@ -239,11 +239,4 @@ un_send(struct socket *sock, const void *buf, size_t size)
     }
 
     return ret;
-}
-
-__attribute__((constructor))
-void
-_init_un()
-{
-    register_protocol(&un_domain);
 }

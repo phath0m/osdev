@@ -8,15 +8,17 @@
 #include <sys/proc.h>
 #include <sys/types.h>
 
+static int keyboard_init(struct cdev *dev);
 static int keyboard_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 
-struct cdev keyboard_device = {
+struct cdev kbd_device = {
     .name       =   "kbd",
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_KBD,
     .minorno    =   0,
     .close      =   NULL,
+    .init       =   keyboard_init,
     .ioctl      =   keyboard_ioctl,
     .isatty     =   NULL,
     .open       =   NULL,
@@ -39,7 +41,15 @@ keyboard_irq_handler(int inum, struct regs *regs)
     return 0;
 }
 
-    
+static int
+keyboard_init(struct cdev *dev)
+{
+    keyboard_buf = fifo_new(4096);
+    bus_register_intr(33, keyboard_irq_handler);
+
+    return 0;
+}
+
 static int      
 keyboard_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {   
@@ -65,13 +75,3 @@ keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 
     return fifo_read(keyboard_buf, buf, nbyte);
 }
-
-__attribute__((constructor))
-static void
-_init_keyboard()
-{
-    keyboard_buf = fifo_new(4096);
-    cdev_register(&keyboard_device);
-    bus_register_intr(33, keyboard_irq_handler);
-}
-

@@ -474,7 +474,6 @@ sys_write(struct thread *th, syscall_args_t argv)
     return -(EBADF);
 }
 
-__attribute__((constructor))
 void
 vfs_syscalls_init()
 {

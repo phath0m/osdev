@@ -98,8 +98,6 @@ sys_mkpty(struct thread *th, syscall_args_t argv)
     return fd;
 }
 
-
-__attribute__((constructor))
 void
 pty_syscalls_init()
 {

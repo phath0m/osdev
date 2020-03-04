@@ -24,7 +24,7 @@ struct list thread_list;
 struct list pgrp_list;
 
 /* pool to manage allocation of proc structures */
-struct pool process_pool;
+struct pool proc_pool;
 struct pool thread_pool;
 
 struct pgrp *
@@ -120,7 +120,7 @@ proc_destroy(struct proc *proc)
     /* send SIGCHLD */ 
     proc_kill(proc->parent, 17);
 
-    pool_put(&process_pool, proc);
+    pool_put(&proc_pool, proc);
 }
 
 struct proc *
@@ -236,7 +236,7 @@ proc_get_new_pid()
 struct proc *
 proc_new()
 {
-    struct proc *proc = pool_get(&process_pool);
+    struct proc *proc = pool_get(&proc_pool);
 
     proc->start_time = time(NULL);    
     proc->pid = proc_get_new_pid();
@@ -292,12 +292,4 @@ thread_new(struct vm_space *space)
     }
 
     return thread;
-}
-
-__attribute__((constructor))
-void
-proc_init()
-{
-    pool_init(&process_pool, sizeof(struct proc));
-    pool_init(&thread_pool, sizeof(struct thread));
 }

@@ -80,7 +80,6 @@ sys_shm_unlink(struct thread *th, syscall_args_t argv)
     return shm_unlink(current_proc, name);
 }
 
-__attribute__((constructor))
 void
 mem_syscalls_init()
 {

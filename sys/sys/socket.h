@@ -62,4 +62,6 @@ size_t sock_send(struct socket *sock, const void *buf, size_t nbyte);
 struct file *sock_to_file(struct socket *sock);
 struct socket *file_to_sock(struct file *file);
 
+void sock_init();
+
 #endif

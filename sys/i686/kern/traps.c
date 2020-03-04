@@ -137,9 +137,8 @@ print_regs(struct regs *regs)
     printf(" cs: %p  ds: %p  ss: %p\n\r", regs->cs, regs->ds, regs->ss);
 }
 
-__attribute__((constructor))
 void
-_init_exceptions()
+traps_init()
 {
     for (int i = 0; i < 14; i++) {
         bus_register_intr(i, handle_generic_exception);

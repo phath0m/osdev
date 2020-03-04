@@ -221,10 +221,3 @@ vop_write(struct vnode *node, const char *buf, size_t nbyte, off_t offset)
 
     return -(EPERM);
 }
-
-__attribute__((constructor))
-void
-vnode_init()
-{
-    pool_init(&vn_pool, sizeof(struct vnode));
-}

@@ -23,8 +23,12 @@ struct mount {
     uint64_t            flags;
 };
 
-int fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *path, int flags);
-int fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags);
-void fs_register(char *name, struct fs_ops *ops);
+int     fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *path, int flags);
+int     fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags);
+void    fs_register(char *name, struct fs_ops *ops);
+
+
+void    devfs_init();
+void    tmpfs_init();
 
 #endif

@@ -14,36 +14,6 @@
 void *start_initramfs;
 multiboot_info_t *multiboot_header;
 
-int
-run_kernel(void *state)
-{
-    /* defined in sys/i686/kern/sched.c */
-    extern struct thread *sched_curr_thread;
-
-    struct proc *init = proc_new();
-    struct session *init_session = session_new(init);        
-    struct pgrp *init_group = pgrp_new(init, init_session);
-
-    init->thread = sched_curr_thread;
-    init->group = init_group;
-
-    sched_curr_thread->proc = init;
-    current_proc = init;
-    
-    const char *args = (const char *)PTOKVA(multiboot_header->cmdline);
-
-    if (kmain(args) != 0) {
-        printf("Unable to boot kernel!\n");
-    }
-
-    printf("You may now shutdown your computer");
-    
-    bus_interrupts_off();
-    asm volatile("hlt");
-
-    return 0;
-}
-
 void
 _preinit(multiboot_info_t *multiboot_hdr)
 {
@@ -60,15 +30,15 @@ _preinit(multiboot_info_t *multiboot_hdr)
 
     brk((void*)(heap));
 
+    /* set the initial console */
     set_kernel_output(&serial0_device);
 
     printf("base=0x%p initrd=0x%p heap=0x%p\n", KERNEL_VIRTUAL_BASE, initrd, heap);
-    printf("usable memory map:\n"); 
+    printf("physical memory map:\n"); 
 
     uint32_t usable_memory = 0;
 
     for (int i = 0; i < multiboot_hdr->mmap_length; i+= sizeof(struct multiboot_mmap_entry)) {
-
         struct multiboot_mmap_entry * entry = (struct multiboot_mmap_entry*)PTOKVA(multiboot_hdr->mmap_addr + i);
 
         if (entry->type == 1) {
@@ -79,23 +49,40 @@ _preinit(multiboot_info_t *multiboot_hdr)
 
     printf("kernel: detected %dMB of usable memory\n", (usable_memory / 1024 / 1024));
 
-    _init(); 
+    extern void vm_init();
+    extern void intr_init();
+    extern void syscall_init();
+    extern void traps_init();
+    extern void sched_init();
 
-    thread_run((kthread_entry_t)run_kernel, NULL, NULL);
+    /* initialize virtual memory first*/
+    vm_init();
 
-    /*
-     * At this point, we are still using the stack initialized by the bootloader. 
-     * We need to create a new thread using our own stack initialized at 0xFFFFFFFF
-     *
-     * Once the PIT fires, execution will switch to run_kernel which should be using
-     * the new stack.
-     *
-     * Here, we just need to wait for it to fire before surrendering execution
-     */
+    /* next comes interrupts */
+    intr_init();
 
-    bus_interrupts_on();    
+    /* now register our syscall dispatcher */
+    syscall_init();
+
+    /* now exception handlers */
+    traps_init();
+
+    /* finally, the scheduler */
+    sched_init();
+
+    /* move this somewhere else*/
+    extern void machine_dev_init();
+
+    machine_dev_init();
+
+    const char *args = (const char *)PTOKVA(multiboot_header->cmdline);
     
+    if (kmain(args) != 0) {
+        printf("Unable to boot kernel!\n");
+    }
+
     for (;;) {
+        asm volatile("cli");
         asm volatile("hlt");
     }
 }

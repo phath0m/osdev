@@ -669,7 +669,6 @@ sys_thread_wake(struct thread *th, syscall_args_t argv)
     return ret;
 }
 
-__attribute__((constructor))
 void
 proc_syscalls_init()
 {

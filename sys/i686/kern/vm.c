@@ -406,9 +406,8 @@ vm_space_new()
     return vm_space;
 }
 
-__attribute__((constructor))
 void
-_init_vm()
+vm_init()
 {
     /* defined in sys/rtl/malloc.c */
     extern uintptr_t kernel_heap_end;

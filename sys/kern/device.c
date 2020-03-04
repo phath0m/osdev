@@ -100,7 +100,12 @@ cdev_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 int
 cdev_register(struct cdev *dev)
 {
+    if (dev->init) {
+        dev->init(dev);
+    }
+
     list_append(&device_list, dev);
+
     return 0;
 }
 

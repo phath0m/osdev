@@ -371,9 +371,8 @@ tmpfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
     return nbyte;
 }
 
-__attribute__((constructor))
 void
-_init_tmpfs()
+tmpfs_init()
 {
     fs_register("tmpfs", &tmpfs_ops);
 }

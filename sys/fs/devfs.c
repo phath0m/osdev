@@ -204,9 +204,8 @@ devfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
     return cdev_write(dev, buf, nbyte, pos);
 }
 
-__attribute__((constructor))
 void
-_init_devfs()
+devfs_init()
 {
     fs_register("devfs", &devfs_ops);
 }

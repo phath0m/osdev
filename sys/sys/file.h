@@ -3,6 +3,7 @@
 
 #include <sys/device.h>
 #include <sys/dirent.h>
+#include <sys/pool.h>
 #include <sys/proc.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -57,6 +58,8 @@ struct file {
     void *              state;
     off_t               position;
 };
+
+extern struct pool  file_pool;
 
 #define FILE_POSITION(fp) ((fp)->position)
 

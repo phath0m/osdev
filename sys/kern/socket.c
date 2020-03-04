@@ -15,6 +15,17 @@
 #include <sys/types.h>
 #include <sys/vnode.h>
 
+/* the built-in protocols */
+extern struct protocol klink_protocol;
+extern struct protocol un_protocol;
+
+struct protocol *socket_builtin_protocols[] = {
+    &klink_protocol,
+    &un_protocol,
+    NULL
+};
+
+
 static struct list protocol_list;
 
 /*
@@ -268,4 +279,15 @@ file_to_sock(struct file *file)
     struct socket *sock = (struct socket*)file->state;
 
     return sock;
+}
+
+void
+sock_init()
+{
+    int i = 0;
+    struct protocol *prot;
+
+    while ((prot = socket_builtin_protocols[i++])) {
+        register_protocol(prot);
+    }
 }

@@ -88,7 +88,6 @@ sys_socket(struct thread *th, syscall_args_t argv)
     return procdesc_newfd(file);
 }
 
-__attribute__((constructor))
 void
 socket_syscalls_init()
 {

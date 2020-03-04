@@ -31,7 +31,6 @@ sys_uname(struct thread *th, syscall_args_t argv)
     return 0;
 }
 
-__attribute__((constructor))
 void
 misc_syscalls_init()
 {

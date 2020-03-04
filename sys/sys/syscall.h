@@ -105,4 +105,22 @@ struct syscall {
 int register_syscall(int num, int argc, syscall_t handler);
 
 
+static inline void
+syscalls_init()
+{
+    extern void mem_syscalls_init();
+    extern void misc_syscalls_init();
+    extern void proc_syscalls_init();
+    extern void pty_syscalls_init();
+    extern void socket_syscalls_init();
+    extern void vfs_syscalls_init();
+    
+    mem_syscalls_init();
+    misc_syscalls_init();
+    proc_syscalls_init();
+    pty_syscalls_init();
+    socket_syscalls_init();
+    vfs_syscalls_init();
+}
+
 #endif
