@@ -9,6 +9,7 @@
 #include <machine/vm_private.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/pool.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 #include <sys/types.h>
@@ -23,6 +24,10 @@ struct frame {
 struct list frames_allocated;       /* list of frames that have been allocated */
 struct list frames_free;            /* lists of frames that are free and available for re-use */
 uintptr_t   kernel_physical_brk;    /* physical memory highwater mark */
+
+
+struct pool         page_table_pool;
+struct pool         page_directory_pool;
 
 static spinlock_t   frame_alloc_lock;
 
@@ -108,7 +113,7 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
     struct page_table *table = (struct page_table*)(dir_entry->address << 12);
 
     if (!dir_entry->present) {    
-        table = (struct page_table*)malloc_pa(sizeof(struct page_table));
+        table = pool_get(&page_table_pool);
         VMSTAT_INC_PAGE_TABLE_COUNT(&vm_stat);
         memset(table, 0, sizeof(struct page_table));
 
@@ -144,11 +149,11 @@ page_directory_free(struct page_directory *directory)
             struct page_table *table = (struct page_table*)PTOKVA(entry->address << 12);
             VMSTAT_DEC_PAGE_TABLE_COUNT(&vm_stat);
             entry->present = false;
-            free(table);
+            pool_put(&page_table_pool, table);
         }
     }
-    
-    free(directory);
+   
+    pool_put(&page_directory_pool, directory); 
 }
 
 /* new page structure */
@@ -379,7 +384,7 @@ struct vm_space *
 vm_space_new()
 {
     struct vm_space *vm_space = (struct vm_space*)calloc(0, sizeof(struct vm_space));
-    struct page_directory *directory = (struct page_directory*)malloc_pa(sizeof(struct page_directory));
+    struct page_directory *directory = pool_get(&page_directory_pool);
 
     VMSTAT_INC_VM_SPACE_COUNT(&vm_stat);
 
@@ -415,6 +420,9 @@ vm_init()
     kernel_physical_brk = kernel_heap_end + PAGE_SIZE;
     kernel_physical_brk -= KERNEL_VIRTUAL_BASE;
     kernel_physical_brk &= 0xFFFFF000;
+    
+    pool_init(&page_table_pool, sizeof(struct page_table), 4096);
+    pool_init(&page_directory_pool, sizeof(struct page_directory), 4096);
 }
 
 

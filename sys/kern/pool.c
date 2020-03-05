@@ -19,10 +19,11 @@ struct pool_entry {
 };
 
 void
-pool_init(struct pool *pp, size_t size)
+pool_init(struct pool *pp, size_t size, uintptr_t align)
 {
     memset(pp, 0, sizeof(struct pool));
     pp->entry_size = size;
+    pp->align = align;
 }
 
 void *
@@ -31,7 +32,13 @@ pool_get(struct pool *pp)
     void *ptr;
 
     if (!list_remove_front(&pp->free_items, &ptr)) {
-        ptr = calloc(1, pp->entry_size);
+        
+        if (pp->align != 0) {
+            ptr = sbrk_a(pp->entry_size, pp->align);
+        } else {
+            ptr = calloc(1, pp->entry_size);
+        }
+
         list_append(&pp->allocated_items, ptr);
 
         return ptr;

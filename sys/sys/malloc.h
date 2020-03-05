@@ -11,11 +11,10 @@ align_addr(size_t size, uint32_t align)
 
 void *  calloc(int num, size_t size);
 void *  malloc(size_t size);
-void *  malloc_pa(size_t size);
 void    free(void *ptr);
 
 int     brk(void *ptr);
 void *  sbrk(size_t increment);
-void *  sbrk_a(size_t increment);
+void *  sbrk_a(size_t increment, uintptr_t align);
 
 #endif

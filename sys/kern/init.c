@@ -93,10 +93,10 @@ int
 kmain(const char *args)
 {
     /* initialize various pools for the various subsystems  */
-    pool_init(&proc_pool, sizeof(struct proc));
-    pool_init(&thread_pool, sizeof(struct thread));
-    pool_init(&vn_pool, sizeof(struct vnode));
-    pool_init(&file_pool, sizeof(struct file));
+    pool_init(&proc_pool, sizeof(struct proc), 0);
+    pool_init(&thread_pool, sizeof(struct thread), 0);
+    pool_init(&vn_pool, sizeof(struct vnode), 0);
+    pool_init(&file_pool, sizeof(struct file), 0);
 
     /* initialize the socket subsystem */
     sock_init();

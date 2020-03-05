@@ -1,7 +1,5 @@
 LDFLAGS = -T linker.ld --freestanding -O2 -nostdlib
 
-KERNEL_I686_OBJECTS += rtl/malloc.o
-
 KERNEL_I686_OBJECTS += $(KERNEL_OBJECT)
 
 KERNEL_I686_OBJECTS += dev/dev_init.o

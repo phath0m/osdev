@@ -179,3 +179,31 @@ sbrk(size_t increment)
     return (void*)prev_brk; 
 }
 
+void *
+sbrk_a(size_t increment, uintptr_t align)
+{
+    uintptr_t align_mask = align - 1;
+
+    while ((kernel_break & align_mask) != 0) {
+        struct malloc_block *free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block->magic = HEAP_MAGIC;
+        free_block->ptr = sbrk(128);
+        free_block->size = 128;
+        free_block->prev = last_freed;
+        last_freed = free_block;
+        kernel_heap_free_blocks++;
+    }
+
+    uintptr_t prev_brk = kernel_break;
+
+    if (increment & align_mask) {
+        increment += align;
+    }
+
+    kernel_break += increment;
+    kernel_break &= ~(align_mask);
+
+    memset((void*)prev_brk, 0, increment);
+
+    return (void*)prev_brk;
+}
