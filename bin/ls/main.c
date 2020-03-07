@@ -9,6 +9,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#define LS_INC_HIDDEN   0x01
+#define LS_LONG_FMT     0x02
+#define LS_REVERSE      0x04
+
 typedef enum {
     SORT_ALPHA,
     SORT_MTIME
@@ -20,27 +24,30 @@ struct ls_dirent {
 };
 
 struct ls_options {
-    bool    show_all;
-    bool    long_listing;
-    bool    reverse;
-    sort_mode_t sort_mode;
-    char *  path;
+    int             flags;
+    sort_mode_t     sort_mode;
+    char *          path;
 };
 
 static void
-get_date_string(int st_time, char *buf)
+get_date_string(int st_time, char *buf, size_t buf_size)
 {
-    char *lut[] = {
-        "Jan", "Feb", "Mar", "Apr",
-        "May", "Jun", "Jul", "Aug",
-        "Sep", "Oct", "Nov", "Dec", "Unk"
-    };
+    static struct tm *tm_now = NULL;
+    static struct tm now_buf;
+    
+    if (!tm_now) {
+        time_t now = time(NULL);
+        tm_now = gmtime_r(&now, &now_buf);
+    }
 
     time_t time = (time_t)st_time;
+    struct tm *tm_then = gmtime(&time);
 
-    struct tm *tm = gmtime(&time);
-    
-    sprintf(buf, "%s %2d %2d:%2d", lut[tm->tm_mon], tm->tm_mday, tm->tm_hour, tm->tm_min);
+    if (tm_then->tm_year == tm_now->tm_year) {
+        strftime(buf, buf_size, "%b %e %H:%M", tm_then);
+    } else {
+        strftime(buf, buf_size, "%b %e  %Y", tm_then);
+    }
 }
 
 static void
@@ -117,41 +124,32 @@ ls_pretty_print(struct ls_dirent **contents, int nentries)
 
     for (int i = 0; i < nentries; i++) {
         struct ls_dirent *entry = contents[i];
-
         int len = strlen(entry->dirent.d_name);
-
         if (len > longest) {
             longest = len;
         }
-
         entries++;
     }
 
     int cols = 80 / (longest + 2);
     int padding = longest + 2;
-
     int row = 0;
     int col = 0;
 
     for (int i = 0; i < nentries; i++) {
         struct ls_dirent *entry = contents[i];
-
         int len = strlen(entry->dirent.d_name);
 
         ls_print_color(entry);
-
         printf("%s\033[0m", entry->dirent.d_name);
 
         if (col != cols) {
             int spaces = padding - len;
-
             for (int i = 0; i < spaces; i++) {
                 printf(" ");
             }
         }
-
         col++;
-
         if (col > cols) {
             col = 0;
             row++;
@@ -172,7 +170,7 @@ ls_long_print(struct ls_dirent **entries, int nentries)
         char mode_str[11];
         char date_str[15];
 
-        get_date_string(entry->stat.st_mtime, date_str);
+        get_date_string(entry->stat.st_mtime, date_str, 15);
         get_mode_string(entry, mode_str);
 
         struct passwd *pwd = getpwuid(entry->stat.st_uid);
@@ -254,19 +252,16 @@ read_dirents(struct ls_options *options, struct ls_dirent **entries, int nentrie
     }
 
     struct dirent *dirent;
-
     int results = 0;
+    bool show_all = (options->flags & LS_INC_HIDDEN);
 
     for (int n = 0; n < nentries && (dirent = readdir(dirp)); n++) {
-        if (dirent->d_name[0] != '.' || options->show_all) {
+        if (dirent->d_name[0] != '.' || show_all) {
             struct ls_dirent *entry = (struct ls_dirent*)calloc(1, sizeof(struct ls_dirent));
-
             memcpy(&entry->dirent, dirent, sizeof(struct dirent));
-
             entries[results++] = entry;
 
             char buf[512];
-
             snprintf(buf, 512, "%s/%s", options->path, entry->dirent.d_name);
 
             if (stat(buf, &entry->stat)) {
@@ -289,13 +284,13 @@ parse_arguments(struct ls_options *options, int argc, char *argv[])
         if ((c = getopt(argc, argv, "alrt")) != -1) {
             switch (c) {
                 case 'l':
-                    options->long_listing = true;
+                    options->flags |= LS_LONG_FMT;
                     break;
                 case 'a':
-                    options->show_all = true;
+                    options->flags |= LS_INC_HIDDEN;
                     break;
                 case 'r':
-                    options->reverse = true;
+                    options->flags |= LS_REVERSE;
                     break;
                 case 't':
                     options->sort_mode = SORT_MTIME;
@@ -321,7 +316,6 @@ int
 main(int argc, char *argv[])
 {
     struct ls_options options;
-
     memset(&options, 0, sizeof(struct ls_options));
 
     if (parse_arguments(&options, argc, argv)) {
@@ -329,7 +323,6 @@ main(int argc, char *argv[])
     }
 
     struct ls_dirent *entries[512];
-
     int count = read_dirents(&options, entries, 512);
 
     if (count < 0) {
@@ -346,14 +339,15 @@ main(int argc, char *argv[])
             break;
     }
 
-    if (options.reverse) {
+    if ((options.flags & LS_REVERSE)) {
         reverse_dirents(entries, count);
     }
     
-    if (options.long_listing) {
+    if ((options.flags & LS_LONG_FMT)) {
         ls_long_print(entries, count);
     } else {
         ls_pretty_print(entries, count);
     }
-
+    
+    return 0;
 }
