@@ -87,7 +87,7 @@ load_service(const char *config_file)
     char *runlevels = ini_section_get(&ini, "Service", "RunLevel");
 
     if (!exec_start || !service_name) {
-        printf("doit: invalid syntax in file: %s!\n\r", config_file);
+        printf("doit: invalid syntax in file: %s!\r\n", config_file);
         ini_close(&ini);
         return -1;
     }
@@ -104,7 +104,7 @@ load_service(const char *config_file)
     service->name = service_name;
     service->exec_start = exec_start;
     service->runlevels = rlmask;
-    printf("doit: registering %s\n\r", service_name);
+    printf("doit: registering %s\r\n", service_name);
     dict_set(&loaded_services, service_name, service);
 
     return 0;
@@ -151,7 +151,7 @@ service_start(struct service *service)
         return -1;
     }
 
-    printf("doit: starting %s\n\r", service->name);
+    printf("doit: starting %s\r\n", service->name);
 
     service->running = true;
 
@@ -225,7 +225,7 @@ start_daemon(int argc, const char *argv[])
         target = parse_runlevel(argv[1]);
         
         if (target == -1) {
-            printf("doit: invalid runlevel specified! assume multi-user!\n\r");
+            printf("doit: invalid runlevel specified! assume multi-user!\r\n");
             target = MULTI_USER;
         }
     }
@@ -238,7 +238,7 @@ start_daemon(int argc, const char *argv[])
         open(console, O_RDWR);
     }
 
-    printf("doit: Welcome!\n\r");
+    printf("doit: Welcome!\r\n");
 
     do_directory("/etc/doit.d");
 
@@ -265,7 +265,7 @@ start_daemon(int argc, const char *argv[])
 
         switch (request.opcode) {
             case DOIT_CHANGE_RUNLEVEL:
-                printf("doit: change runlevel to %d\n\r", request.arg);
+                printf("doit: change runlevel to %d\r\n", request.arg);
                 break;
         }
 
