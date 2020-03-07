@@ -358,6 +358,7 @@ vm_space_destroy(struct vm_space *space)
     VMSTAT_DEC_VM_SPACE_COUNT(&vm_stat);
 }
 
+#ifdef USE_BOOTLOADER_GRAPHICS
 static void
 map_vbe_data(struct page_directory *directory)
 {
@@ -380,6 +381,7 @@ map_vbe_data(struct page_directory *directory)
         page_map_entry(directory, info->physbase + i, info->physbase + i, true, false);
     } 
 }
+#endif
 
 /* create a new address space */
 struct vm_space *
@@ -403,7 +405,9 @@ vm_space_new()
         dir_entry->address = (i * 0x400000) >> 12;
     }
 
+#ifdef USE_BOOTLOADER_GRAPHICS
     map_vbe_data(directory);
+#endif
 
     vm_space->uva_map = va_map_new(0, KERNEL_VIRTUAL_BASE);
     vm_space->kva_map = va_map_new(KERNEL_VIRTUAL_BASE + 0x1FC00000, 0xE0000000);

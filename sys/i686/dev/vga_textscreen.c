@@ -414,6 +414,9 @@ vga_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
         case '\n':
             statep->position = (statep->position + 80) - (statep->position + 80) % 80;
             break;
+        case '\r':
+            statep->position -= statep->position % 80;
+            break;
         case '\b':
             vga_buffer[--statep->position] = ' ' | (attr < 8);
             break;

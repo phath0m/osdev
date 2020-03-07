@@ -1,7 +1,11 @@
 MBALIGN     equ 1<<0
 MEMINFO     equ 1<<1
 USEGFX      equ 1<<2
+%ifdef USE_BOOTLOADER_GRAPHICS 
 FLAGS       equ MBALIGN | MEMINFO | USEGFX
+%else
+FLAGS       equ MBALIGN | MEMINFO
+%endif
 
 MAGIC       equ 0x1BADB002
 CHECKSUM    equ -(MAGIC + FLAGS)
