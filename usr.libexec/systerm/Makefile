@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 #LD=gcc
 
 CFLAGS = -c -std=gnu99 -Wall -Werror
-LDFLAGS =
+LDFLAGS = -lthread -lvt
 
 SYSTERM_OBJECTS += main.o
 
@@ -13,7 +13,7 @@ SYSTERM = systerm
 all: $(SYSTERM)
 
 $(SYSTERM): $(SYSTERM_OBJECTS)
-	$(LD) -o $@ $(LDFLAGS) $^ -lgcc
+	$(LD) -o $@ $^ $(LDFLAGS) -lgcc
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:

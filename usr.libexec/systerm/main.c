@@ -1,17 +1,15 @@
-#include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
+#include <thread.h>
+#include <libvt.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include "keymap.h"
-
-extern int mkpty();
-
-
-#define TERM_BUF_SIZE   1024
 
 #define KEY_UP_ARROW        72
 #define KEY_DOWN_ARROW      80
@@ -21,412 +19,227 @@ extern int mkpty();
 #define KEY_PAGE_DOWN       81
 
 struct termstate {
-    int     textscreen; /* file descriptor to output device */
-    int     ptm; /* file descriptor to master pseudo-terminal */
-    bool    csi_initiated; /* Should be processing a CSI sequence */
-    bool    escape_initiated; /* Should we be processing an escape character ? */
-    char    csi_buf[256]; /* buffer for CSI sequences */
-    int     csi_len; /* length of CSI buf */
-    char    buf[TERM_BUF_SIZE]; /* buffer of data to print; used to avoid excessive write() calls */
-    int     buf_len; /* length of buf*/
-    int     foreground;
-    int     background;
+    int             width; /* how many columns */
+    int             height; /* how many rows */
+    int             foreground;
+    int             background;
+    int             position;
+    int             textscreen;
 };
 
-/*
- * SGR - Select Graphic Rendition; sets display attributes
- */
-static void
-set_sgr_parameter(struct termstate *state, int param)
+int
+vtop_erase_area(vtemu_t *emu, int start_x, int start_y, int end_x, int end_y)
 {
-    switch (param) {
-        case 0:
-            ioctl(state->textscreen, TXIOSETFG, (void*)7);
-            ioctl(state->textscreen, TXIOSETBG, (void*)0);
-            state->background = 0;
-            state->background = 7;
-            break;
-        case 7:
-            ioctl(state->textscreen, TXIOSETFG, (void*)0);
-            ioctl(state->textscreen, TXIOSETBG, (void*)7); 
-            //int tmp = state->background;
-            //state->background = state->foreground;
-            //state->foreground = tmp;
-            break;
-        case 30:
-        case 31:
-        case 32:
-        case 33:
-        case 34:
-        case 35:
-        case 36:
-        case 37:
-            state->foreground = param - 30;
-            ioctl(state->textscreen, TXIOSETFG, (void*)(param - 30));
-            break;    
-        case 39:
-            ioctl(state->textscreen, TXIOSETFG, (void*)7);
-            break;
-        case 40:
-        case 41:
-        case 42:
-        case 43:
-        case 44:
-        case 45:
-        case 46:
-        case 47:
-            state->background = param - 40;
-            ioctl(state->textscreen, TXIOSETBG, (void*)(param - 40));
-            break;
-        case 49:
-            ioctl(state->textscreen, TXIOSETBG, (void*)0);
-            break;
-        default:
-            printf("got uknown SGR parameter %d\n", param);
-            break;
+    struct termstate *state = emu->state;
+    int new_pos = start_y * state->width + start_x;
+    int end_pos = end_y * state->width + end_x;
+    int old_pos = state->position; 
+    state->position = new_pos;
+
+    printf("Clear (%d,%d) -> (%d,%d)\n", start_x, start_y, end_x, end_y);
+    while (state->position < end_pos) {
+        //put_char(state, ' ');
+        state->position++;
     }
+
+    state->position = old_pos;
+    
+    return 0;
 }
 
-static void
-select_graphic_rendition(struct termstate *state, int args[], int argc)
+static int
+vtop_get_cursor(vtemu_t *emu, int *x, int *y)
 {
-    for (int i = 0; i < argc; i++) {
-        set_sgr_parameter(state, args[i]);
-    }
+    struct termstate *state = emu->state;
+
+    struct curpos curpos;
+    ioctl(state->textscreen, TXIOGETCUR, &curpos);
+    
+    *x = curpos.c_col;
+    *y = curpos.c_row;
+
+    return 0;
 }
 
-static void
-cursor_position(struct termstate *state, int args[], int argc)
+static int
+vtop_set_cursor(vtemu_t *emu, int x, int y)
 {
+    struct termstate *state = emu->state;
 
     struct curpos new_pos;
-    
-    if (argc == 2) {
-        new_pos.c_col = args[1];
-        new_pos.c_row = args[0];
-    } else {
-        new_pos.c_row = 0;
-        new_pos.c_col = 0;
-    }
 
+    new_pos.c_row = y;
+    new_pos.c_col = x;
+    
     ioctl(state->textscreen, TXIOSETCUR, &new_pos);
+
+    return 0;
 }
 
-static void
-device_status_report(struct termstate *state, int args[], int argc)
+static int
+vtop_set_attribute(vtemu_t *emu, vt_attr_t attr, int val)
 {
-    if (argc == 1 && args[0] == 6) {
-        struct curpos curpos;
-        ioctl(state->textscreen, TXIOGETCUR, &curpos);
+    struct termstate *state = emu->state;
 
-        char buf[16];
-        sprintf(buf, "\x1B[%d;%dR", curpos.c_row+1, curpos.c_col+1);
-
-        write(state->ptm, buf, strlen(buf));
+    switch (attr) {
+        case VT_ATTR_BACKGROUND:
+            ioctl(state->textscreen, TXIOSETBG, (void*)val);
+            break;
+        case VT_ATTR_FOREGROUND:
+            ioctl(state->textscreen, TXIOSETFG, (void*)val);
+            break;
     }
+
+    return 0;
 }
 
 static void
-erase_in_line(struct termstate *state, int args[], int argc)
+vtop_put_text(vtemu_t *emu, char *text, size_t nbyte)
 {
-    if (argc == 1) {
-        ioctl(state->textscreen, TXIOERSLIN, (void*)args[0]);
+    struct termstate *state = emu->state;
+    write(state->textscreen, text, nbyte);
+}
+
+static void *
+term_output_thread(void *argp)
+{
+    vtemu_t *emu = (vtemu_t*)argp;
+
+    vtemu_run(emu);
+
+    return NULL;
+}
+
+static void
+process_character(vtemu_t *emu, uint8_t scancode)
+{
+    static bool shift_pressed = false;
+    static bool control_pressed = false;
+    char ch;
+
+    bool key_up = (scancode & 128) != 0;
+    uint8_t key = scancode & 127;
+
+    if (key == 42 || key == 54) {
+        shift_pressed = !key_up;
+        return;
+    }
+
+    if (key == 29) {
+        control_pressed = !key_up;
+        return;
+    }
+
+    if (shift_pressed) {
+        ch = kbdus_shift[key];
     } else {
-        ioctl(state->textscreen, TXIOERSLIN, (void*)0);
-    }
-}
-
-static void
-erase_in_display(struct termstate *state, int args[], int argc)
-{
-    int param = 0;
-
-    if (argc > 0) {
-        param = 0;
+        ch = kbdus[key];
     }
 
-    switch (param) {
-        case 2:
-            ioctl(state->textscreen, TXIOCLRSCR, NULL);
-            break;
+    if (key_up) {
+        return;
     }
-}
 
-static void
-eval_csi_parameter(struct termstate *state, char command, int args[], int argc)
-{
-    switch (command) {
-        case 'm':
-            select_graphic_rendition(state, args, argc);
+    if (control_pressed) {
+        switch (ch) {
+            case 'q':
+                ch = 17;
+                break;
+            case 's':
+                ch = 19;
+                break;
+        }
+    }
+
+    switch (key) {
+        case KEY_UP_ARROW:
+            vtemu_sendkey(emu, VT_KEY_UP_ARROW);
             break;
-        case 'n':
-            device_status_report(state, args, argc);
+        case KEY_DOWN_ARROW:
+            vtemu_sendkey(emu, VT_KEY_DOWN_ARROW);
             break;
-        case 'J':
-            erase_in_display(state, args, argc);
+        case KEY_LEFT_ARROW:
+            vtemu_sendkey(emu, VT_KEY_LEFT_ARROW);
             break;
-        case 'K':
-            erase_in_line(state, args, argc);
+        case KEY_RIGHT_ARROW:
+            vtemu_sendkey(emu, VT_KEY_RIGHT_ARROW);
             break;
-        case 'h':
-            ioctl(state->textscreen, TXIOCURSOFF, NULL);
+        case KEY_PAGE_UP:
+            vtemu_sendkey(emu, VT_KEY_PAGE_UP);
             break;
-        case 'l':
-            ioctl(state->textscreen, TXIOCURSON, NULL);
-            break;
-        case 'H':
-            cursor_position(state, args, argc);
-            break;
+        case KEY_PAGE_DOWN:
+            vtemu_sendkey(emu, VT_KEY_PAGE_DOWN);
+            break;    
         default:
-            printf("unknown CSI command %c\n", command);
-            break;
-    }
-}
-
-static void
-eval_csi_command(struct termstate *state, char final_byte)
-{
-    char *last_parameter = state->csi_buf;
-    int args[64];
-    int argc = 0;
-
-    for (int i = 0; i < state->csi_len; i++) {
-        if (state->csi_buf[i] == ';') {
-            state->csi_buf[i] = 0;
-            args[argc++] = atoi(last_parameter);
-            last_parameter = &state->csi_buf[i+1];
-        }
-    }   
- 
-    args[argc++] = atoi(last_parameter);
-
-    eval_csi_parameter(state, final_byte, args, argc);
-
-    memset(state->csi_buf, 0, sizeof(state->csi_buf));
-    state->csi_len = 0;
-}
-
-static void
-flush_buffer(struct termstate *state)
-{
-    if (state->buf_len == 0) {
-        return;
-    }
-    write(state->textscreen, state->buf, state->buf_len);
-    state->buf_len = 0;
-}
-
-static void
-eval_escape_char(struct termstate *state, char ch)
-{
-    switch (ch) {
-        case '[':
-            state->csi_initiated = true;
-            break;
-        case 'c':
-            flush_buffer(state);
-            ioctl(state->textscreen, TXIOCLRSCR, NULL);
-            break;
-        default:
-            break;
-    }
-}
-
-static inline void
-process_term_char(struct termstate *state, char ch)
-{
-    if (state->csi_initiated) {
-        bool is_parameter = (ch >= 0x30 && ch < 0x40);
-        bool is_final_byte = (ch >= 0x40 && ch < 0x7F);
-
-        if (is_parameter) {
-            state->csi_buf[state->csi_len++] = ch;
-        } else if (is_final_byte) {
-            state->csi_initiated = false;
-            eval_csi_command(state, ch);
-        }
-
-        return;
-    }
-    
-    if (state->escape_initiated) {
-        state->escape_initiated = false;
-        eval_escape_char(state, ch);
-        return;
-    }
-
-    if (ch == '\x1B') {
-        state->escape_initiated = true;
-        flush_buffer(state);
-        return;
-    }
-
-    if (state->buf_len >= TERM_BUF_SIZE) {
-        flush_buffer(state);
-    }
-
-    state->buf[state->buf_len++] = ch;
-}
-
-static void
-process_term_data(struct termstate *state, char *buf, int size)
-{
-    for (int i = 0; i < size; i++) {
-        process_term_char(state, buf[i]);
-    }
-    
-    flush_buffer(state);
-}
-
-static void
-input_loop(int ptm, int kbd, int vga)
-{
-    pid_t pid = fork();
-    
-    if (pid) {
-        return;
-    }
-
-    uint8_t scancode;
-    bool shift_pressed;
-    bool control_pressed;
-    char ch = 0;
-
-    for (;;) {
-        read(kbd, &scancode, 1);
-
-        bool key_up = (scancode & 128) != 0;
-        uint8_t key = scancode & 127;
-
-        if (key == 42 || key == 54) {
-            shift_pressed = !key_up;
-            continue;
-        }
-
-        if (key == 29) {
-            control_pressed = !key_up;
-            continue;
-        }
-
-        if (shift_pressed) {
-            ch = kbdus_shift[key];
-        } else {
-            ch = kbdus[key];
-        }
-
-        if (key_up) {
-            continue;
-        }
-
-        if (control_pressed) {
-            switch (ch) {
-                case 'q':
-                    ch = 17;
-                    break;
-                case 's':
-                    ch = 19;
-                    break;
+            if (ch) {
+                vtemu_sendchar(emu, ch);
             }
-        }
-
-        switch (key) {
-            case KEY_UP_ARROW:
-                write(ptm, "\x1B[A", 3);
-                break;
-            case KEY_DOWN_ARROW:
-                write(ptm, "\x1B[B", 3);
-                break;
-            case KEY_LEFT_ARROW:
-                write(ptm, "\x1B[D", 3);
-                break;
-            case KEY_RIGHT_ARROW:
-                write(ptm, "\x1B[C", 3);
-                break;
-            case KEY_PAGE_UP:
-                write(ptm, "\x1B[5~", 4);
-                break;
-            case KEY_PAGE_DOWN:
-                write(ptm, "\x1B[6~", 4);
-                break;    
-            default:
-                if (ch) {
-                    write(ptm, &ch, 1);
-                }
-                break;
-        }
+            break;
     }
 }
 
-static void
-invoke_newtty(int ptm)
-{
-    char *pts = ttyname(ptm);
-
-    char *argv[] = {
-        "/sbin/newtty",
-        pts,
-        NULL
-    };
-    
-    execv(argv[0], argv);
-}
-
-struct lfb_req {
-    uint8_t     opcode;
-    uint32_t    length;
-    uint32_t    offset;
-    uint32_t    color;
-    void *      data;
+struct vtops vtops = {
+    .erase_area     = vtop_erase_area,
+    .get_cursor     = vtop_get_cursor,
+    .put_text       = vtop_put_text,
+    .set_attributes = vtop_set_attribute,
+    .set_cursor     = vtop_set_cursor
 };
 
 static void
-systerm_main()
+handle_sigchld(int signo)
 {
-    int ptm = mkpty();
-    int vga = open("/dev/lfb", O_WRONLY);
-    int kbd = open("/dev/kbd", O_RDONLY);
-
-    if (ptm == -1 || vga == -1 || kbd == -1) {
-        close(ptm);
-        close(vga);
-        close(kbd);
-        return;
-    }
-
-    ioctl(vga, TXIOSETFG, (void*)7);
-
-    pid_t child = fork();
-
-    if (!child) {
-        invoke_newtty(ptm);
-    }
-
-    struct termstate state;
-    
-    memset(&state, 0, sizeof(state));
-
-    state.ptm = ptm;
-    state.textscreen = vga;
-   
-    ioctl(vga, TXIOCURSON, NULL);
-
-    input_loop(ptm, kbd, vga);
-
-    for ( ;; ) {
-        char buf[1024];
-
-        ssize_t nread = read(ptm, buf, 1024);
-    
-        if (nread > 0) {
-            process_term_data(&state, buf, nread);
-        }
-    }
+    printf("Bye!\n");
+    kill(9, getpid());
 }
 
 int
-main()
-{
-    systerm_main();
+main(int argc, const char *argv[])
+{ 
+    int console = -1;
     
+    
+    if (access("/dev/lfb", R_OK) == 0) {
+        console = open("/dev/lfb", O_WRONLY);
+    } else {
+        console = open("/dev/vga", O_WRONLY);
+    }
+
+    int kbd = open("/dev/kbd", O_RDONLY);
+
+    if (console == -1 || kbd == -1) {
+        close(console);
+        close(kbd);
+        return -1;
+    }
+
+    ioctl(console, TXIOCURSON, NULL);
+    ioctl(console, TXIOSETFG, (void*)7);
+    
+    struct sigaction sigact;
+    sigact.sa_handler = handle_sigchld;
+    sigact.sa_flags = 0;
+    sigaction(17, &sigact, (struct sigaction *)NULL);
+
+    struct termstate state;
+    memset(&state, 0, sizeof(state));
+    state.width = 80;
+    state.height = 25;
+    state.textscreen = console;
+
+    vtemu_t *emu = vtemu_new(&vtops, &state);
+    vtemu_resize(emu, state.width, state.height-1);
+    vtemu_spawn(emu, "/bin/sh");
+
+    thread_t thread;
+    thread_create(&thread, term_output_thread, emu);
+
+    uint8_t scancode;
+
+    for (;;) {
+        read(kbd, &scancode, 1);
+        process_character(emu, scancode);
+    }
+
     return 0;
 }
