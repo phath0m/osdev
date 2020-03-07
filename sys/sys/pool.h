@@ -2,9 +2,11 @@
 #define _SYS_POOL_H
 
 #include <ds/list.h>
+#include <sys/mutex.h>
 #include <sys/types.h>
 
 struct pool {
+    spinlock_t      lock;
     struct list     free_items;
     struct list     allocated_items;
     size_t          entry_size;

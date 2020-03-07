@@ -1,5 +1,6 @@
 #include <ds/list.h>
 #include <machine/elf32.h>
+#include <machine/vm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
@@ -67,7 +68,7 @@ elf_load_image(struct vm_space *space, struct elf32_ehdr *hdr, uintptr_t *vlow, 
         struct elf32_phdr *phdr = &phdrs[i];
 
         if (phdr->p_type == PT_LOAD) {
-            void *vaddr = vm_map(space, (void*)phdr->p_vaddr, phdr->p_memsz, PROT_EXEC | PROT_READ | PROT_WRITE);
+            void *vaddr = vm_map(space, (void*)phdr->p_vaddr, phdr->p_memsz, VM_EXEC | VM_READ | VM_WRITE);
 
             memcpy(vaddr, ((void*)(uintptr_t)hdr + phdr->p_offset), phdr->p_filesz);
             
@@ -114,25 +115,22 @@ unload_userspace(struct vm_space *space)
     struct vm_block *block;
 
     memset(&to_remove, 0, sizeof(struct list));
-
     list_get_iter(&space->map, &iter);
 
     while (iter_move_next(&iter, (void**)&block)) {
-        if (!(block->prot & PROT_KERN)) {
+        if (!(block->prot & VM_KERN)) {
             list_append(&to_remove, block);
         }
     }
 
     iter_close(&iter);
-
     list_get_iter(&to_remove, &iter);
     
     while (iter_move_next(&iter, (void**)&block)) {
         vm_unmap(space, (void*)block->start_virtual, 0x1000);
     }
 
-    iter_close(&iter);
-    
+    iter_close(&iter); 
     list_destroy(&to_remove, false);
 }
 
@@ -191,12 +189,12 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     list_append(&proc->threads, sched_curr_thread);
 
-    sched_curr_thread->u_stack_top = 0xC0000000;
+    sched_curr_thread->u_stack_top = KERNEL_VIRTUAL_BASE - 1;
 
     uintptr_t stack_bottom;
 
     for (stack_bottom = 0xBFFFF000; stack_bottom > 0xBFFFA000; stack_bottom -= 0x1000) {
-        vm_map(space, (void*)stack_bottom, 0x1000, PROT_READ | PROT_WRITE);
+        vm_map(space, (void*)stack_bottom, 0x1000, VM_READ | VM_WRITE);
     }
 
     sched_curr_thread->u_stack_bottom = stack_bottom + 0x1000;

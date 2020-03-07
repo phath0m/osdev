@@ -1,11 +1,12 @@
-#ifndef SYS_ERRNO_H
-#define SYS_ERRNO_H
+#ifndef _SYS_ERRNO_H
+#define _SYS_ERRNO_H
 
 #define EPERM       1
 #define ENOENT      2
 #define ESRCH       3
 #define EINTR       4
 #define EBADF       9
+#define ENOMEM      12
 #define EACCES      13
 #define EFAULT      14
 #define ENODEV      19

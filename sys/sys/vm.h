@@ -4,17 +4,14 @@
 #include <ds/list.h>
 #include <sys/types.h>
 
-#define PROT_KERN   0x08
-#define PROT_READ   0x04
-#define PROT_WRITE  0x02
-#define PROT_EXEC   0x01
+#define VM_KERN   0x08
+#define VM_READ   0x04
+#define VM_WRITE  0x02
+#define VM_EXEC   0x01
 
-#define VM_IS_WRITABLE(prot) ((prot & PROT_WRITE) != 0)
-#define VM_IS_USER(prot) ((prot & PROT_KERN) == 0)
-#define VM_IS_KERN(prot) ((prot & PROT_KERN) == PROT_KERN)
-
-/* vamap_t is a bitmap used to track allocation of virtual addresses */
-typedef uint8_t *   vamap_t;
+#define VM_IS_WRITABLE(prot)    ((prot & VM_WRITE) != 0)
+#define VM_IS_USER(prot)        ((prot & VM_KERN) == 0)
+#define VM_IS_KERN(prot)        ((prot & VM_KERN) == VM_KERN)
 
 /* structure used to track allocation of virtual addresses */
 struct va_map {
@@ -70,7 +67,7 @@ extern struct vm_statistics vm_stat;
 #define VMSTAT_INC_VM_SPACE_COUNT(v) ((v)->vmspace_count++)
 
 #define VA_BOUNDCHECK(vamap, addr, len) (((uintptr_t)(addr) >= (vamap)->base) && \
-                                         ((uintptr_t)(addr) + (uintptr_t)(len) < (vamap)->limit))
+                                         ((uintptr_t)(addr) + (uintptr_t)(len) <= (vamap)->limit))
 
 struct va_map *     va_map_new(uintptr_t base, uintptr_t limit);
 uintptr_t           va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length);

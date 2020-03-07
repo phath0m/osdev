@@ -184,6 +184,8 @@ sbrk_a(size_t increment, uintptr_t align)
 {
     uintptr_t align_mask = align - 1;
 
+    int chunks_allocated = 0;
+
     while ((kernel_break & align_mask) != 0) {
         struct malloc_block *free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
         free_block->magic = HEAP_MAGIC;
@@ -192,6 +194,11 @@ sbrk_a(size_t increment, uintptr_t align)
         free_block->prev = last_freed;
         last_freed = free_block;
         kernel_heap_free_blocks++;
+        chunks_allocated++;
+
+        if (chunks_allocated > 128) {
+            panic("Okay, this isn't going to work!\n");
+        }
     }
 
     uintptr_t prev_brk = kernel_break;

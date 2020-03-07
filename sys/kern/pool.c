@@ -31,22 +31,25 @@ pool_get(struct pool *pp)
 {
     void *ptr;
 
-    if (!list_remove_front(&pp->free_items, &ptr)) {
-        
+    spinlock_lock(&pp->lock);
+
+    if (!list_remove_front(&pp->free_items, &ptr)) {    
         if (pp->align != 0) {
             ptr = sbrk_a(pp->entry_size, pp->align);
         } else {
-            ptr = calloc(1, pp->entry_size);
+            ptr = sbrk(pp->entry_size);
         }
 
         list_append(&pp->allocated_items, ptr);
 
-        return ptr;
+        goto _cleanup;
     }
 
     list_append(&pp->allocated_items, ptr);
 
+_cleanup:
     memset(ptr, 0, pp->entry_size);
+    spinlock_unlock(&pp->lock);
 
     return ptr;
 }
@@ -54,9 +57,13 @@ pool_get(struct pool *pp)
 void
 pool_put(struct pool *pp, void *ptr)
 {
+    spinlock_lock(&pp->lock);
+
     if (!list_remove(&pp->allocated_items, ptr)) {
         panic("attempted to free invalid pointer");
     }
 
     list_append(&pp->free_items, ptr);
+    
+    spinlock_unlock(&pp->lock);
 }

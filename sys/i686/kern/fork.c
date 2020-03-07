@@ -23,10 +23,10 @@ copy_image(struct proc *proc, struct vm_space *new_space)
 
     KASSERT("proc image size should not be zero or negative", image_size > 0);
 
-    vm_map(new_space, (void*)proc->base, image_size, PROT_READ | PROT_WRITE);
+    vm_map(new_space, (void*)proc->base, image_size, VM_READ | VM_WRITE);
 
     void *image = vm_share(proc->thread->address_space, new_space, NULL, (void*)proc->base,
-                           image_size, PROT_READ | PROT_WRITE | PROT_KERN);
+                           image_size, VM_READ | VM_WRITE | VM_KERN);
 
     memcpy(image, (void*)proc->base, image_size);
 
@@ -48,10 +48,10 @@ copy_stack(struct thread *thread, struct vm_space *new_space)
 {
     size_t stack_size = thread->u_stack_top - thread->u_stack_bottom;
 
-    vm_map(new_space, (void*)thread->u_stack_bottom, stack_size, PROT_READ | PROT_WRITE);
+    vm_map(new_space, (void*)thread->u_stack_bottom, stack_size, VM_READ | VM_WRITE);
 
     void *stack = vm_share(thread->address_space, new_space, NULL, (void*)thread->u_stack_bottom,
-                           stack_size, PROT_READ | PROT_WRITE | PROT_KERN);
+                           stack_size, VM_READ | VM_WRITE | VM_KERN);
     memcpy(stack, (void*)thread->u_stack_bottom, stack_size);
 
     vm_unmap(thread->address_space, stack, stack_size);

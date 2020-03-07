@@ -25,7 +25,6 @@ struct list frames_allocated;       /* list of frames that have been allocated *
 struct list frames_free;            /* lists of frames that are free and available for re-use */
 uintptr_t   kernel_physical_brk;    /* physical memory highwater mark */
 
-
 struct pool         page_table_pool;
 struct pool         page_directory_pool;
 
@@ -295,6 +294,9 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
         va_free_block(space->uva_map, (uintptr_t)addr, length);
     } else if (VA_BOUNDCHECK(space->kva_map, addr, length)) {
         va_free_block(space->kva_map, (uintptr_t)addr, length);
+    } else {
+        stacktrace(4);
+        panic("attempted to unmap non-mapped address 0x%p", addr);
     }
 
     for (int i = 0; i < required_pages; i++) {

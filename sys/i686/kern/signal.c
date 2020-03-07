@@ -36,7 +36,7 @@ open_stack(struct thread *thread, uintptr_t esp)
     uintptr_t stackp = (uintptr_t)vm_share(sched_curr_address_space,
             thread->address_space, NULL,
             (void*)(esp & 0xFFFFF000), 0x1000,
-            PROT_READ | PROT_WRITE | PROT_KERN
+            VM_READ | VM_WRITE | VM_KERN
     );
     
     stackp &= 0xFFFFF000;

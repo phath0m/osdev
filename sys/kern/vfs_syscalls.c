@@ -25,7 +25,7 @@ sys_access(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -40,7 +40,7 @@ sys_chmod(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -56,7 +56,7 @@ sys_chown(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(uid_t, owner, 1, argv);
     DEFINE_SYSCALL_PARAM(gid_t, group, 2, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -91,7 +91,7 @@ sys_creat(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
     
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -194,7 +194,7 @@ sys_fstat(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
 
-    if (vm_access(th->address_space, buf, sizeof(struct stat), PROT_WRITE)) {
+    if (vm_access(th->address_space, buf, sizeof(struct stat), VM_WRITE)) {
         return -(EFAULT);
     }
 
@@ -215,7 +215,7 @@ sys_open(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(int, mode, 1, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -245,7 +245,7 @@ sys_pipe(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, pipefd, 0, argv);
 
-    if (vm_access(th->address_space, pipefd, sizeof(int[2]), PROT_WRITE)) {
+    if (vm_access(th->address_space, pipefd, sizeof(int[2]), VM_WRITE)) {
         return -(EFAULT);
     }
 
@@ -268,7 +268,7 @@ sys_read(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(char*, buf, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, nbyte, 2, argv);
 
-    if (vm_access(th->address_space, buf, nbyte, PROT_WRITE)) {
+    if (vm_access(th->address_space, buf, nbyte, VM_WRITE)) {
         return -(EFAULT);
     }
 
@@ -291,7 +291,7 @@ sys_readdir(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(struct dirent *, dirent, 1, argv);
 
-    if (vm_access(th->address_space, dirent, sizeof(struct dirent), PROT_WRITE)) {
+    if (vm_access(th->address_space, dirent, sizeof(struct dirent), VM_WRITE)) {
         return -(EFAULT);
     }
 
@@ -311,7 +311,7 @@ sys_rmdir(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -344,7 +344,7 @@ sys_mkdir(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
    
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -362,7 +362,7 @@ sys_mknod(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(mode_t, mode, 1, argv);
     DEFINE_SYSCALL_PARAM(dev_t, dev, 2, argv);
     
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -381,11 +381,11 @@ sys_stat(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(struct stat *, buf, 1, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
-    if (vm_access(th->address_space, buf, sizeof(struct stat), PROT_WRITE)) {
+    if (vm_access(th->address_space, buf, sizeof(struct stat), VM_WRITE)) {
         return -(EFAULT);
     }
 
@@ -410,7 +410,7 @@ sys_truncate(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(off_t, length, 1, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -424,7 +424,7 @@ sys_unlink(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -439,11 +439,11 @@ sys_utimes(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(char *, path, 0, argv);
     DEFINE_SYSCALL_PARAM(struct timeval *, tv, 1, argv);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
-    if (vm_access(th->address_space, tv, sizeof(struct timeval), PROT_READ)) {
+    if (vm_access(th->address_space, tv, sizeof(struct timeval), VM_READ)) {
         return -(EFAULT);
     }
 
@@ -459,7 +459,7 @@ sys_write(struct thread *th, syscall_args_t argv)
 
     TRACE_SYSCALL("write", "%d, %p, %d", fildes, buf, nbyte);
 
-    if (vm_access(th->address_space, buf, nbyte, PROT_READ)) {
+    if (vm_access(th->address_space, buf, nbyte, VM_READ)) {
         return -(EFAULT);
     }
 

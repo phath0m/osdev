@@ -35,14 +35,14 @@ init_child_proc(void *statep)
 
     list_append(&current_proc->threads, sched_curr_thread);
 
-    free(statep);
-
     uint32_t *stack = (uint32_t*)state->u_stack_top;
 
     --stack;
 
     *(--stack) = (uintptr_t)state->arg;
     *(--stack) = NULL;
+
+    free(statep);
 
     /* defined in sys/i686/kern/usermode.asm */
     extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);

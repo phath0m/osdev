@@ -55,7 +55,7 @@ sys_chdir(struct thread *th, syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -86,7 +86,7 @@ sys_chroot(struct thread *th, syscall_args_t args)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
 
-    if (vm_access(th->address_space, path, 1, PROT_READ)) {
+    if (vm_access(th->address_space, path, 1, VM_READ)) {
         return -(EFAULT);
     }
 
@@ -110,6 +110,11 @@ sys_clone(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(void *, stack, 1, argv);
     DEFINE_SYSCALL_PARAM(int, flags, 2, argv);
     DEFINE_SYSCALL_PARAM(void *, arg, 3, argv);
+
+    if (vm_access(th->address_space, stack, 1, VM_READ | VM_WRITE)) {
+        printf("sys_clone(), fault!\n");
+        return -(EFAULT);
+    }
 
     TRACE_SYSCALL("clone", "0x%p, 0x%p, %d, 0x%p", func, stack, flags, arg);
 
@@ -207,7 +212,7 @@ sys_getcwd(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(char *, buf, 0, argv);
     DEFINE_SYSCALL_PARAM(size_t, size, 1, argv);
 
-    if (vm_access(th->address_space, buf, size, PROT_WRITE)) {
+    if (vm_access(th->address_space, buf, size, VM_WRITE)) {
         return -(EFAULT);
     }
 
@@ -449,14 +454,18 @@ sys_sbrk(struct thread *th, syscall_args_t argv)
 
     TRACE_SYSCALL("sbrk", "%d", increment);
 
-    struct proc *proc = current_proc;
+    struct proc *proc = th->proc;
 
     uintptr_t old_brk = proc->brk;
+    struct vm_space *space = th->address_space;
 
-    struct vm_space *space = proc->thread->address_space;
+    if ((old_brk + increment) >= 0x20000000) {
+        printf("kernel: pid %d out of memory\n\r", proc->pid);
+        return -(ENOMEM);
+    }
 
     if (increment > 0) {
-        vm_map(space, (void*)proc->brk, increment, PROT_READ | PROT_WRITE);
+        vm_map(space, (void*)proc->brk, increment, VM_READ | VM_WRITE);
     }
 
     proc->brk += increment;
@@ -515,7 +524,7 @@ sys_wait(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int *, status, 0, argv);
 
-    if (status && vm_access(th->address_space, status, sizeof(int), PROT_READ)) {
+    if (status && vm_access(th->address_space, status, sizeof(int), VM_READ)) {
         return -(EFAULT);
     }
 
@@ -542,7 +551,7 @@ sys_waitpid(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(int *, status, 1, argv);
 
-    if (status && vm_access(th->address_space, status, sizeof(int), PROT_READ)) {
+    if (status && vm_access(th->address_space, status, sizeof(int), VM_READ)) {
         return -(EFAULT);
     }
 
