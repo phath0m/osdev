@@ -27,22 +27,29 @@ struct termstate {
     int             textscreen;
 };
 
+static int vtop_get_cursor(vtemu_t *emu, int *x, int *y);
+static int vtop_set_cursor(vtemu_t *emu, int x, int y);
+
 int
 vtop_erase_area(vtemu_t *emu, int start_x, int start_y, int end_x, int end_y)
 {
     struct termstate *state = emu->state;
+    int cur_x, cur_y;
+    
+    vtop_get_cursor(emu, &cur_x, &cur_y);
+    vtop_set_cursor(emu, start_x, start_y);
+
     int new_pos = start_y * state->width + start_x;
     int end_pos = end_y * state->width + end_x;
-    int old_pos = state->position; 
-    state->position = new_pos;
+    int pos = new_pos;
 
-    printf("Clear (%d,%d) -> (%d,%d)\n", start_x, start_y, end_x, end_y);
-    while (state->position < end_pos) {
-        //put_char(state, ' ');
-        state->position++;
+    while (pos < end_pos) {
+        char space = ' ';
+        write(state->textscreen, &space, 1);
+        pos++;
     }
 
-    state->position = old_pos;
+    vtop_set_cursor(emu, cur_x, cur_y);
     
     return 0;
 }
@@ -194,10 +201,9 @@ handle_sigchld(int signo)
 }
 
 int
-main(int argc, const char *argv[])
+main(int argc, char *argv[])
 { 
     int console = -1;
-    
     
     if (access("/dev/lfb", R_OK) == 0) {
         console = open("/dev/lfb", O_WRONLY);
@@ -227,9 +233,15 @@ main(int argc, const char *argv[])
     state.height = 25;
     state.textscreen = console;
 
+    char *shell = "/usr/bin/login";
+
+    if (argc == 2) {
+        shell = argv[1];
+    }
+
     vtemu_t *emu = vtemu_new(&vtops, &state);
     vtemu_resize(emu, state.width, state.height-1);
-    vtemu_spawn(emu, "/bin/sh");
+    vtemu_spawn(emu, shell);
 
     thread_t thread;
     thread_create(&thread, term_output_thread, emu);
