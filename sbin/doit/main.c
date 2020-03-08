@@ -219,6 +219,12 @@ do_directory(const char *directory)
 static void
 start_daemon(int argc, const char *argv[])
 {
+    const char *console = getenv("CONSOLE");
+
+    for (int i = 0; i < 3; i++) {
+        open(console, O_RDWR);
+    }
+
     runlevel_t target = MULTI_USER;
 
     if (argc == 2) {
@@ -227,18 +233,12 @@ start_daemon(int argc, const char *argv[])
         if (target == -1) {
             printf("doit: invalid runlevel specified! assume multi-user!\r\n");
             target = MULTI_USER;
+        } else {
+            printf("doit: runlevel=%s\r\n", argv[1]);
         }
     }
 
     memset(&loaded_services, 0, sizeof(loaded_services));
-
-    const char *console = getenv("CONSOLE");
-
-    for (int i = 0; i < 3; i++) {
-        open(console, O_RDWR);
-    }
-
-    printf("doit: Welcome!\r\n");
 
     do_directory("/etc/doit.d");
 
@@ -255,7 +255,6 @@ start_daemon(int argc, const char *argv[])
     bind(fd, (struct sockaddr*)&addr, sizeof(addr));
  
     for (;;) {
-
         int client = accept(fd, NULL, NULL);
 
         struct doit_request request;
