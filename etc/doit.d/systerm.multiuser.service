@@ -1,4 +1,4 @@
 [Service]
-Name=systerm
+Name=systerm.multiuser
 ExecStart=/usr/libexec/systerm
 RunLevel=2

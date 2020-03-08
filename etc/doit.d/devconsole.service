@@ -1,0 +1,4 @@
+[Service]
+Name=console
+ExecStart=/sbin/newtty /dev/ttyS0
+RunLevel=2

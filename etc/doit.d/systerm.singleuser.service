@@ -1,0 +1,4 @@
+[Service]
+Name=systerm.singleuser
+ExecStart=/usr/libexec/systerm /bin/sh
+RunLevel=1
