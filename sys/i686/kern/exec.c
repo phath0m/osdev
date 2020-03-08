@@ -57,7 +57,7 @@ realign_pointers(uintptr_t *ptr, size_t delta)
 }
 
 static void
-elf_load_image(struct vm_space *space, struct elf32_ehdr *hdr, uintptr_t *vlow, uintptr_t *vhigh)
+elf_get_dimensions(struct elf32_ehdr *hdr, uintptr_t *vlow, uintptr_t *vhigh)
 {
     struct elf32_phdr *phdrs = elf_get_pheader(hdr);
 
@@ -68,10 +68,6 @@ elf_load_image(struct vm_space *space, struct elf32_ehdr *hdr, uintptr_t *vlow, 
         struct elf32_phdr *phdr = &phdrs[i];
 
         if (phdr->p_type == PT_LOAD) {
-            void *vaddr = vm_map(space, (void*)phdr->p_vaddr, phdr->p_memsz, VM_EXEC | VM_READ | VM_WRITE);
-
-            memcpy(vaddr, ((void*)(uintptr_t)hdr + phdr->p_offset), phdr->p_filesz);
-            
             if (low > phdr->p_vaddr) {
                 low = phdr->p_vaddr;
             }
@@ -84,6 +80,20 @@ elf_load_image(struct vm_space *space, struct elf32_ehdr *hdr, uintptr_t *vlow, 
 
     *vlow = low;
     *vhigh = high;
+}
+
+static void
+elf_load_image(struct vm_space *space, struct elf32_ehdr *hdr)
+{
+    struct elf32_phdr *phdrs = elf_get_pheader(hdr);
+
+    for (int i = 0; i < hdr->e_phnum; i++) {
+        struct elf32_phdr *phdr = &phdrs[i];
+
+        if (phdr->p_type == PT_LOAD) {
+            memcpy((void*)phdr->p_vaddr, ((void*)(uintptr_t)hdr + phdr->p_offset), phdr->p_filesz);
+        }
+    }
 }
 
 static void
@@ -160,7 +170,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     fop_seek(exe, 0, SEEK_SET);
 
-    struct elf32_ehdr *elf = (struct elf32_ehdr*)malloc(size);
+    struct elf32_ehdr *elf = (struct elf32_ehdr*)calloc(1, size);
 
     fop_read(exe, (char*)elf, size);
 
@@ -176,8 +186,15 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     uintptr_t prog_low;
     uintptr_t prog_high;
+    elf_get_dimensions(elf, &prog_low, &prog_high);
 
-    elf_load_image(space, elf, &prog_low, &prog_high);
+    size_t prog_size = prog_high - prog_low;
+
+    vm_map(space, (void*)prog_low, prog_size, VM_EXEC | VM_READ | VM_WRITE);
+
+    memset((void*)prog_low, 0, prog_size);
+
+    elf_load_image(space, elf);
     elf_zero_sections(space, elf);
 
     fop_close(exe);
@@ -195,6 +212,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     for (stack_bottom = 0xBFFFF000; stack_bottom > 0xBFFFA000; stack_bottom -= 0x1000) {
         vm_map(space, (void*)stack_bottom, 0x1000, VM_READ | VM_WRITE);
+        memset((void*)stack_bottom, 0, 0x1000);
     }
 
     sched_curr_thread->u_stack_bottom = stack_bottom + 0x1000;

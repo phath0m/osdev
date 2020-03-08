@@ -14,6 +14,7 @@
 #include <sys/vnode.h>
 
 static int dev_file_destroy(struct file *fp);
+static int dev_file_getdev(struct file *fp, struct cdev **result);
 static int dev_file_ioctl(struct file *fp, uint64_t request, void *arg);
 static int dev_file_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset);
 static int dev_file_read(struct file *fp, void *buf, size_t nbyte);
@@ -22,6 +23,7 @@ static int dev_file_write(struct file *fp, const void *buf, size_t nbyte);
 
 struct fops dev_file_ops = {
     .destroy    = dev_file_destroy,
+    .getdev     = dev_file_getdev,
     .ioctl      = dev_file_ioctl,
     .mmap       = dev_file_mmap,
     .read       = dev_file_read,
@@ -53,6 +55,16 @@ dev_file_destroy(struct file *fp)
     VN_DEC_REF(file->host);
 
     free(file);
+
+    return 0;
+}
+
+static int
+dev_file_getdev(struct file *fp, struct cdev **result)
+{
+    struct cdev_file *file = (struct cdev_file*)fp->state;
+
+    *result = file->device;
 
     return 0;
 }

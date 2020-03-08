@@ -41,9 +41,9 @@ init_thread(void *argp)
 {
     /* this is sort of a hack because it assumes we're using LFB for output*/
     /* TODO: something that makes less assumptions */
-    //extern struct cdev lfb_device;
+    extern struct cdev lfb_device;
 
-    //set_kernel_output(&lfb_device);
+    set_kernel_output(&lfb_device);
 
     extern struct thread *sched_curr_thread;
 

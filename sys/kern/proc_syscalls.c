@@ -461,11 +461,15 @@ sys_sbrk(struct thread *th, syscall_args_t argv)
 
     if ((old_brk + increment) >= 0x20000000) {
         printf("kernel: pid %d out of memory\n\r", proc->pid);
+        printf("base = 0x%p\n\r", proc->base);
+        printf("brk  = 0x%p\n\r", proc->brk);
+        printf("incr = 0x%p\n\r", increment); 
         return -(ENOMEM);
     }
 
     if (increment > 0) {
         vm_map(space, (void*)proc->brk, increment, VM_READ | VM_WRITE);
+        memset((void*)proc->brk, 0, increment);
     }
 
     proc->brk += increment;

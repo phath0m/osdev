@@ -24,6 +24,7 @@
 static int ptm_close(struct file *fp);
 static int ptm_getdev(struct file *fp, struct cdev **result);
 static int ptm_read(struct file *fp, void *buf, size_t nbyte);
+static int ptm_stat(struct file *fp, struct stat *stat);
 static int ptm_write(struct file *fp, const void *buf, size_t nbyte);
 static int pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int pts_isatty(struct cdev *dev);
@@ -34,6 +35,7 @@ struct fops ptm_ops = {
     .close      = ptm_close,
     .getdev     = ptm_getdev,
     .read       = ptm_read,
+    .stat       = ptm_stat,
     .write      = ptm_write
 };
 
@@ -156,6 +158,13 @@ ptm_read(struct file *fp, void *buf, size_t nbyte)
     struct pty *pty = (struct pty*)fp->state;
 
     return fop_read(pty->output_pipe[0], buf, nbyte);
+}
+
+static int
+ptm_stat(struct file *fp, struct stat *stat)
+{
+    memset(stat, 0, sizeof(struct stat));
+    return 0;
 }
 
 static int

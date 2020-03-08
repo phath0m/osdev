@@ -176,6 +176,7 @@ devfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 static int
 devfs_stat(struct vnode *node, struct stat *stat)
 {
+    memset(stat, 0, sizeof(struct stat));
     if (node->inode == 0) {
         stat->st_mode = 0755 | S_IFDIR;
         return 0;

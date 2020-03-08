@@ -13,6 +13,7 @@ struct fork_state {
     struct proc *   proc;
     uintptr_t       u_stack_top;
     uintptr_t       u_stack_bottom;
+    bool            initialized;
     struct regs     regs;
 };
 
@@ -83,7 +84,7 @@ init_child_proc(void *statep)
     uintptr_t esp = state->regs.uesp;
     uintptr_t ebp = state->regs.ebp;
 
-    free(statep);
+    state->initialized = true;
 
     bus_interrupts_on();
 
@@ -129,19 +130,21 @@ proc_fork(struct regs *regs)
     copy_image(proc, new_space);
     copy_fildes(proc, new_proc);
 
-    struct fork_state *state = (struct fork_state*)calloc(1, sizeof(struct fork_state));
+    struct fork_state state;
+    memset(&state, 0, sizeof(state));
+    state.proc = new_proc;
+    state.u_stack_top = proc->thread->u_stack_top;
+    state.u_stack_bottom = proc->thread->u_stack_bottom;
 
-    state->proc = new_proc;
-    state->u_stack_top = proc->thread->u_stack_top;
-    state->u_stack_bottom = proc->thread->u_stack_bottom;
+    memcpy(&state.regs, regs, sizeof(struct regs));
 
-    memcpy(&state->regs, regs, sizeof(struct regs));
-
-    thread_run(init_child_proc, new_space, (void*)state);
+    thread_run(init_child_proc, new_space, (void*)&state);
 
     bus_interrupts_on();
 
-    thread_yield();
+    while (!state.initialized) {
+        thread_yield();
+    }
 
     return new_proc->pid;
 }
