@@ -45,6 +45,8 @@ mouse_next_event(mouse_t *mouse, struct mouse_event *eventbuf)
         /* apparently this indicates an overflow with the X and Y values */
         /* we will ignore the packet if this is set */
         eventbuf->event = MOUSE_NOP;
+        eventbuf->x = 0;
+        eventbuf->y = 0;
         return;
     }
 

@@ -1,4 +1,5 @@
 SUBDIRS = doit.d
+SUBDIRS = xtc
 FILES += group
 FILES += motd
 FILES += passwd

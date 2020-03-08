@@ -673,7 +673,14 @@ rmdir(const char *path)
 caddr_t
 sbrk(int incr)
 {
-    return _SYSCALL1(caddr_t, SYS_SBRK, incr);
+    int ret =  _SYSCALL1(int, SYS_SBRK, incr);
+    
+    if ((int)ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return (caddr_t)ret;
 }
 
 int
