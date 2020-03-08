@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
@@ -19,7 +20,6 @@ do_login(struct passwd *pwd)
         NULL
     };
 
- 
     pid_t child = fork();
 
     if (child == 0) {   
@@ -68,7 +68,6 @@ attempt_login(const char *login, const char *passwd)
     }
 
     int login_flags = AUTH_UPDATE_UTMP | AUTH_UPDATE_WTMP | AUTH_UPDATE_LASTLOG | AUTH_UPDATE_BTMP;
-
     struct login login_buf;
     
     if (authlib_login(&login_buf, login, passwd, login_flags) != 0) {
@@ -89,20 +88,20 @@ attempt_login(const char *login, const char *passwd)
 int
 main(int argc, char *argv[])
 {
-    
+    setsid();
+    ioctl(STDIN_FILENO, TIOCSCTTY, NULL);
+
     char login[512];
     char password[512];
 
-    char *tty = ttyname(0);
+    char *tty = ttyname(STDIN_FILENO);
 
     if (!tty) {
         return -1;
     }
 
     char *tty_name = strrchr(tty, '/') + 1;
-
     time_t now = time(NULL);
-    
     struct tm *ptm = gmtime(&now);
 
     puts(asctime(ptm));
@@ -118,7 +117,6 @@ main(int argc, char *argv[])
     for (;;) {
         fputs("login: ", stderr);
         fgets(login, 512, stdin);
-
         fputs("Password: ", stderr);
         
         /* disable echo for password */
@@ -135,6 +133,7 @@ main(int argc, char *argv[])
 
         if (attempt_login(login, password) != 0) {
             fputs("Login incorrect\n", stderr);
+            sleep(2);
         }
     }
     return 0;
