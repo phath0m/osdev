@@ -154,6 +154,10 @@ un_close(struct socket *sock)
 {
     struct un_conn *conn = (struct un_conn*)sock->state;
 
+    if (!conn) {
+        return 0;
+    }
+
     conn->refs--;
 
     if (conn->refs == 0) {
