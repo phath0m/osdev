@@ -16,16 +16,16 @@ usage()
 }
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
     struct utsname buf;
 
     uname(&buf);
 
     int c;
-    int mask = 0;
+    int flags = 0;
 
-    /* I'm not sure why I have to do this, it isn't nessicary on glibc but it is on newlib*/
+    /* I'm not sure why I have to do this, it isn't necessary on glibc but it is on newlib*/
     if (argc == 1) {
         optind = argc;
     }
@@ -34,19 +34,19 @@ main (int argc, char *argv[])
         if ((c = getopt(argc, argv, "asrvm")) != -1) {
             switch (c) {
                 case 'a':
-                    mask |= PRINT_ALL;
+                    flags |= PRINT_ALL;
                     break;
                 case 's':
-                    mask |= PRINT_SYSNAME;
+                    flags |= PRINT_SYSNAME;
                     break;
                 case 'r':
-                    mask |= PRINT_RELEASE;
+                    flags |= PRINT_RELEASE;
                     break;
                 case 'v':
-                    mask |= PRINT_VERSION;
+                    flags |= PRINT_VERSION;
                     break;
                 case 'm':
-                    mask |= PRINT_MACHINE;
+                    flags |= PRINT_MACHINE;
                     break;
                 case '?':
                     usage();
@@ -58,28 +58,30 @@ main (int argc, char *argv[])
         }
     }
 
-    if (mask == 0) {
-        mask = PRINT_SYSNAME;
+    if (flags == 0) {
+        flags = PRINT_SYSNAME;
     }
 
-    if (mask & PRINT_SYSNAME) {
-        printf("%s ", buf.sysname);
+    if (flags & PRINT_SYSNAME) {
+        fputs(buf.sysname, stdout);
+        fputs(" ", stdout);
     }
 
-    if (mask & PRINT_RELEASE) {
-        printf("%s ", buf.release);
+    if (flags & PRINT_RELEASE) {
+        fputs(buf.release, stdout);
+        fputs(" ", stdout);
     }
 
-    if (mask & PRINT_VERSION ) {
-        printf("%s ", buf.version);
+    if (flags & PRINT_VERSION ) {
+        fputs(buf.version, stdout);
+        fputs(" ", stdout);
     }
 
-    if (mask & PRINT_MACHINE) {
-        printf("%s ", buf.machine);
+    if (flags & PRINT_MACHINE) {
+        fputs(buf.machine, stdout);
     }
 
     puts("");
-
     return 0;
 }
 
