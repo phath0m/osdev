@@ -236,7 +236,7 @@ eval_escape_char(struct termstate *state, char ch)
         case 'c':
             flush_buffer(state);
             VTOPS_ERASE_AREA(state->emu, 0, 0, state->width, state->height);
-            //ioctl(state->textscreen, TXIOCLRSCR, NULL);
+            VTOPS_SET_CURSOR(state->emu, 0, 0);
             break;
         default:
             break;
