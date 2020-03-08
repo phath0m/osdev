@@ -1,3 +1,6 @@
+/*
+ * Note to self: This file bas become a cluster fuck, plz fix
+ */
 #include <machine/multiboot.h>
 #include <machine/vm.h>
 #include <sys/device.h>
@@ -39,7 +42,7 @@ struct lfb_state {
     bool            show_cursor_next_tick;
 };
 
-static int default_color_palette[] = {0x0, 0x8c5760, 0x7b8c58, 0x8c6e43, 0x58698c, 0x7b5e7d, 0x66808c, 0x8c8b8b};
+static int default_color_palette[] = {0xFFFFFF, 0x151515, 0xAC4142, 0x90A959, 0xF4BF75, 0x6A9FB5, 0xAA759F, 0x00, 0x00, 0x00};
 
 static int lfb_close(struct cdev *dev);
 static int lfb_init(struct cdev *dev);
@@ -87,6 +90,18 @@ fast_memcpy_d(void *dst, const void *src, size_t nbyte)
                  : "memory");
 }
 
+void *
+fast_memset(void *ptr, uint32_t value, size_t nbyte)
+{   
+    uint32_t *buf = (uint32_t*)ptr;
+    
+    for (int i = 0; i < nbyte / 4; i++) {
+        buf[i] = value;
+    }
+    
+    return ptr;
+}   
+
 static void
 fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
 {
@@ -117,7 +132,7 @@ fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
         fast_memcpy_d(&fg[pos], row, sizeof(row));
 
         for (int i = 0; i < FONT_WIDTH; i++) {
-            if (row[i] == 0) {
+            if (row[i] != fg_col) {
                 row[i] = bg[pos + i];
             }
         }
@@ -131,7 +146,6 @@ fb_draw_cursor(struct lfb_state *state, int position, bool clear)
 {
     uint32_t *fb = (uint32_t*)state->frame_buffer;
     uint32_t *fg = (uint32_t*)state->foreground;
-    uint32_t *bg = (uint32_t*)state->background;
 
     int x = position % state->textscreen_width * FONT_WIDTH;
     int y = position / state->textscreen_width * FONT_HEIGHT;
@@ -147,8 +161,8 @@ fb_draw_cursor(struct lfb_state *state, int position, bool clear)
             } else {
                 row[i] = fg[pos + i];
 
-                if (row[i] == 0) {
-                    row[i] = bg[pos + i];
+                if (row[i] == state->foreground_color) {
+                    row[i] = state->background_color;//[pos + i];
                 }
             }
         }
@@ -168,7 +182,7 @@ fb_redraw_background(struct lfb_state *state)
     fast_memcpy_d(bb, fg, state->buffer_size);
  
     for (int i = 0; i < state->buffer_size / 4; i++) {
-        if (!fg[i]) {
+        if (fg[i] == state->background_color) {
             bb[i] = bg[i];
         }
     }
@@ -184,8 +198,7 @@ fb_scroll(struct lfb_state *state)
     int row_height = state->pitch * FONT_HEIGHT;
 
     fast_memcpy_d(fg, (void*)fg + row_height, state->buffer_size - row_height);
-
-    memset((void*)fg + state->buffer_size - row_height, 0, row_height);
+    fast_memset((void*)fg + state->buffer_size - row_height, state->background_color, row_height);
 
     fb_redraw_background(state);
 
@@ -309,10 +322,16 @@ lfb_init(struct cdev *dev)
     state.foreground = calloc(1, state.buffer_size);
     state.background = calloc(1, state.buffer_size);
     state.backbuffer = calloc(1, state.buffer_size);
-    state.foreground_color = 0xFFFFFF;
+    state.foreground_color = 0x0;
+    state.background_color = 0xFFFFFF;
+
+    fast_memset(state.backbuffer, state.background_color, state.buffer_size);
+    fast_memset(state.background, state.background_color, state.buffer_size);
+    fast_memset(state.foreground, state.background_color, state.buffer_size);
+    fast_memset(state.frame_buffer, state.background_color, state.buffer_size);
+    
     spinlock_unlock(&state.lock);
     lfb_device.state = &state;
-    
     timer_new(lfb_tick, 300, &state);
     
     return 0;
@@ -328,7 +347,7 @@ lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
     switch (request) {
     case TXIOCLRSCR:
         state->position = 0;
-        memset(state->foreground, 0, state->buffer_size);
+        memset(state->foreground, 0xFF, state->buffer_size);
         fast_memcpy_d(state->frame_buffer, state->background, state->buffer_size);
         break;
     case TXIOSETBG :
