@@ -119,12 +119,19 @@ handle_page_fault(int inum, struct regs *regs)
 static void
 print_stack(struct regs *regs, int max_fames)
 {
+    char name[256];
+    uintptr_t offset;
     struct stackframe *frame = (struct stackframe*)regs->ebp;
  
     printf("Trace:\n\r");
 
     for (int i = 0; i < max_fames && frame; i++) {
-        printf("    [0x%p]\n\r", frame->eip);
+        
+        if (ksym_find_nearest(frame->eip, &offset, name, 256) == 0) {
+            printf("    [0x%p] <%s+0x%x>\n\r", frame->eip, name, offset);
+        } else {
+            printf("    [0x%p]\n\r", frame->eip);
+        }
         frame = frame->prev;
     }
 }
@@ -132,6 +139,13 @@ print_stack(struct regs *regs, int max_fames)
 static void
 print_regs(struct regs *regs)
 {
+    char name[256];
+    uintptr_t offset;
+
+    if (ksym_find_nearest(regs->eip, &offset, name, 256) == 0) {
+        printf("EIP is at %s+0x%x\n\r", name, offset);
+    }
+
     printf("eax: %p ebx: %p ecx: %p edx: %p\n\r", regs->eax, regs->ebx, regs->ecx, regs->ebx);
     printf("edi: %p esi: %p esp: %p eip: %p\n\r", regs->edi, regs->esi, regs->esp, regs->eip);
     printf(" cs: %p  ds: %p  ss: %p\n\r", regs->cs, regs->ds, regs->ss);

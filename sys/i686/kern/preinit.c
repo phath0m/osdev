@@ -1,3 +1,4 @@
+#include <machine/elf32.h>
 #include <machine/multiboot.h>
 #include <machine/vm.h>
 #include <sys/bus.h>
@@ -13,6 +14,31 @@
 
 void *start_initramfs;
 multiboot_info_t *multiboot_header;
+
+/* load all kernel symbols */
+static void
+ksym_init()
+{
+    struct elf32_shdr *shdr = (struct elf32_shdr*)PTOKVA(multiboot_header->u.elf_sec.addr);
+    
+    struct elf32_shdr *symtab = &shdr[15];
+    struct elf32_shdr *strtab = &shdr[16];
+    
+    char *all_strings = (char*)PTOKVA(strtab->sh_addr);
+    struct elf32_sym *all_syms = (struct elf32_sym*)PTOKVA(symtab->sh_addr);
+    
+    int nents = symtab->sh_size / sizeof(struct elf32_sym);
+    
+    for (int i = 0; i < nents; i++) {
+        struct elf32_sym *sym = &all_syms[i];
+        char *name = &all_strings[sym->st_name];
+
+        if (name) {
+            ksym_declare(name, sym->st_value);
+        }
+    }
+
+}
 
 void
 _preinit(multiboot_info_t *multiboot_hdr)
@@ -32,6 +58,9 @@ _preinit(multiboot_info_t *multiboot_hdr)
 
     /* set the initial console */
     set_kernel_output(&serial0_device);
+
+    /* load kernel symbols */
+    ksym_init();
 
     printf("base=0x%p initrd=0x%p heap=0x%p\n", KERNEL_VIRTUAL_BASE, initrd, heap);
     printf("physical memory map:\n"); 
