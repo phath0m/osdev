@@ -47,11 +47,14 @@ ps_print_extended(struct kinfo_proc *entry)
     } else {
         printf("%-10s", "?");
     }
-    printf("%5d ", entry->pid);
-    printf("%5d ", entry->ppid);
-    printf("%-6s", time_buf);
-    printf("%-10s ", entry->tty);
-    printf("%s\n", entry->cmd);
+    
+    printf("%5d %5d %-6s%-10s %s\n", entry->pid, entry->ppid, time_buf, entry->tty, entry->cmd);
+}
+
+static void
+ps_print_job_ctl(struct kinfo_proc *entry)
+{
+    printf("%5d %5d %5d %-10s %s\n", entry->pid, entry->pgid, entry->sid, entry->tty, entry->cmd);
 }
 
 static void
@@ -60,6 +63,9 @@ ps_print_procs(int options, struct kinfo_proc *procs, int nprocs)
     switch (PS_FORMAT(options)) {
         case PS_FORMAT_EXTENDED:
             puts("UID         PID  PPID STIME TTY        CMD");
+            break;
+        case PS_FORMAT_JOB_CTL:
+            puts("  PID  PGID   SID TTY        CMD");
             break;
         default:
             puts("  PID TTY        CMD");
@@ -80,6 +86,9 @@ ps_print_procs(int options, struct kinfo_proc *procs, int nprocs)
             case PS_FORMAT_EXTENDED:
                 ps_print_extended(entry);
                 break;
+            case PS_FORMAT_JOB_CTL:
+                ps_print_job_ctl(entry);
+                break;
             default:
                 ps_print_basic(entry);
                 break;
@@ -93,7 +102,7 @@ main(int argc, char *argv[])
     int options = 0;
     int c;
     while (optind < argc) {
-        if ((c = getopt(argc, argv, "aefA")) != -1) {
+        if ((c = getopt(argc, argv, "aefjA")) != -1) {
             switch (c) {
                 case 'a':
                     options |= PS_DISPLAY_ALL_TTYS;
@@ -104,6 +113,9 @@ main(int argc, char *argv[])
                     break;
                 case 'f':
                     options |= PS_FORMAT_EXTENDED;
+                    break;
+                case 'j':
+                    options |= PS_FORMAT_JOB_CTL;
                     break;
                 case '?':
                     return -1;
