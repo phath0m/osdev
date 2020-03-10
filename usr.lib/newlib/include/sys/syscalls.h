@@ -73,6 +73,7 @@
 #define SYS_GETTID          0x47
 #define SYS_SHM_OPEN        0x48
 #define SYS_SHM_UNLINK      0x49
+#define SYS_SYSCTL          0x4A
 
 struct mmap_args {
     uintptr_t   addr;
@@ -81,6 +82,15 @@ struct mmap_args {
     int         flags;
     int         fd;
     off_t       offset;
+};
+
+struct sysctl_args {
+    int *       name;
+    int         namelen;
+    void *      oldp;
+    size_t *    oldlenp;
+    void *      newp;
+    size_t      newlen;
 };
 
 static inline uintptr_t

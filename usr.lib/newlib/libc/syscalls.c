@@ -845,6 +845,27 @@ sysconf(int name)
     }
 }
 
+int
+sysctl(int *name, int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen)
+{
+    struct sysctl_args args;
+    args.name = name;
+    args.namelen = namelen;
+    args.oldp = oldp;
+    args.oldlenp = oldlenp;
+    args.newp = newp;
+    args.newlen = newlen;
+
+    int ret = _SYSCALL1(int, SYS_SYSCTL, &args);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
 clock_t
 times(struct tms *buf)
 {
