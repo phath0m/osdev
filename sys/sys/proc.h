@@ -135,6 +135,7 @@ void            proc_leave_group(struct proc *proc, struct pgrp *group);
 struct proc *   proc_find(int pid);
 struct proc *   proc_new();
 int             proc_signal(struct proc *proc, int sig, struct signal_args *sargs);
+int             proc_sysctl(int *name, int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
 
 struct session *    session_new(struct proc *leader);
 

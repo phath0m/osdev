@@ -77,6 +77,7 @@
 #define SYS_GETTID          0x47
 #define SYS_SHM_OPEN        0x48
 #define SYS_SHM_UNLINK      0x49
+#define SYS_SYSCTL          0x4A
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
@@ -92,6 +93,15 @@
 struct syscall_args {
     void *      state;
     uintptr_t * args;
+};
+    
+struct sysctl_args {
+    int *       name;
+    int         namelen;
+    void *      oldp;
+    size_t *    oldlenp;
+    void *      newp;
+    size_t      newlen;
 };
 
 struct thread;

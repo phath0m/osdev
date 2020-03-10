@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
+#include <sys/sysctl.h>
 
 static int
 sys_time(struct thread *th, syscall_args_t argv)
@@ -31,9 +32,21 @@ sys_uname(struct thread *th, syscall_args_t argv)
     return 0;
 }
 
+
+static int
+sys_sysctl(struct thread *th, syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(struct sysctl_args *, args, 0, argv);
+
+    // TODO: validate pointers
+    
+    return sysctl(args->name, args->namelen, args->oldp, args->oldlenp, args->newp, args->newlen);
+}
+
 void
 misc_syscalls_init()
 {
     register_syscall(SYS_TIME, 1, sys_time);
     register_syscall(SYS_UNAME, 1, sys_uname);
+    register_syscall(SYS_SYSCTL, 1, sys_sysctl);
 }
