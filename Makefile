@@ -27,6 +27,7 @@ $(INITRD):
 	make -C usr.libexec PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	make -C etc PREFIX=/ DESTDIR=$(BUILDROOT) install
 	make -C usr.share PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C usr.xtc PREFIX=/usr/xtc DESTDIR=$(BUILDROOT) install
 	tar --owner=root -C $(BUILDROOT) -cvf $(INITRD) .
 
 kernel: $(KERNEL)
@@ -44,6 +45,7 @@ userland:
 	PATH=$(PATH) make -C usr.bin
 	PATH=$(PATH) make -C usr.games
 	PATH=$(PATH) make -C usr.libexec
+	PATH=$(PATH) make -C usr.xtc
 
 userland-libraries:
 	PATH=$(PATH) make DESTDIR=$(TOOLROOT) PREFIX=/usr -C usr.lib
