@@ -6,6 +6,7 @@ export PREFIX
 MAKE = make
 
 SUBDIRS += cowsay
+SUBDIRS += fortune
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
