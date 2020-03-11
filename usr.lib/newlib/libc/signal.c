@@ -45,23 +45,3 @@ sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
         return -1;
     }
 }
-
-_sig_func_ptr
-signal(int signo, _sig_func_ptr handler)
-{
-    struct signal_args sargs;
-
-    sargs.handler = (uintptr_t)_sighandle;
-    sargs.arg = (uintptr_t)handler;
-
-    int ret;
-
-    asm volatile("int $0x80" : "=a"(ret) : "a"(SYS_SIGACTION), "b"(signo), "c"(&sargs));
-
-    if (ret < 0) {
-        errno = -ret;
-        return NULL;
-    }
-
-    return NULL;
-}
