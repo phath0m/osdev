@@ -6,7 +6,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-NEWTTY_OBJECTS += main.o
+NEWTTY_OBJECTS += newtty.o
 
 NEWTTY = newtty
 

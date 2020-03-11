@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-KILL_OBJECTS += main.o
+KILL_OBJECTS += kill.o
 
 KILL = kill
 

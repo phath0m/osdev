@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-CHOWN_OBJECTS += main.o
+CHOWN_OBJECTS += chown.o
 
 CHOWN = chown
 

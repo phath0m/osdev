@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall
 LDFLAGS =
 
-MKNOD_OBJECTS += main.o
+MKNOD_OBJECTS += mknod.o
 
 MKNOD = mknod
 

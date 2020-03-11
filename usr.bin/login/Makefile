@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS = -lauth
 
-LOGIN_OBJECTS += main.o
+LOGIN_OBJECTS += login.o
 
 LOGIN = login
 

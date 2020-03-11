@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-MKFIFO_OBJECTS += main.o
+MKFIFO_OBJECTS += mkfifo.o
 
 MKFIFO = mkfifo
 

@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-KSTAT_OBJECTS += main.o
+KSTAT_OBJECTS += kstat.o
 
 KSTAT = kstat
 

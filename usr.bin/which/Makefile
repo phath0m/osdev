@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-WHICH_OBJECTS += main.o
+WHICH_OBJECTS += which.o
 
 WHICH = which
 

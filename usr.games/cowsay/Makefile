@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-COWSAY_OBJECTS += main.o
+COWSAY_OBJECTS += cowsay.o
 
 COWSAY = cowsay
 

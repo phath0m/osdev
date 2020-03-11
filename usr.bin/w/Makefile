@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-W_OBJECTS += main.o
+W_OBJECTS += w.o
 
 W = w
 

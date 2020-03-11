@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-FBCTL_OBJECTS += main.o
+FBCTL_OBJECTS += fbctl.o
 
 FBCTL = fbctl
 

@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS = -lcollections -lini
 
-DOIT_OBJECTS += main.o
+DOIT_OBJECTS += doit.o
 
 DOIT = doit
 

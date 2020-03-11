@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-SLEEP_OBJECTS += main.o
+SLEEP_OBJECTS += sleep.o
 
 SLEEP = sleep
 

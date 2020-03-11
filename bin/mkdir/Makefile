@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-MKDIR_OBJECTS += main.o
+MKDIR_OBJECTS += mkdir.o
 
 MKDIR = mkdir
 

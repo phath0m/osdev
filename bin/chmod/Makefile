@@ -4,7 +4,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS =
 
-CHMOD_OBJECTS += main.o
+CHMOD_OBJECTS += chmod.o
 
 CHMOD = chmod
 
