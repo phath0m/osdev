@@ -119,7 +119,7 @@ main(int argc, const char *argv[])
 
     struct menu_entry terminal_entry;
     terminal_entry.text = "Terminal";
-    terminal_entry.program = "/usr/bin/xtcterm";
+    terminal_entry.program = "/usr/xtc/bin/xtcterm";
 
     list_append(&ctx.entries, &terminal_entry);
 
