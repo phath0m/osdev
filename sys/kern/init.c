@@ -104,6 +104,10 @@ kmain(const char *args)
     /* initialize all system calls*/
     syscalls_init();
 
+    extern void pseudo_devices_init();
+
+    pseudo_devices_init();
+
     thread_run((kthread_entry_t)init_thread, NULL, (void*)args);
 
     for (;;) {

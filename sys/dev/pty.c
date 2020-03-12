@@ -108,6 +108,33 @@ pty_flush_buf(struct pty *pty)
     pty->line_buf_pos = 0;
 }
 
+static int
+pty_inprocess(struct pty *pty, const char *buf, size_t nbyte)
+{
+    const char *last_chunk = buf;
+    int last_chunk_pos = 0;
+
+    for (int i = 0; i < nbyte; i++) {
+        if (buf[i] == '\r' && (pty->termios.c_iflag & ONLCR)) {
+            if (i != last_chunk_pos) fop_write(pty->input_pipe[1], last_chunk, i - last_chunk_pos);
+            fop_write(pty->input_pipe[1], "\r\n", 2);
+            last_chunk = &buf[i + 1];
+            last_chunk_pos = i + 1;
+        } else if (buf[i] == '\r') {
+            if (i != last_chunk_pos) fop_write(pty->input_pipe[1], last_chunk, i - last_chunk_pos);
+            fop_write(pty->input_pipe[1], "\n", 1);
+            last_chunk = &buf[i + 1];
+            last_chunk_pos = i + 1;    
+        }
+    }
+
+    if(last_chunk_pos < nbyte) {
+        fop_write(pty->input_pipe[1], last_chunk, nbyte - last_chunk_pos);
+    }
+
+    return nbyte;
+}
+
 static void
 pty_outprocess(struct pty *pty, const char *buf, size_t nbyte)
 {
@@ -182,7 +209,7 @@ ptm_write(struct file *fp, const void *buf, size_t nbyte)
     }
 
     if (!(pty->termios.c_lflag & ICANON)) {
-        return fop_write(pty->input_pipe[1], buf, nbyte);
+        return pty_inprocess(pty, buf, nbyte);
     }
 
     for (int i = 0; i < nbyte; i++) {

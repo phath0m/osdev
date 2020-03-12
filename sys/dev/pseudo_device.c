@@ -86,7 +86,6 @@ zero_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
     return nbyte;
 }
 
-__attribute__((constructor))
 void
 pseudo_devices_init()
 {
