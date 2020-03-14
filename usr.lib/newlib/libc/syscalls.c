@@ -49,6 +49,19 @@ access(const char *path, int mode)
 }
 
 int
+adjtime(const struct timeval *delta, struct timeval *olddelta)
+{
+    int ret = _SYSCALL2(int, SYS_ADJTIME, delta, olddelta);
+    
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 bind(int fd, const struct sockaddr *address, socklen_t address_size)
 {
     int ret = _SYSCALL3(int, SYS_BIND, fd, address, address_size);
