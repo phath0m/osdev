@@ -143,12 +143,15 @@ print_stack(struct regs *regs, int max_fames)
     printf("Trace:\n\r");
 
     for (int i = 0; i < max_fames && frame; i++) {
-        
         if (ksym_find_nearest(frame->eip, &offset, name, 256) == 0) {
             printf("    [0x%p] <%s+0x%x>\n\r", frame->eip, name, offset);
         } else {
             printf("    [0x%p]\n\r", frame->eip);
         }
+    
+        if ((uintptr_t)frame->prev < 0xC0000000) {
+            break;
+        }    
         frame = frame->prev;
     }
 }

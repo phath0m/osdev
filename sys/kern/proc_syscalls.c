@@ -480,7 +480,6 @@ sys_sbrk(struct thread *th, syscall_args_t argv)
 
     if (increment > 0) {
         vm_map(space, (void*)proc->brk, increment, VM_READ | VM_WRITE);
-        memset((void*)proc->brk, 0, increment);
     }
 
     proc->brk += increment;
