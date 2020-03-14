@@ -21,9 +21,37 @@
 #include <ds/list.h>
 #include <sys/malloc.h>
 #include <sys/sched.h>
+#include <sys/string.h>
+#include <sys/time.h>
 #include <sys/timer.h>
 
-struct list timer_list;
+time_t          time_second;
+struct timeval  time_delta;
+struct list     timer_list;
+
+int
+adjtime(const struct timeval *delta, struct timeval *olddelta)
+{
+    if (olddelta) {
+        memcpy(olddelta, &time_delta, sizeof(struct timeval));
+    }
+
+    if (delta) {
+        memcpy(&time_delta, delta, sizeof(struct timeval));
+    }
+
+    return 0;
+}   
+
+time_t
+time(time_t *tmlock)
+{
+    if (tmlock) {
+        *tmlock = time_second + time_delta.tv_sec;
+    }
+
+    return time_second + time_delta.tv_sec;
+}
 
 void
 timer_new(timer_tick_t handler, uint32_t timeout, void *argp)
@@ -54,6 +82,8 @@ timer_renew(struct timer *timer, uint32_t new_timeout)
 void
 timer_tick()
 {
+    time_second = sched_ticks / sched_hz;
+
     list_iter_t iter;
     list_get_iter(&timer_list, &iter);
 

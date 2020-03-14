@@ -78,6 +78,7 @@
 #define SYS_SHM_OPEN        0x48
 #define SYS_SHM_UNLINK      0x49
 #define SYS_SYSCTL          0x4A
+#define SYS_ADJTIME         0x4B
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])

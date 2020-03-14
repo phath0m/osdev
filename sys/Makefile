@@ -17,6 +17,7 @@ KERNEL_OBJECTS += fs/devfs.o
 KERNEL_OBJECTS += fs/tarfs.o
 KERNEL_OBJECTS += fs/tmpfs.o
 
+KERNEL_OBJECTS += kern/clock.o
 KERNEL_OBJECTS += kern/device.o
 KERNEL_OBJECTS += kern/device_file.o
 KERNEL_OBJECTS += kern/interrupt.o
@@ -41,7 +42,6 @@ KERNEL_OBJECTS += kern/signal.o
 KERNEL_OBJECTS += kern/socket.o
 KERNEL_OBJECTS += kern/socket_syscalls.o
 KERNEL_OBJECTS += kern/sysctl.o
-KERNEL_OBJECTS += kern/timer.o
 KERNEL_OBJECTS += kern/extract_tar.o
 KERNEL_OBJECTS += kern/vfs.o
 KERNEL_OBJECTS += kern/vfs_syscalls.o

@@ -1,5 +1,5 @@
 /*
- * time.c - Shitty RTC driver
+ * rtc.c - RTC driver
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,27 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <machine/portio.h>
+#include <sys/device.h>
+#include <sys/devno.h>
+#include <sys/string.h>
 #include <sys/types.h>
+
+static int rtc_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
+    
+struct cdev rtc_device = {
+    .name       =   "rtc",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_RTC,
+    .minorno    =   0,
+    .close      =   NULL,
+    .init       =   NULL,
+    .ioctl      =   NULL,
+    .isatty     =   NULL,
+    .open       =   NULL,
+    .read       =   rtc_read,
+    .write      =   NULL,
+    .state      =   NULL
+};  
 
 #define CMOS_ADDRESS    0x70
 #define CMOS_DATA       0x71
@@ -93,14 +113,20 @@ get_cmos_time()
     return epoch;
 }
 
-time_t
-time(time_t *second)
+static int
+rtc_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
+    if (nbyte != 4) {
+        return -1;
+    }
+    
     time_t last_time;
 
     do {
         last_time = get_cmos_time();
     } while (get_cmos_time() != last_time);
 
-    return last_time;
+    memcpy(buf, &last_time, 4);
+
+    return 4;
 }

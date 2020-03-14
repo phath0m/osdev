@@ -28,6 +28,17 @@
 #include <sys/sysctl.h>
 
 static int
+sys_adjtime(struct thread *th, syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(struct timeval *, delta, 0, argv);
+    DEFINE_SYSCALL_PARAM(struct timeval *, olddelta, 1, argv);
+    
+    TRACE_SYSCALL("adjtime", "0x%p, 0x%p", delta, olddelta);
+
+    return adjtime(delta, olddelta);
+}
+
+static int
 sys_time(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(time_t *, tloc, 0, argv);
@@ -69,4 +80,5 @@ misc_syscalls_init()
     register_syscall(SYS_TIME, 1, sys_time);
     register_syscall(SYS_UNAME, 1, sys_uname);
     register_syscall(SYS_SYSCTL, 1, sys_sysctl);
+    register_syscall(SYS_ADJTIME, 2, sys_adjtime);
 }

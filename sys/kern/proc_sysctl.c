@@ -21,6 +21,7 @@
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/types.h>
 
 static void
@@ -36,7 +37,7 @@ fill_proc_info(struct kinfo_proc *proc_info, struct proc *proc)
         proc_info->ppid = proc->parent->pid;
     }
     
-    proc_info->stime = proc->start_time;
+    proc_info->stime = proc->start_time + time_delta.tv_sec;
 
     char *tty = proc_getctty(proc);
 

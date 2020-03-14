@@ -257,8 +257,9 @@ proc_new()
 {
     struct proc *proc = pool_get(&proc_pool);
 
-    proc->start_time = time(NULL);    
+    proc->start_time = time_second;
     proc->pid = proc_get_new_pid();
+
     list_append(&process_list, proc);
 
     proc_count++;

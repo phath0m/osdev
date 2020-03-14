@@ -20,6 +20,7 @@
 extern struct cdev kbd_device;
 extern struct cdev lfb_device;
 extern struct cdev mouse_device;
+extern struct cdev rtc_device;
 extern struct cdev serial0_device;
 extern struct cdev serial1_device;
 extern struct cdev serial2_device;
@@ -49,6 +50,7 @@ struct cdev *machine_dev_all[] = {
 #ifdef ENABLE_DEV_VGA
     &vga_device,
 #endif
+    &rtc_device,
     NULL
 };
 
