@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <collections/dict.h>
 #include <sys/socket.h>
@@ -215,6 +216,34 @@ do_directory(const char *directory)
     closedir(dirp);
 }
 
+/* set the system time */
+static void
+set_system_time()
+{
+    extern int adjtime(const struct timeval *, struct timeval *);
+
+    int fd = open("/dev/rtc", O_RDONLY);
+
+    if (fd == -1) {
+        fputs("doit: could not set time!\r\n", stderr);
+        return;
+    }
+
+    time_t delta_seconds = 0;
+
+    read(fd, &delta_seconds, 4);
+    close(fd);
+
+    struct timeval olddelta;
+    struct timeval delta;
+    adjtime(NULL, &olddelta);
+
+    delta.tv_sec = delta_seconds + olddelta.tv_sec;
+    delta.tv_usec = 0;
+
+    adjtime(&delta, NULL);
+}
+
 /* this should only be called onced; initializes the actual daemon and starts services*/
 static void
 start_daemon(int argc, const char *argv[])
@@ -224,6 +253,8 @@ start_daemon(int argc, const char *argv[])
     for (int i = 0; i < 3; i++) {
         open(console, O_RDWR);
     }
+
+    set_system_time();
 
     runlevel_t target = MULTI_USER;
 
