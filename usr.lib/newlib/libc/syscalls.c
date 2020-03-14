@@ -454,7 +454,15 @@ gettimeofday(struct timeval *p, void *z)
         return -1;
     }
 
+    time_t tz_delta = 0;
+
+    if (tz_delta) {
+        struct timezone *tz = z;
+        ret += tz->tz_minuteswest*60;
+    }
+
     p->tv_sec = (time_t)ret;
+    p->tv_usec = 0;
 
     return 0;
 }
@@ -759,6 +767,28 @@ setsid()
     }
 
     return ret;
+}
+
+int
+settimeofday(const struct timeval *tv, const struct timezone *tz)
+{
+    struct timeval olddelta;
+
+    if (adjtime(NULL, &olddelta) != 0) {
+        return -1;
+    }
+
+    time_t delta = time(NULL);
+
+    if (tz) {
+        delta += tz->tz_minuteswest*60;
+    }
+
+    struct timeval newtv;
+    newtv.tv_sec = (tv->tv_sec + delta) - (olddelta.tv_sec);
+    newtv.tv_usec = 0;
+
+    return adjtime(&newtv, NULL);
 }
 
 int
