@@ -5,8 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 
 #define LS_INC_HIDDEN   0x01
@@ -131,7 +133,10 @@ ls_pretty_print(struct ls_dirent **contents, int nentries)
         entries++;
     }
 
-    int cols = 80 / (longest + 2);
+    struct winsize ws;
+    ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
+
+    int cols = (ws.ws_col - longest )  / (longest + 2);
     int padding = longest + 2;
     int row = 0;
     int col = 0;
