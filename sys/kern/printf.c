@@ -31,6 +31,20 @@ set_kernel_output(struct cdev *dev)
 }
 
 void
+panic(const char *fmt, ...)
+{
+    va_list arg;
+
+    printf("panic: ");
+
+    va_start(arg, fmt);
+    vprintf(fmt, arg);
+    va_end(arg);
+
+    shutdown();
+}
+
+void
 puts(const char *str)
 {   
     size_t nbyte = strlen(str);

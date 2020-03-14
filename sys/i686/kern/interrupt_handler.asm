@@ -1,3 +1,23 @@
+; interrupt_handler.asm - x86 interrupt handlers 
+;
+; This file defines the actual interrupt handlers. This is done in assembly to
+; allow more granular control over the stack and to setup the struct regs *
+; argument that's actually passed to the C portion of the interrupt dispatcher
+;
+; This program is free software; you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 2 of the License, or
+; (at your option) any later version.
+;
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License along
+; with this program; if not, write to the Free Software Foundation, Inc.,
+; 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 %macro ISR_NOERRCODE 1
     global isr%1
     
