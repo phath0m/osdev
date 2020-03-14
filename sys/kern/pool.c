@@ -1,11 +1,21 @@
 /*
  * pool.c
  *
- * Allows for dynamic allocation of fixed size blocks. This is primarily being
- * to elevate some problems with the current malloc implementation in terms of
- * potentional deadlocks (There is one lock for malloc, so, if by chance, malloc
- * is pre-empted and something else tries to call malloc from a critical section,
- * a deadlock will occur.
+ * Allows for dynamic allocation of fixed size blocks of memory. 
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <ds/list.h>
 #include <sys/pool.h>
@@ -13,10 +23,6 @@
 #include <sys/mutex.h>
 #include <sys/string.h>
 #include <sys/systm.h>
-
-struct pool_entry {
-    void *  ptr;
-};
 
 void
 pool_init(struct pool *pp, size_t size, uintptr_t align)
