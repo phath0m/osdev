@@ -5,6 +5,7 @@ export DESTDIR
 
 MAKE = make
 
+SUBDIRS += date
 SUBDIRS += cat
 SUBDIRS += chmod
 SUBDIRS += chown
