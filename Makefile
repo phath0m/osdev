@@ -5,6 +5,8 @@ TOOLROOT = $(shell realpath build/toolroot)
 ISO_IMAGE = build/os.iso
 PATH := "$(TOOLROOT)/bin:$(PATH)"
 
+.PHONY: userland clean ports
+
 CC=$(TOOLROOT)/bin/i686-elysium-gcc
 
 all: toolchain userland-libraries userland kernel iso
@@ -28,12 +30,16 @@ $(INITRD):
 	make -C etc PREFIX=/ DESTDIR=$(BUILDROOT) install
 	make -C usr.share PREFIX=/usr DESTDIR=$(BUILDROOT) install
 	make -C usr.xtc PREFIX=/usr/xtc DESTDIR=$(BUILDROOT) install
+	make -C ports PREFIX=/usr/local DESTDIR=$(BUILDROOT) install
 	tar --owner=root -C $(BUILDROOT) -cvf $(INITRD) .
 
 kernel: $(KERNEL)
 
 $(KERNEL):
 	PATH=$(PATH) make -C sys
+
+ports:
+	PATH="$(PATH)" make -C ports
 
 userland: 
 	mkdir -p $(BUILDROOT)/dev
