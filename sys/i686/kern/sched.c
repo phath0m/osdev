@@ -22,33 +22,21 @@ struct thread *     sched_curr_thread;
 
 uintptr_t           sched_curr_page_dir;
 
-uint32_t            sched_ticks;
-
-static void
-init_pit(uint32_t frequency)
-{
-    uint32_t divisor = 1193180 / frequency;
-
-    io_write_byte(0x43, 0x36);
-    io_write_byte(0x40, divisor & 0xFF);
-    io_write_byte(0x40, (divisor >> 8) & 0xFF);
-}
+uint32_t            sched_ticks     = 0;
+uint32_t            sched_hz        = 1000;
 
 static void
 sched_reap_threads()
 {
     list_iter_t iter;
-
     list_get_iter(&dead_threads, &iter);
 
     struct thread *thread;
-
     while (iter_move_next(&iter, (void**)&thread)) {
         thread_destroy(thread);
     }
 
     iter_close(&iter);
-    
     list_destroy(&dead_threads, false);
 }
 
@@ -59,6 +47,8 @@ sched_get_next_proc(uintptr_t prev_esp)
     extern void set_tss_esp0(uint32_t esp0);
 
     timer_tick();
+
+    sched_ticks++;
 
     struct thread *next_thread = NULL;
 
@@ -149,7 +139,6 @@ thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 
     uint32_t *stack_base = calloc(1, 65536);
     uint32_t *stack_top = &stack_base[16380];
-
     uint32_t *stack = (uint32_t*)stack_top;
     
     *--stack = (uint32_t)arg;
@@ -202,7 +191,10 @@ thread_schedule(int state, struct thread *thread)
 void
 sched_init()
 {
-    init_pit(1000);
+    uint32_t divisor = 1193180 / sched_hz;
+    io_write_byte(0x43, 0x36);
+    io_write_byte(0x40, divisor & 0xFF);
+    io_write_byte(0x40, (divisor >> 8) & 0xFF);
 
     sched_curr_address_space = vm_space_new();
 

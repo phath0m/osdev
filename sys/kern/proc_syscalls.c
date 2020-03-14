@@ -11,6 +11,7 @@
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/procdesc.h>
+#include <sys/sched.h>
 #include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/string.h>
@@ -23,13 +24,10 @@ static inline int
 can_execute_file(const char *path)
 {
     struct stat buf;
-
     struct file *file;
 
     if (vfs_open(current_proc, &file, path, O_RDONLY) == 0) {
-
         fop_stat(file, &buf);
-
         fop_close(file);
         
         if ((buf.st_mode & S_IXUSR) && buf.st_uid == current_proc->creds.euid) {
@@ -112,7 +110,6 @@ sys_clone(struct thread *th, syscall_args_t argv)
     DEFINE_SYSCALL_PARAM(void *, arg, 3, argv);
 
     if (vm_access(th->address_space, stack, 1, VM_READ | VM_WRITE)) {
-        printf("sys_clone(), fault!\n");
         return -(EFAULT);
     }
 
@@ -505,18 +502,16 @@ sys_sigrestore(struct thread *th, syscall_args_t argv)
 static int
 sys_sleep(struct thread *th, syscall_args_t argv)
 {
-    DEFINE_SYSCALL_PARAM(int, seconds, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, milliseconds, 0, argv);
 
-    TRACE_SYSCALL("sleep", "%d", seconds);
+    TRACE_SYSCALL("msleep", "%d", milliseconds);
 
-    extern uint32_t timer_ticks;
-    uint32_t required_ticks = seconds;
-
-    int wakeup_time = timer_ticks + required_ticks;
+    uint32_t required_ticks = milliseconds;
+    int wakeup_time = sched_ticks + required_ticks;
 
     bus_interrupts_on();
 
-    while (timer_ticks < wakeup_time) {
+    while (sched_ticks < wakeup_time) {
         thread_yield();
     }
 
@@ -562,7 +557,6 @@ sys_waitpid(struct thread *th, syscall_args_t argv)
     TRACE_SYSCALL("waitpid", "%d, %p", pid, status);
 
     list_iter_t iter;
-
     list_get_iter(&current_proc->children, &iter);
 
     struct proc *proc;

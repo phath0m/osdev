@@ -1,5 +1,5 @@
-#ifndef RTL_LIST_H
-#define RTL_LIST_H
+#ifndef _RTL_LIST_H
+#define _RTL_LIST_H
 
 #include <sys/mutex.h>
 #include <sys/types.h>
