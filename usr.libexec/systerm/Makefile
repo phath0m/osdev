@@ -6,7 +6,7 @@ LD=i686-elysium-gcc
 CFLAGS = -c -std=gnu99 -Wall -Werror
 LDFLAGS = -lthread -lvt
 
-SYSTERM_OBJECTS += main.o
+SYSTERM_OBJECTS += systerm.o
 
 SYSTERM = systerm
 

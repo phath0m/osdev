@@ -200,13 +200,27 @@ handle_sigchld(int signo)
     kill(9, getpid());
 }
 
+static void
+get_lfb_size(int fd, int *width, int *height)
+{
+    struct lfb_info info;
+
+    ioctl(fd, FBIOGETINFO, &info); 
+    
+    *width = info.width / 8;
+    *height = info.height / 12;
+}
+
 int
 main(int argc, char *argv[])
 { 
     int console = -1;
-    
+    int width = 80;
+    int height = 25;
+
     if (access("/dev/lfb", R_OK) == 0) {
         console = open("/dev/lfb", O_WRONLY);
+        get_lfb_size(console, &width, &height);
     } else {
         console = open("/dev/vga", O_WRONLY);
     }
@@ -229,8 +243,8 @@ main(int argc, char *argv[])
 
     struct termstate state;
     memset(&state, 0, sizeof(state));
-    state.width = 80;
-    state.height = 25;
+    state.width = width;
+    state.height = height;
     state.textscreen = console;
 
     char *shell = "/usr/bin/login";
