@@ -4,6 +4,7 @@ include config.mk
 include $(shell realpath "$(ARCH)/config.mk")
 
 CFLAGS += -I "$(shell realpath ./)"
+CFLAGS += -D "__KERNEL__"
 
 KERNEL_OBJECTS += dev/pseudo_device.o
 KERNEL_OBJECTS += dev/pty.o

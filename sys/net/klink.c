@@ -33,8 +33,6 @@
 // delete me
 #include <sys/systm.h>
 
-#define AF_KLINK    40
-
 #define KERROR_NOENT    0x01
 
 #define KLINK_QUERY     0x01

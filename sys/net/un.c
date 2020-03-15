@@ -32,8 +32,6 @@
 #include <sys/un.h>
 #include <sys/vnode.h>
 
-#define AF_UNIX     0x01
-
 static int un_accept(struct socket *socket, struct socket **result, void *address, size_t *address_len);
 static int un_bind(struct socket *socket, void *address, size_t address_len);
 static int un_close(struct socket *sock);

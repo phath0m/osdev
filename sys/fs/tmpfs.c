@@ -101,7 +101,9 @@ tmpfs_chmod(struct vnode *node, mode_t mode)
 {
     struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
 
-    tmpfs_node->mode = mode;
+    tmpfs_node->mode &= ~(0777);
+    tmpfs_node->mode |= mode;
+    node->mode = tmpfs_node->mode;
 
     return 0;
 }
@@ -165,10 +167,9 @@ tmpfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
     struct vnode *node = vn_new(parent, dev, &tmpfs_file_ops);
 
     struct tmpfs_node *root_node = tmpfs_node_new();
-    root_node->mode = 0755;
-
+    root_node->mode = 0755 | S_IFDIR;
     node->state = root_node;
-    node->mode = 0755;
+    node->mode = 0755 | S_IFDIR;
 
     *root = node;
 
