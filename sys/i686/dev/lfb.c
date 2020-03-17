@@ -40,10 +40,8 @@
 struct lfb_state {
     vbe_info_t *    vbe;
     spinlock_t      lock;
-    uint8_t *       frame_buffer;
+    uint8_t *       framebuffer;
     uint8_t *       foreground;
-    uint8_t *       backbuffer;
-    uint8_t *       background;
     int             width;
     int             height;
     int             pitch;
@@ -130,10 +128,8 @@ fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
     if (val > 128) {
         val = 4;
     }
-    uint32_t *fb = (uint32_t*)state->frame_buffer;
+    uint32_t *fb = (uint32_t*)state->framebuffer;
     uint32_t *fg = (uint32_t*)state->foreground;
-    uint32_t *bg = (uint32_t*)state->background;
-
     uint8_t *c = number_font[val];
 
     uint32_t row[FONT_WIDTH];
@@ -149,13 +145,6 @@ fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
         }
         
         fast_memcpy_d(&fg[pos], row, sizeof(row));
-
-        for (int i = 0; i < FONT_WIDTH; i++) {
-            if (row[i] != fg_col) {
-                row[i] = bg[pos + i];
-            }
-        }
-
         fast_memcpy_d(&fb[pos], row, sizeof(row));
     }
 }
@@ -163,7 +152,7 @@ fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
 static void
 fb_draw_cursor(struct lfb_state *state, int position, bool clear)
 {
-    uint32_t *fb = (uint32_t*)state->frame_buffer;
+    uint32_t *fb = (uint32_t*)state->framebuffer;
     uint32_t *fg = (uint32_t*)state->foreground;
 
     int x = position % state->textscreen_width * FONT_WIDTH;
@@ -174,39 +163,14 @@ fb_draw_cursor(struct lfb_state *state, int position, bool clear)
     for (int j = FONT_HEIGHT - 2 ; j < FONT_HEIGHT; j++) {
         int pos = (y + j) * state->width + x;
         for (int i = 0; i < FONT_WIDTH; i++) {
-
             if (!clear) {
                 row[i] = state->foreground_color;
             } else {
                 row[i] = fg[pos + i];
-
-                if (row[i] == state->foreground_color) {
-                    row[i] = state->background_color;//[pos + i];
-                }
             }
         }
-
         fast_memcpy_d(&fb[pos], row, sizeof(row));
-        
     }
-}
-
-static void
-fb_redraw_background(struct lfb_state *state)
-{
-    uint32_t *bb = (uint32_t*)state->backbuffer;
-    uint32_t *fg = (uint32_t*)state->foreground;
-    uint32_t *bg = (uint32_t*)state->background;
-   
-    fast_memcpy_d(bb, fg, state->buffer_size);
- 
-    for (int i = 0; i < state->buffer_size / 4; i++) {
-        if (fg[i] == state->background_color) {
-            bb[i] = bg[i];
-        }
-    }
-
-    fast_memcpy_d(state->frame_buffer, bb, state->buffer_size);
 }
 
 static void 
@@ -218,78 +182,9 @@ fb_scroll(struct lfb_state *state)
 
     fast_memcpy_d(fg, (void*)fg + row_height, state->buffer_size - row_height);
     fast_memset((void*)fg + state->buffer_size - row_height, state->background_color, row_height);
-
-    fb_redraw_background(state);
+    fast_memcpy_d(state->framebuffer, fg, state->buffer_size);
 
     state->position = state->textscreen_width * (state->textscreen_height - 1);
-}
-
-#define ALPHA_BLEND(alpha, src, dst) (((src * ((alpha << 8) + alpha) + dst * ( (alpha ^ 0xFF) << 8) + (alpha ^ 0xFF) ) ) >> 16)
-
-static void
-shade_background(struct lfb_state *state, uint8_t alpha)
-{
-    uint8_t *bg = (uint8_t*)state->background;
-
-    for (int i = 0; i < state->buffer_size; i += 4) {
-        for (int j = 0; j < 4; j++) {
-            bg[i+j] = ALPHA_BLEND(alpha, bg[i+j], 0x00);
-        }
-    }
-}
-
-static void
-handle_lfb_request(struct lfb_state *state, struct lfb_req *req)
-{
-    switch (req->opcode) {
-        case 0x00:
-            memcpy(state->background + req->offset, req->data, req->length);
-            break;
-        case 0x01:
-            shade_background(state, req->color);
-            fb_redraw_background(state);
-            break;
-    }
-}
-
-static void
-clear_line(struct lfb_state *state, int n)
-{
-    while (state->position >= (state->textscreen_width * state->textscreen_height)) {
-        state->position = state->position - state->textscreen_width;
-    }
-    int start_x;
-    int end_x;
-
-    switch (n) {
-        case 0:
-            start_x = state->position % state->textscreen_width * FONT_WIDTH;
-            end_x = FONT_WIDTH * state->textscreen_width; //start_x + (state->width - (start_x % state->width));
-            break;
-        case 1:
-            start_x = 0;
-            end_x = state->position % state->textscreen_width * FONT_WIDTH;
-            break;
-        case 2:
-            start_x = 0;
-            end_x = FONT_WIDTH * state->textscreen_width;
-            break;
-    }
-
-    int y = state->position / state->textscreen_width * FONT_HEIGHT;
-
-    uint32_t *fg = (uint32_t*)state->foreground;
-    uint32_t *fb = (uint32_t*)state->frame_buffer;
-    uint32_t *bg = (uint32_t*)state->background;
-
-    for (int i = 0; i < FONT_HEIGHT; i++) {
-        int start_off = (y + i) * state->width + start_x;
-        int end_off = (y + i) * state->width + end_x;
-        int size = (end_off - start_off)*4;
-
-        fast_memcpy_d(&fb[start_off], &bg[start_off], size);
-        memset(&fg[start_off], 0, size);
-    }
 }
 
 static void
@@ -329,7 +224,7 @@ lfb_init(struct cdev *dev)
     state.vbe = (vbe_info_t*)(0xC0000000 + multiboot_header->vbe_mode_info);
     state.pitch = state.vbe->pitch;
     state.depth = state.vbe->pitch / state.vbe->Xres;
-    state.frame_buffer = (uint8_t*)state.vbe->physbase;
+    state.framebuffer = (uint8_t*)state.vbe->physbase;
     state.textscreen_width = state.vbe->Xres / FONT_WIDTH;
     state.textscreen_height = state.vbe->Yres / FONT_HEIGHT;
     state.textscreen_size = state.textscreen_width * state.textscreen_height;
@@ -339,15 +234,11 @@ lfb_init(struct cdev *dev)
     state.position = 0; 
     state.color_palette = default_color_palette;
     state.foreground = calloc(1, state.buffer_size);
-    state.background = calloc(1, state.buffer_size);
-    state.backbuffer = calloc(1, state.buffer_size);
     state.foreground_color = 0x0;
     state.background_color = 0xFFFFFF;
 
-    fast_memset(state.backbuffer, state.background_color, state.buffer_size);
-    fast_memset(state.background, state.background_color, state.buffer_size);
     fast_memset(state.foreground, state.background_color, state.buffer_size);
-    fast_memset(state.frame_buffer, state.background_color, state.buffer_size);
+    fast_memset(state.framebuffer, state.background_color, state.buffer_size);
     
     spinlock_unlock(&state.lock);
     lfb_device.state = &state;
@@ -367,7 +258,6 @@ lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
     case TXIOCLRSCR:
         state->position = 0;
         memset(state->foreground, 0xFF, state->buffer_size);
-        fast_memcpy_d(state->frame_buffer, state->background, state->buffer_size);
         break;
     case TXIOSETBG :
         state->background_color = state->color_palette[(uint8_t)argp];
@@ -382,12 +272,6 @@ lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
         ((struct curpos*)argp)->c_row = state->position / state->textscreen_width;
         ((struct curpos*)argp)->c_col = state->position % state->textscreen_width;
         break;
-    case FBIOBUFRQ:
-        handle_lfb_request(state, (struct lfb_req*)argp);
-        break;
-    case TXIOERSLIN:       
-        clear_line(state, (int)argp);
-        break;
     case TXIOCURSON:
         state->enable_cursor = true;
         break;
@@ -398,8 +282,8 @@ lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
     case TXIORST:
         state->enable_cursor = false;
         state->position = 0;
-        state->foreground_color = 0xFFFFFF;
-        state->background_color = 0;
+        state->foreground_color = 0x0;
+        state->background_color = 0xFFFFFF;
         break;
     case FBIOGETINFO:
         ((struct lfb_info*)argp)->width = state->width;
