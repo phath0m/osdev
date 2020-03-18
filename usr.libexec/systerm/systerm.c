@@ -89,6 +89,12 @@ vtop_set_attribute(vtemu_t *emu, vt_attr_t attr, int val)
     struct termstate *state = emu->state;
 
     switch (attr) {
+        case VT_ATTR_DEF_BACKGROUND:
+            ioctl(state->textscreen, TXIODEFBG, NULL);
+            break;
+        case VT_ATTR_DEF_FOREGROUND:
+            ioctl(state->textscreen, TXIODEFFG, NULL);
+            break;
         case VT_ATTR_BACKGROUND:
             ioctl(state->textscreen, TXIOSETBG, (void*)val);
             break;
@@ -96,6 +102,20 @@ vtop_set_attribute(vtemu_t *emu, vt_attr_t attr, int val)
             ioctl(state->textscreen, TXIOSETFG, (void*)val);
             break;
     }
+
+    return 0;
+}
+
+static int
+vtop_set_palette(vtemu_t *emu, int i, int col)
+{
+    struct termstate *state = emu->state;
+
+    struct palentry entry;
+    entry.p_index = i;
+    entry.p_col = col;
+
+    ioctl(state->textscreen, TXIOSETPAL, &entry);
 
     return 0;
 }
@@ -190,7 +210,8 @@ struct vtops vtops = {
     .get_cursor     = vtop_get_cursor,
     .put_text       = vtop_put_text,
     .set_attributes = vtop_set_attribute,
-    .set_cursor     = vtop_set_cursor
+    .set_cursor     = vtop_set_cursor,
+    .set_palette    = vtop_set_palette
 };
 
 static void
