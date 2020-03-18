@@ -59,8 +59,17 @@ struct lfb_state {
     bool            show_cursor_next_tick;
 };
 
-static int default_color_palette[] = {0xFFFFFF, 0x151515, 0xAC4142, 0x90A959, 0xF4BF75, 0x6A9FB5, 0xAA759F, 0x00, 0x00, 0x00};
-
+//static int default_color_palette[] = {0xFFFFFF, 0x151515, 0xAC4142, 0x90A959, 0xF4BF75, 0x6A9FB5, 0xAA759F, 0x00, 0x00, 0x00};
+static int default_color_palette[] = {
+  0x0000000, 0x1e92f2f, 0x20ed839, 0x3dddd13,
+  0x43b48e3, 0x5f996e2, 0x623edda, 0x7ababab,
+  0x8343434, 0x9e92f2f, 0xA0ed839, 0xBdddd13,
+  0xC3b48e3, 0xDf996e2, 0xE23edda, 0xFf9f9f9,
+  /* background */
+  0xF9F9F9,
+  /* foreground */
+  0x102015
+};
 static int lfb_close(struct cdev *dev);
 static int lfb_init(struct cdev *dev);
 static int lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
@@ -90,11 +99,6 @@ struct lfb_req {
     uint32_t    offset;
     uint32_t    color;
     void *      data;
-};
-
-struct lfb_info {
-    unsigned short  width;
-    unsigned short  height;
 };
 
 static inline void 
@@ -234,8 +238,8 @@ lfb_init(struct cdev *dev)
     state.position = 0; 
     state.color_palette = default_color_palette;
     state.foreground = calloc(1, state.buffer_size);
-    state.foreground_color = 0x0;
-    state.background_color = 0xFFFFFF;
+    state.foreground_color = default_color_palette[0x11];
+    state.background_color = default_color_palette[0x10];
 
     fast_memset(state.foreground, state.background_color, state.buffer_size);
     fast_memset(state.framebuffer, state.background_color, state.buffer_size);
@@ -258,6 +262,12 @@ lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
     case TXIOCLRSCR:
         state->position = 0;
         memset(state->foreground, 0xFF, state->buffer_size);
+        break;
+    case TXIODEFBG:
+        state->background_color = default_color_palette[0x10];
+        break;
+    case TXIODEFFG:
+        state->foreground_color = default_color_palette[0x11];
         break;
     case TXIOSETBG :
         state->background_color = state->color_palette[(uint8_t)argp];
@@ -282,8 +292,11 @@ lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
     case TXIORST:
         state->enable_cursor = false;
         state->position = 0;
-        state->foreground_color = 0x0;
-        state->background_color = 0xFFFFFF;
+        state->foreground_color = default_color_palette[0x11];
+        state->background_color = default_color_palette[0x10];
+        break;
+    case TXIOSETPAL:
+        default_color_palette[((struct palentry*)argp)->p_index] = ((struct palentry*)argp)->p_col;
         break;
     case FBIOGETINFO:
         ((struct lfb_info*)argp)->width = state->width;

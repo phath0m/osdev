@@ -17,6 +17,9 @@
  */
 #ifndef _SYS_TERMIOS_H
 #define _SYS_TERMIOS_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* input modes */
 #define BRKINT          0x00000002
@@ -115,4 +118,21 @@ struct termios {
 #define TIOCSPGRP   0x07
 #define TIOCGPGRP   0x08
 
+#ifndef __KERNEL__
+speed_t     cfgetispeed(const struct termios *);
+speed_t     cfgetospeed(const struct termios *);
+int         cfsetispeed(struct termios *, speed_t);
+int         cfsetospeed(struct termios *, speed_t);
+int         tcdrain(int);
+int         tcflow(int, int);
+int         tcflush(int, int);
+int         tcgetattr(int, struct termios *);
+pid_t       tcgetsid(int);
+int         tcsendbreak(int, int);
+int         tcsetattr(int, int, struct termios *);
+#endif /* __KERNEL__*/
+
+#ifdef __cplusplus
+}
 #endif
+#endif /* _SYS_TERMIOS_H */

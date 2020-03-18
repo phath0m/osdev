@@ -31,6 +31,9 @@ extern "C" {
 #define TXIOCURSOFF       0x0006
 #define TXIOCURSON        0x0007
 #define TXIORST           0x0008
+#define TXIODEFBG         0x0009
+#define TXIODEFFG         0x000A
+#define TXIOSETPAL        0x000B
 
 #define FBIOBUFRQ         0x0200
 #define FBIOGETINFO       0x0201
@@ -44,11 +47,21 @@ struct curpos {
     unsigned short  c_col;
 };
 
+struct lfb_info {
+    unsigned short    width;
+    unsigned short    height;
+};
+
 struct winsize {
     unsigned short ws_row;    /* rows, in characters */
     unsigned short ws_col;    /* columns, in characters */
     unsigned short ws_xpixel; /* horizontal size, pixels */
     unsigned short ws_ypixel; /* vertical size, pixels */
+};
+
+struct palentry {
+    unsigned char   p_index;
+    unsigned int    p_col;
 };
 
 #ifndef __KERNEL__

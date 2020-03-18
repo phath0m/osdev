@@ -27,7 +27,6 @@ extern "C" {
 #define S_IRUSR     0000400
 #define S_IWUSR     0000200
 #define S_IXUSR     0000100
-
 #define S_IRWXG     0000070
 #define S_IRGRP     0000040
 #define S_IWGRP     0000020
@@ -50,6 +49,8 @@ extern "C" {
 #define S_ISDIR(m)  (((m)&S_IFMT) == S_IFDIR)
 #define S_ISFIFO(m) (((m)&S_IFMT) == S_IFIFO)
 #define S_ISREG(m)  (((m)&S_IFMT) == S_IFREG)
+#define S_ISLNK(m)  (((m)&S_IFMT) == S_IFLNK)
+#define S_ISSOCK(m) (((m)&S_IFMT) == S_IFSOCK)
 
 struct stat {
     dev_t       st_dev;
@@ -71,6 +72,16 @@ struct stat {
     long        st_spare4[2];
 };
 
+
+#ifndef __KERNEL__
+int     chmod(const char *, mode_t);
+int     fchmod(int, mode_t);
+int     fstat(int, struct stat *);
+int     mkdir(const char *, mode_t);
+int     mkfifo(const char *,mode_t);
+int     stat(const char *, struct stat *);
+mode_t  umask(mode_t);
+#endif /* __KERNEL__ */
 #ifdef __cplusplus
 }
 #endif
