@@ -2,6 +2,8 @@
 #define _LIBVT_H
 
 typedef enum {
+    VT_ATTR_DEF_BACKGROUND,
+    VT_ATTR_DEF_FOREGROUND,
     VT_ATTR_BACKGROUND,
     VT_ATTR_FOREGROUND,
 } vt_attr_t;
@@ -20,6 +22,7 @@ typedef struct vtemu vtemu_t;
 typedef int     (*vt_set_attributes_t)(vtemu_t *emu, vt_attr_t attr, int val);
 typedef int     (*vt_set_cursor_t)(vtemu_t *emu, int x, int y);
 typedef int     (*vt_get_cursor_t)(vtemu_t *emu, int *x, int *y);
+typedef int     (*vt_set_palette_t)(vtemu_t *emu, int i, int col);
 typedef int     (*vt_erase_area_t)(vtemu_t *emu, int start_x, int start_y, int end_x, int end_y);
 typedef void    (*vt_put_text_t)(vtemu_t *emu, char *text, size_t nbyte);
 
@@ -27,6 +30,7 @@ struct vtops {
     vt_set_attributes_t set_attributes;
     vt_set_cursor_t     set_cursor;
     vt_get_cursor_t     get_cursor;
+    vt_set_palette_t    set_palette;
     vt_erase_area_t     erase_area;
     vt_put_text_t       put_text;
 };
@@ -43,6 +47,7 @@ typedef struct vtemu {
 #define VTOPS_ERASE_AREA(emu,x,y,ex,ey) ((emu)->ops.erase_area(emu, x, y, ex, ey))
 #define VTOPS_GET_CURSOR(emu,x,y) ((emu)->ops.get_cursor(emu, x, y))
 #define VTOPS_SET_CURSOR(emu,x,y) ((emu)->ops.set_cursor(emu, x, y))
+#define VTOP_SET_PALETTE(emu, i, col) ((emu)->ops.set_palette(emu, i, col))
 
 vtemu_t *   vtemu_new(struct vtops *ops, void *state);
 void        vtemu_resize(vtemu_t *emu, int width, int height);

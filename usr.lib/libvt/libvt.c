@@ -18,9 +18,11 @@ extern int mkpty();
 struct termstate {
     int     ptm; /* file descriptor to master pseudo-terminal */
     bool    csi_initiated; /* Should be processing a CSI sequence */
+    bool    custom_seq_initiated; /* Should be processing a custom CSI sequence */
     bool    escape_initiated; /* Should we be processing an escape character ? */
     char    csi_buf[256]; /* buffer for CSI sequences */
     int     csi_len; /* length of CSI buf */
+    int     custom_seq_len; /* how many characters should we read for this custom sequence */
     char    buf[TERM_BUF_SIZE]; /* buffer of data to print; used to avoid excessive write() calls */
     int     buf_len; /* length of buf*/
     int     width;
@@ -36,8 +38,8 @@ set_sgr_parameter(struct termstate *state, int param)
 {
     switch (param) {
         case 0:
-            VTOPS_SET_ATTR(state->emu, VT_ATTR_FOREGROUND, 7);
-            VTOPS_SET_ATTR(state->emu, VT_ATTR_BACKGROUND, 0);
+            VTOPS_SET_ATTR(state->emu, VT_ATTR_DEF_FOREGROUND, 0);
+            VTOPS_SET_ATTR(state->emu, VT_ATTR_DEF_BACKGROUND, 0);
             break;
         case 7:
             VTOPS_SET_ATTR(state->emu, VT_ATTR_FOREGROUND, 0);
@@ -54,7 +56,7 @@ set_sgr_parameter(struct termstate *state, int param)
             VTOPS_SET_ATTR(state->emu, VT_ATTR_FOREGROUND, param - 30);
             break;    
         case 39:
-            VTOPS_SET_ATTR(state->emu, VT_ATTR_FOREGROUND, 7);
+            VTOPS_SET_ATTR(state->emu, VT_ATTR_DEF_FOREGROUND, 0);
             break;
         case 40:
         case 41:
@@ -67,7 +69,7 @@ set_sgr_parameter(struct termstate *state, int param)
             VTOPS_SET_ATTR(state->emu, VT_ATTR_BACKGROUND, param - 40);
             break;
         case 49:
-            VTOPS_SET_ATTR(state->emu, VT_ATTR_BACKGROUND, 0);
+            VTOPS_SET_ATTR(state->emu, VT_ATTR_DEF_BACKGROUND, 0);
             break;
         default:
             printf("got uknown SGR parameter %d\n", param);
@@ -215,6 +217,34 @@ eval_csi_command(struct termstate *state, char final_byte)
 }
 
 static void
+eval_custom_sequence(struct termstate *state)
+{
+    switch (state->csi_buf[0]) {
+        case 'P': {
+            char c = state->csi_buf[1];
+            int pal_index = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
+            int rgb = strtol(&state->csi_buf[2], NULL, 16);
+            
+            VTOP_SET_PALETTE(state->emu, pal_index, rgb);
+            break;
+        }
+        case 'B': {
+            int rgb = strtol(&state->csi_buf[1], NULL, 16);
+            VTOP_SET_PALETTE(state->emu, 0x10, rgb);
+            break;
+        }
+        case 'F': {
+            int rgb = strtol(&state->csi_buf[1], NULL, 16);
+            VTOP_SET_PALETTE(state->emu, 0x11, rgb);
+            break;
+        }
+    }
+    memset(state->csi_buf, 0, sizeof(state->csi_buf));
+    state->csi_len = 0;
+
+}
+
+static void
 flush_buffer(struct termstate *state)
 {
     if (state->buf_len == 0) {
@@ -232,6 +262,9 @@ eval_escape_char(struct termstate *state, char ch)
     switch (ch) {
         case '[':
             state->csi_initiated = true;
+            break;
+        case ']':
+            state->custom_seq_initiated = true;
             break;
         case 'c':
             flush_buffer(state);
@@ -260,6 +293,32 @@ process_term_char(struct termstate *state, char ch)
         return;
     }
     
+    if (state->custom_seq_initiated) {
+        if (state->csi_len == 0) {
+            switch (ch) {
+                case 'P':
+                    state->custom_seq_len = 8;
+                    break;
+                case 'F':
+                case 'B':
+                    state->custom_seq_len = 7;
+                    break;
+                default:
+                    state->custom_seq_len = 0;
+                    break;
+            }
+        }
+        
+        state->csi_buf[state->csi_len++] = ch;
+
+        if (state->csi_len >= state->custom_seq_len) {
+            eval_custom_sequence(state);
+            state->custom_seq_initiated = false;
+        }
+        
+        return;
+    }
+
     if (state->escape_initiated) {
         state->escape_initiated = false;
         eval_escape_char(state, ch);
