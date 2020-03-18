@@ -20,12 +20,16 @@
 #define KEY_PAGE_UP         73
 #define KEY_PAGE_DOWN       81
 
-static int color_palette[] = {0xFFFFFF, 0x151515, 0xAC4142, 0x90A959, 0xF4BF75, 0x6A9FB5, 0xAA759F, 0x00, 0x00, 0x00};
-
-struct cell {
-    uint8_t     attributes;
-    uint8_t     character;
-} __attribute__((packed));
+static int color_palette[] = {
+    0x0000000, 0x1e92f2f, 0x20ed839, 0x3dddd13,
+    0x43b48e3, 0x5f996e2, 0x623edda, 0x7ababab,
+    0x8343434, 0x9e92f2f, 0xA0ed839, 0xBdddd13,
+    0xC3b48e3, 0xDf996e2, 0xE23edda, 0xFf9f9f9,
+    /* background */
+    0xF9F9F9,
+    /* foreground */
+    0x102015
+};
 
 struct termstate {
     int             width; /* how many columns */
@@ -46,7 +50,7 @@ put_char(struct termstate *state, char ch)
     if (state->position >= (state->width * state->height)) {
         canvas_scroll(state->canvas, 12, 0);
         canvas_fill(state->canvas, 0, state->canvas->height - 12, state->canvas->width, 12,
-                color_palette[state->background]);
+                state->background);
         state->position = state->width * (state->height - 1);
     }
 
@@ -63,11 +67,11 @@ put_char(struct termstate *state, char ch)
         case '\b':
             state->position--;
             canvas_fill(state->canvas, GET_TERM_X(state)*8, GET_TERM_Y(state)*12,
-                    8, 12, color_palette[state->background]);
+                    8, 12, state->background);
             break;
         default:
-            canvas_fill(state->canvas, x, y, 8, 12, color_palette[state->background]);
-            canvas_putc(state->canvas, x, y, ch, color_palette[state->foreground]);
+            canvas_fill(state->canvas, x, y, 8, 12, state->background);
+            canvas_putc(state->canvas, x, y, ch, state->foreground);
             state->position++;
             break;
     }
@@ -87,7 +91,7 @@ vtop_erase_area(vtemu_t *emu, int start_x, int start_y, int end_x, int end_y)
         //put_char(state, ' ');
 
         canvas_fill(state->canvas, GET_TERM_X(state)*8, GET_TERM_Y(state)*12,
-                    8, 12, color_palette[state->background]);
+                    8, 12, state->background);
 
         state->position++;
     }
@@ -124,13 +128,27 @@ vtop_set_attribute(vtemu_t *emu, vt_attr_t attr, int val)
     struct termstate *state = emu->state;
 
     switch (attr) {
+        case VT_ATTR_DEF_BACKGROUND:
+           state->background = color_palette[0x10];
+           break;
+        case VT_ATTR_DEF_FOREGROUND:
+           state->foreground = color_palette[0x11];
+           break; 
         case VT_ATTR_BACKGROUND:
-            state->background = val;
+            state->background = color_palette[val];
             break;
         case VT_ATTR_FOREGROUND:
-            state->foreground = val;
+            state->foreground = color_palette[val];
             break;
     }
+
+    return 0;
+}
+
+static int
+vtop_set_palette(vtemu_t *emu, int i, int col)
+{
+    color_palette[i] = col;
 
     return 0;
 }
@@ -228,7 +246,8 @@ struct vtops vtops = {
     .get_cursor     = vtop_get_cursor,
     .put_text       = vtop_put_text,
     .set_attributes = vtop_set_attribute,
-    .set_cursor     = vtop_set_cursor
+    .set_cursor     = vtop_set_cursor,
+    .set_palette    = vtop_set_palette
 };
 
 static void
@@ -259,8 +278,8 @@ main(int argc, const char *argv[])
     memset(&state, 0, sizeof(state));
     state.width = 80;
     state.height = 25;
-    state.foreground = 7;
-    state.background = 0;
+    state.foreground = color_palette[0x11];
+    state.background = color_palette[0x10];
 
     vtemu_t *emu = vtemu_new(&vtops, &state);
     vtemu_resize(emu, state.width, state.height-1);    
@@ -271,7 +290,7 @@ main(int argc, const char *argv[])
     canvas_t *canvas = xtc_open_canvas(win, 0);
     state.canvas = canvas;
 
-    canvas_clear(canvas, color_palette[state.background]);
+    canvas_clear(canvas, state.background);
 
     xtc_set_window_title(win, "Terminal");
 
