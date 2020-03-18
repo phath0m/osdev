@@ -1,4 +1,5 @@
-SUBDIRS = wallpapers
+SUBDIRS += terminal
+SUBDIRS += wallpapers
 
 install: $(SUBDIRS)
 	mkdir -p $(DESTDIR)$(PREFIX)/share
