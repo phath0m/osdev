@@ -1,0 +1,2 @@
+setenv WALLPAPER /usr/share/wallpapers/fog.tga
+exec /usr/libexec/xtcwm
