@@ -255,7 +255,6 @@ main(int argc, char *argv[])
     }
 
     ioctl(console, TXIOCURSON, NULL);
-    ioctl(console, TXIOSETFG, (void*)7);
     
     struct sigaction sigact;
     sigact.sa_handler = handle_sigchld;
