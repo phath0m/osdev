@@ -152,6 +152,19 @@ exec_binary(const char *name, int argc, const char *argv[])
         return -1;
     }
 
+    return execv(full_path, (char ** const)argv);
+}
+
+static int
+spawn_binary(const char *name, int argc, const char *argv[])
+{
+    char full_path[512];
+
+    if (!search_for_binary(name, full_path)) {
+        printf("sh: could not find %s\n", name);
+        return -1;
+    }
+
     int id = fork();
     int status = -1;
 
@@ -167,7 +180,7 @@ exec_binary(const char *name, int argc, const char *argv[])
 }
 
 static int
-exec_command(struct ast_node *root)
+run_command(struct ast_node *root)
 {
     char *name = (char*)root->value;
     char *argv[512];
@@ -193,7 +206,7 @@ exec_command(struct ast_node *root)
         return func(argv[0], i, (const char**)argv);
     }
 
-    return exec_binary(argv[0], i, (const char**)argv);
+    return spawn_binary(argv[0], i, (const char**)argv);
 }
 
 static int
@@ -271,7 +284,7 @@ eval_ast_node(struct ast_node *node)
 {
     switch (node->node_class) {
         case AST_COMMAND:
-            exec_command(node);
+            run_command(node);
             break;
         case AST_FILE_WRITE:
             handle_file_write(node);
@@ -348,6 +361,18 @@ builtin_clear(const char *name, int argc, const char *argv[])
 {
     fputs("\x1B" "c", stdout);
     return 0;
+}
+
+int
+builtin_exec(const char *name, int argc, const char *argv[])
+{
+	if (argc < 2) {
+		return 0;
+	}
+
+    const char *prog = argv[1];
+    
+    return exec_binary(prog, argc - 1, &argv[1]);
 }
 
 int
@@ -515,6 +540,7 @@ main(int argc, const char *argv[])
 
     dict_set(&builtin_commands, "cd", builtin_cd);
     dict_set(&builtin_commands, "clear", builtin_clear);
+    dict_set(&builtin_commands, "exec", builtin_exec);
     dict_set(&builtin_commands, "exit", builtin_exit);
     dict_set(&builtin_commands, "pwd", builtin_pwd);
     dict_set(&builtin_commands, "setenv", builtin_setenv);
