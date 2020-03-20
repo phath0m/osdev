@@ -288,10 +288,19 @@ display_loop(void *argp)
      * so we can render the cursor on the frontbuffer only */
     canvas_t *backbuffer = canvas_new(width, height, CANVAS_PARTIAL_RENDER);
     canvas_t *frontbuffer = canvas_new(width, height, CANVAS_PARTIAL_RENDER);
+
+    canvas_t *bg = NULL;
+    char *wallpaper = getenv("WALLPAPER");
+
+    if (wallpaper) {
+        bg = canvas_from_targa(wallpaper, 0);
+        canvas_scale(bg, width, height);
+    }
     
-    canvas_t *bg = canvas_new(width, height, 0);//canvas_from_targa("/usr/share/wallpapers/weeb.tga", 0);
-    canvas_clear(bg, 0x505170);
-    //canvas_scale(bg, width, height);
+    if (!bg) {
+        bg = canvas_new(width, height, 0);
+        canvas_clear(bg, 0x505170);
+    }    
 
     ctx->redraw_flag = 1;
 
