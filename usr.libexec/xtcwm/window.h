@@ -10,21 +10,6 @@
 #define WINEVENT_CLICK          0x01
 #define WINEVENT_KEYPRESS       0x02
 
-#define WINDOW_BORDER_COLOR             0x000000
-#define WINDOW_TITLE_COLOR              0xA0A0A0
-#define WINDOW_ACTIVE_TITLE_COLOR       0x000000
-#define WINDOW_ACTIVE_TEXT_COLOR        0xFFFFFF
-#define WINDOW_TEXT_COLOR               0x000000
-#define WINDOW_COLOR                    0xFFFFFF
-
-#define CHISEL_ACTIVE_LIGHT             0xA0A0A0
-#define CHISEL_ACTIVE_DARK              0x404040
-
-#define CHISEL_INACTIVE_LIGHT           0xFFFFFF
-#define CHISEL_INACTIVE_DARK            0xC0C0C0
-
-#define CONTROL_BUTTON      0x01
-
 struct click_event {
     int     x;
     int     y;

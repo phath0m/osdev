@@ -10,6 +10,7 @@
 #include <collections/list.h>
 #include <libmemgfx/canvas.h>
 #include <sys/mman.h>
+#include "property.h"
 #include "window.h"
 
 /* for some reason newlib isn't putting this prototype inside unistd.h */
@@ -81,17 +82,16 @@ void
 window_draw(struct window *win, canvas_t *canvas)
 {
     if (win->redraw) {
-        
-        int title_color = WINDOW_TITLE_COLOR;
-        int text_color = WINDOW_TEXT_COLOR;
-        int chisel_color_dark = CHISEL_INACTIVE_DARK;
-        int chisel_color_light = CHISEL_INACTIVE_LIGHT;
+        int title_color = XTC_GET_PROPERTY(XTC_WIN_TITLE_COL);
+        int text_color = XTC_GET_PROPERTY(XTC_WIN_TEXT_COL);
+        int chisel_color_dark = XTC_GET_PROPERTY(XTC_CHISEL_DARK_COL);
+        int chisel_color_light = XTC_GET_PROPERTY(XTC_CHISEL_LIGHT_COL);
 
         if (win->active) {
-            title_color = WINDOW_ACTIVE_TITLE_COLOR;
-            text_color = WINDOW_ACTIVE_TEXT_COLOR;
-            chisel_color_dark = CHISEL_ACTIVE_DARK;
-            chisel_color_light = CHISEL_ACTIVE_LIGHT;
+            title_color = XTC_GET_PROPERTY(XTC_WIN_ACTIVE_TITLE_COL);
+            text_color = XTC_GET_PROPERTY(XTC_WIN_ACTIVE_TEXT_COL);
+            chisel_color_dark = XTC_GET_PROPERTY(XTC_CHISEL_ACTIVE_DARK_COL);
+            chisel_color_light = XTC_GET_PROPERTY(XTC_CHISEL_ACTIVE_LIGHT_COL);
         }
 
         canvas_fill(canvas, win->x + 1, win->y, win->width - 1, 19, title_color);
@@ -99,8 +99,8 @@ window_draw(struct window *win, canvas_t *canvas)
         canvas_fill(canvas, win->x + 2, win->y + 18, win->width - 2, 1, chisel_color_dark);
         canvas_fill(canvas, win->x + 1, win->y + 1, 1, 19, chisel_color_light);
         canvas_fill(canvas, win->x + win->width - 1, win->y + 1, 1, 19, chisel_color_dark); 
-        canvas_rect(canvas, win->x, win->y, win->width, 19, WINDOW_BORDER_COLOR);
-        canvas_rect(canvas, win->x, win->y, win->width, win->height + 20, WINDOW_BORDER_COLOR);
+        canvas_rect(canvas, win->x, win->y, win->width, 19, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
+        canvas_rect(canvas, win->x, win->y, win->width, win->height + 20, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
 
         int text_width = strlen(win->title) * 10;
 

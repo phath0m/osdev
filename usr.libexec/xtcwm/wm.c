@@ -24,6 +24,7 @@
 #include <libmemgfx/canvas.h>
 #include <libmemgfx/display.h>
 
+#include "property.h"
 #include "server.h"
 #include "window.h"
 #include "wm.h"
@@ -32,6 +33,20 @@ static void set_redraw(struct wmctx *ctx);
 // delete
 static int actual_mouse_delta_x = 0;
 static int actual_mouse_delta_y = 0;
+
+int xtc_properties[256] = {
+    0x505170,	/* background */	 
+    0x000000, 	/* window border color (inactive) */
+    0x000000, 	/* window title text color (inactive) */
+    0xA0A0A0, 	/* window title color */
+    0x000000, 	/* window title color (active) */
+    0xFFFFFF, 	/* window text color (active) */
+    0xFFFFFF, 	/* window body color */
+    0xC0C0C0, 	/* window chisel color dark (inactive) */
+    0xFFFFFF, 	/* window chisel color light (inactive) */
+    0x404040, 	/* window chisel color dark (active) */
+    0xA0A0A0 	/* window chisel color light (active) */
+};
 
 void
 wm_add_window(struct wmctx *ctx, struct window *win)
@@ -243,10 +258,11 @@ io_loop(void *argp)
 static void
 draw_wireframe(canvas_t *canvas, int x, int y, int width, int height)
 {
-    canvas_fill(canvas, x, y, width, 4, WINDOW_TITLE_COLOR);
-    canvas_fill(canvas, x, y + height - 4, width, 4, WINDOW_TITLE_COLOR);
-    canvas_fill(canvas, x, y, 4, height, WINDOW_TITLE_COLOR);
-    canvas_fill(canvas, x + width - 4, y, 4, height, WINDOW_TITLE_COLOR);
+	int col = XTC_GET_PROPERTY(XTC_WIN_TITLE_COL);
+    canvas_fill(canvas, x, y, width, 4, col);
+    canvas_fill(canvas, x, y + height - 4, width, 4, col);
+    canvas_fill(canvas, x, y, 4, height, col);
+    canvas_fill(canvas, x + width - 4, y, 4, height, col);
 }
 
 /* draw all windows inefficiently */
@@ -295,11 +311,12 @@ display_loop(void *argp)
     if (wallpaper) {
         bg = canvas_from_targa(wallpaper, 0);
         canvas_scale(bg, width, height);
+		unsetenv("WALLPAPER");
     }
     
     if (!bg) {
         bg = canvas_new(width, height, 0);
-        canvas_clear(bg, 0x505170);
+        canvas_clear(bg, XTC_GET_PROPERTY(XTC_BACKGROUND_COL));
     }    
 
     ctx->redraw_flag = 1;
@@ -416,9 +433,8 @@ display_loop(void *argp)
     return NULL;
 }
 
-/* since I don't have any sort of init RC file, we will use this to launch a terminal */
 static void
-run_term()
+init_session()
 {
     pid_t child = fork();
 
@@ -426,12 +442,82 @@ run_term()
         sleep(3);
         char *argv[] = {
             "sh",
-            "/etc/xtc/xtcinit.rc",
+            "/etc/xtc/xtcsession.rc",
             NULL
         };
         execv("/bin/sh", argv);
         exit(-1);
     }
+}
+
+static void
+set_properties()
+{
+	char *background_col = getenv("BACKGROUND_COLOR");
+    char *border_col = getenv("WINDOW_BORDER_COLOR");
+    char *text_col = getenv("WINDOW_TEXT_COLOR");
+    char *title_col = getenv("WINDOW_TITLE_COLOR");
+    char *active_title_col = getenv("WINDOW_ACTIVE_TITLE_COLOR");
+    char *active_text_col = getenv("WINDOW_ACTIVE_TEXT_COLOR");
+    char *window_col = getenv("WINDOW_COLOR");
+    char *chisel_dark_col = getenv("CHISEL_DARK_COLOR");
+    char *chisel_light_col = getenv("CHISEL_LIGHT_COLOR");
+	char *chisel_active_dark_col = getenv("CHISEL_ACTIVE_DARK_COLOR");
+    char *chisel_active_light_col = getenv("CHISEL_ACTIVE_LIGHT_COLOR");
+
+	if (background_col) {
+		XTC_SET_PROPERTY(XTC_BACKGROUND_COL, strtol(background_col, NULL, 16));
+		unsetenv("BACKGROUND_COLOR");
+	}
+
+    if (border_col) {
+        XTC_SET_PROPERTY(XTC_WIN_BORDER_COL, strtol(border_col, NULL, 16));
+        unsetenv("WINDOW_BORDER_COLOR");
+    }
+   
+    if (text_col) {
+        XTC_SET_PROPERTY(XTC_WIN_TEXT_COL, strtol(text_col, NULL, 16));
+        unsetenv("WINDOW_TEXT_COLOR");
+    }
+
+    if (title_col) {
+        XTC_SET_PROPERTY(XTC_WIN_TITLE_COL, strtol(title_col, NULL, 16));
+        unsetenv("WINDOW_TITLE_COLOR");
+    }
+
+    if (active_title_col) {
+        XTC_SET_PROPERTY(XTC_WIN_ACTIVE_TITLE_COL, strtol(active_title_col, NULL, 16));
+        unsetenv("WINDOW_ACTIVE_TITLE_COLOR");
+    }
+
+    if (active_text_col) {
+        XTC_SET_PROPERTY(XTC_WIN_ACTIVE_TEXT_COL, strtol(active_text_col, NULL, 16));
+        unsetenv("WINDOW_ACTIVE_TEXT_COLOR");
+    }
+
+    if (window_col) {
+        XTC_SET_PROPERTY(XTC_WIN_COL, strtol(window_col, NULL, 16));
+        unsetenv("WINDOW_COLOR");
+    }
+
+	if (chisel_light_col) {
+		XTC_SET_PROPERTY(XTC_CHISEL_LIGHT_COL, strtol(chisel_light_col, NULL, 16));
+		unsetenv("CHISEL_LIGHT_COLOR");
+	}
+    if (chisel_dark_col) {
+        XTC_SET_PROPERTY(XTC_CHISEL_DARK_COL, strtol(chisel_dark_col, NULL, 16));
+        unsetenv("CHISEL_DARK_COLOR");
+    }
+
+    if (chisel_active_light_col) {
+        XTC_SET_PROPERTY(XTC_CHISEL_ACTIVE_LIGHT_COL, strtol(chisel_active_light_col, NULL, 16));
+        unsetenv("CHISEL_ACTIVE_LIGHT_COLOR");
+    }
+ 
+	if (chisel_active_dark_col) {
+        XTC_SET_PROPERTY(XTC_CHISEL_ACTIVE_DARK_COL, strtol(chisel_active_dark_col, NULL, 16));
+        unsetenv("CHISEL_ACTIVE_DARK_COLOR");
+	}
 }
 
 int
@@ -448,6 +534,8 @@ main(int argc, const char *argv[])
         dup2(serial, i);
     }
 
+	set_properties();
+
     static struct wmctx ctx;
 
     memset(&ctx, 0, sizeof(ctx));
@@ -457,7 +545,7 @@ main(int argc, const char *argv[])
     thread_create(&input_thread, io_loop, &ctx);
     thread_create(&display_thread, display_loop, &ctx);
 
-    run_term();
+    init_session();
 
     server_listen(&ctx);
 
