@@ -42,12 +42,12 @@ dispatch_intr(struct regs *regs)
     }
 
     dispatch_to_intr_handler(inum, regs);
+    
+    io_write_byte(0x20, 0x20);
 
     if (sched_curr_thread) {
         thread_interrupt_leave(sched_curr_thread, regs);
         
         __sync_lock_test_and_set(&sched_curr_thread->interrupt_in_progress, 0);
     }
-
-    io_write_byte(0x20, 0x20);
 }

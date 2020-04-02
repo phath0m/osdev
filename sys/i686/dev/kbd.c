@@ -31,7 +31,7 @@ static int keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos
 
 struct cdev kbd_device = {
     .name       =   "kbd",
-    .mode       =   0600,
+    .mode       =   0666,
     .majorno    =   DEV_MAJOR_KBD,
     .minorno    =   0,
     .close      =   NULL,

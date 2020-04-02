@@ -45,6 +45,7 @@ typedef int (*cdev_write_t)(struct cdev *dev, const char *buf, size_t nbyte, uin
 struct cdev {
     char *          name;       /* name of the device */
     int             mode;       /* default mode to use for devfs */
+    int             uid;        /* owner */
     int             majorno;    /* device major; identifies type of device */
     int             minorno;    /* device minor; identifies instance of device */
     cdev_close_t    close;

@@ -79,7 +79,7 @@ static int lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t p
 
 struct cdev lfb_device = {
     .name       =   "lfb",
-    .mode       =   0600,
+    .mode       =   0666,
     .majorno    =   DEV_MAJOR_CON,
     .minorno    =   1,
     .close      =   lfb_close,

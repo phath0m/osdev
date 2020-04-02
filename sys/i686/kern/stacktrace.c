@@ -26,13 +26,20 @@ struct stackframe {
 void
 stacktrace(int max_frames)
 {
+	char name[256];
+	uintptr_t offset;
     struct stackframe *frame;
 
     asm volatile("movl %%ebp, %%edx": "=d"(frame));
     printf("Trace:\n\r");
 
     for (int i = 0; i < max_frames && frame; i++) {
-        printf("    [0x%p]\n\r", frame->eip);
+        if (ksym_find_nearest(frame->eip, &offset, name, 256) == 0) {
+            printf("    [0x%p] <%s+0x%x>\n\r", frame->eip, name, offset);
+        } else {
+            printf("    [0x%p]\n\r", frame->eip);
+        }
+
         frame = frame->prev;
     }
 }

@@ -42,11 +42,9 @@ proc_actually_kill(struct proc *proc, int status)
     proc->exited = true;
 
     list_iter_t iter;
-
     list_get_iter(&proc->threads, &iter);
 
     struct thread *thread;
-
     while (iter_move_next(&iter, (void**)&thread)) {
         kill_thread(thread);
     }

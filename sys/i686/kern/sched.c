@@ -189,6 +189,10 @@ thread_yield()
 void
 thread_schedule(int state, struct thread *thread)
 {
+    if (thread->state == state) {
+        return;
+    }
+
     thread->state = state;
 
     switch (state) {

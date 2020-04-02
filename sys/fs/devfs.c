@@ -84,7 +84,6 @@ static int
 devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 {
     list_iter_t iter;
-
     list_get_iter(&device_list, &iter);
 
     struct cdev *dev;
@@ -97,7 +96,7 @@ devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
             node->device = dev;
             node->inode = (ino_t)dev;
             node->gid = 0;
-            node->uid = 0;
+            node->uid = dev->uid;
             node->state = (void*)dev;
             node->devno = makedev(dev->majorno, dev->minorno);
             node->mode = dev->mode | S_IFCHR; 
@@ -158,7 +157,6 @@ static int
 devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 {
     list_iter_t iter;
-
     list_get_iter(&device_list, &iter);
 
     struct cdev *dev;
@@ -194,7 +192,9 @@ static int
 devfs_stat(struct vnode *node, struct stat *stat)
 {
     memset(stat, 0, sizeof(struct stat));
+
     if (node->inode == 0) {
+        stat->st_uid = 0;
         stat->st_mode = 0755 | S_IFDIR;
         return 0;
     }
@@ -206,6 +206,7 @@ devfs_stat(struct vnode *node, struct stat *stat)
     }
 
     stat->st_mode = dev->mode | S_IFCHR;
+    stat->st_uid = dev->uid;
 
     return 0;
 }

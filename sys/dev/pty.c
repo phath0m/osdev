@@ -76,6 +76,7 @@ mkpty_slave(struct pty *pty)
     pts_dev->name = name;
 
     pts_dev->mode = 0600;
+    pts_dev->uid = current_proc->creds.uid;
     pts_dev->majorno = DEV_MAJOR_PTS;
     pts_dev->minorno = pty_counter;
     pts_dev->state = pty;

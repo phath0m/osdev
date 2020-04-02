@@ -26,7 +26,7 @@ static int mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 
 struct cdev mouse_device = {
     .name       =   "mouse",
-    .mode       =   0600,
+    .mode       =   0666,
     .majorno    =   DEV_MAJOR_MOUSE,
     .minorno    =   0,
     .close      =   NULL,
