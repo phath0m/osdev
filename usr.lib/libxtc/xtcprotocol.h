@@ -12,6 +12,7 @@
 #define XTC_CLEAR           0x05
 #define XTC_PAINT           0x06
 #define XTC_OPEN_CANVAS     0x07
+#define XTC_RESIZE          0x08
 
 #define XTC_ERR_NOMOREWINDOWS   0x01
 #define XTC_ERR_NOSUCHWIN       0x02

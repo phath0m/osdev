@@ -124,7 +124,7 @@ xtc_open_canvas(xtc_win_t win, int flags)
 
     int width = msg.parameters[0];
     int height = msg.parameters[1];
-    int size = sizeof(pixbuf_t)+width*height*4;
+    int size = msg.parameters[2];
 
     pixbuf_t *pixbuf = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
    
@@ -186,3 +186,17 @@ xtc_redraw(xtc_win_t win)
     return 0;
 }
 
+int
+xtc_resize(xtc_win_t win, int width, int height)
+{
+    struct xtc_msg_hdr msg;
+    msg.opcode = XTC_RESIZE;
+    msg.parameters[0] = win;
+    msg.parameters[1] = width;
+    msg.parameters[2] = height;
+
+    write(xtc_sock_fd, &msg, sizeof(msg));
+    read(xtc_sock_fd, &msg, sizeof(msg));
+    
+    return 0;
+}
