@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <libini.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +39,22 @@ struct doit_request {
 
 struct dict loaded_services;
 
+
+static runlevel_t
+get_runlevel_mask(int runlevel)
+{
+    switch (runlevel) {
+        case 1:
+            return SINGLE_USER;
+        case 2:
+            return MULTI_USER;
+        case 5:
+            return GRAPHICAL;
+    }
+
+    return SINGLE_USER;
+}
+
 static runlevel_t
 parse_runlevel(const char *runlevel)
 {
@@ -50,23 +67,7 @@ parse_runlevel(const char *runlevel)
     char *tok = strtok(rlbuf, ",");
 
     while (tok) {
-
-        int runlevel = atoi(tok);
-
-        switch (runlevel) {
-            case 1:
-                mask |= SINGLE_USER;
-                break;
-            case 2:
-                mask |= MULTI_USER;
-                break;
-            case 5:
-                mask |= GRAPHICAL;
-                break;
-            default:
-                return -1;
-        }
-
+        mask |= get_runlevel_mask(atoi(tok));
         tok = strtok(NULL, ",");
     }
     
@@ -175,14 +176,38 @@ service_start(struct service *service)
     return 0;    
 }
 
+static int
+service_stop(struct service *service)
+{
+    if (!service->running) {
+        return -1;
+    }
+
+    printf("doit: stopping %s\r\n", service->name);
+    kill(service->sid, 9);
+    service->running = false;
+    return 0;
+}
+
 static void
 change_runlevel(runlevel_t runlevel)
 {
+    const char *name;
     list_iter_t iter;
 
     dict_get_keys(&loaded_services, &iter);
 
-    const char *name;
+    while (iter_move_next(&iter, (void**)&name)) {
+        struct service *service;
+
+        if (!dict_get(&loaded_services, name, (void**)&service)) continue;
+
+        if (!(service->runlevels & runlevel) && service->running) {
+            service_stop(service);
+        }
+    }
+
+    dict_get_keys(&loaded_services, &iter);
 
     while (iter_move_next(&iter, (void**)&name)) {
         struct service *service;
@@ -296,6 +321,7 @@ start_daemon(int argc, const char *argv[])
         switch (request.opcode) {
             case DOIT_CHANGE_RUNLEVEL:
                 printf("doit: change runlevel to %d\r\n", request.arg);
+                change_runlevel(get_runlevel_mask(request.arg));
                 break;
         }
 
