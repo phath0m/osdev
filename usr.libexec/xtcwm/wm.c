@@ -107,8 +107,13 @@ handle_click(struct wmctx *ctx, struct click_event *event)
         return;
     }
 
-    list_iter_t iter;
+    if (ctx->focused_window && ctx->focused_window->resized) {
+        ctx->focused_window->resize_width = event->x - ctx->focused_window->x;
+        ctx->focused_window->resize_height = event->y - ctx->focused_window->y;
+        return;
+    }
 
+    list_iter_t iter;
     list_get_iter(&ctx->windows, &iter);
 
     void *win = NULL;
@@ -156,6 +161,13 @@ handle_hover(struct wmctx *ctx, struct click_event *event)
     if (active_win->dragged) {
         active_win->dragged = 0;
         active_win->redraw = 1;
+        set_redraw(ctx);
+    }
+
+    if (active_win->resized) {
+        active_win->resized = 0;
+        active_win->redraw = 1;
+        window_request_resize(active_win, active_win->resize_width, active_win->resize_height);
         set_redraw(ctx);
     }
 
@@ -270,11 +282,9 @@ static void
 draw_windows(struct wmctx *ctx, canvas_t *canvas)
 {
     list_iter_t iter;
-
     list_get_iter(&ctx->windows, &iter);
 
     struct window *win = NULL;
-
     while (iter_move_next(&iter, (void**)&win)) {
         window_draw(win, canvas);
     }
@@ -299,6 +309,9 @@ display_loop(void *argp)
 
     int width = display_width(display);
     int height = display_height(display);
+
+    XTC_SET_PROPERTY(XTC_SCREEN_WIDTH, width);
+    XTC_SET_PROPERTY(XTC_SCREEN_HEIGHT, height);
 
     /* even though libmemgfx supports double buffering, we're not going to use it
      * so we can render the cursor on the frontbuffer only */
@@ -333,6 +346,8 @@ display_loop(void *argp)
     /* last coordinates of wireframe box drawn when moving/resizing a window */
     int last_rendered_wf_x = 0;
     int last_rendered_wf_y = 0;
+    int last_wf_width = 0;
+    int last_wf_height = 0;
 
     int mouse_bounds_x = width - 8;
     int mouse_bounds_y = height - 12;
@@ -394,21 +409,32 @@ display_loop(void *argp)
             display_render(display, frontbuffer, ctx->mouse_x, ctx->mouse_y, 8, 12);
         }
         
-        if (ctx->focused_window && ctx->focused_window->dragged) {
-           
+        if (ctx->focused_window && (ctx->focused_window->dragged || ctx->focused_window->resized)) {
+            struct window *win = ctx->focused_window;
+
+            int wf_width = win->width;
+            int wf_height = win->height;
+
+            if (ctx->focused_window->resized) {
+                wf_width = win->resize_width;
+                wf_height = win->resize_height;
+            }
+            
             /* draw a wireframe at the users's mouse coordinates (user is moving a window) */
 
-            struct window *win = ctx->focused_window;
-            draw_wireframe(frontbuffer, win->x, win->y, win->width, win->height);
+            draw_wireframe(frontbuffer, win->x, win->y, wf_width, wf_height);
         
-            if (win->x != last_rendered_wf_x || win->y != last_rendered_wf_y) {
+            if (win->x != last_rendered_wf_x || win->y != last_rendered_wf_y ||
+                    (last_wf_height != wf_height || last_wf_width != wf_width)) {
                 render_wireframe(display, backbuffer, last_rendered_wf_x,
-                        last_rendered_wf_y, win->width, win->height);
+                        last_rendered_wf_y, last_wf_width, last_wf_height);
                 last_rendered_wf_x = win->x;
                 last_rendered_wf_y = win->y;
+                last_wf_height = wf_height;
+                last_wf_width = wf_width;
             } 
 
-            render_wireframe(display, frontbuffer, win->x, win->y, win->width, win->height);
+            render_wireframe(display, frontbuffer, win->x, win->y, wf_width, wf_height);
         } 
 
         buf->dirty = 0;

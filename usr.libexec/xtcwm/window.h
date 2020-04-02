@@ -9,6 +9,7 @@
 
 #define WINEVENT_CLICK          0x01
 #define WINEVENT_KEYPRESS       0x02
+#define WINEVENT_RESIZE         0x03
 
 struct click_event {
     int     x;
@@ -22,6 +23,8 @@ struct window {
     int             redraw;
     int             x;
     int             y;
+    int             resize_width;
+    int             resize_height;
     int             prev_x;
     int             prev_y;
     int             absolute_height;
@@ -29,10 +32,13 @@ struct window {
     int             height;
     int             width;
     int             dragged;
+    int             resized;
     int             mouse_down;
     char            shm_name[256];
     char            title[256];
     canvas_t *      canvas;
+    pixbuf_t *      pixbuf;
+    int             pixbuf_size;
     struct list     events;
     thread_spinlock_t    event_lock;
     thread_cond_t   event_cond;  
@@ -56,6 +62,8 @@ void window_draw(struct window *window, canvas_t *canvas);
 void window_click(struct window *self, struct click_event *event);
 void window_hover(struct window *self, struct click_event *event);
 void window_keypress(struct window *self, uint8_t scancode);
+void window_request_resize(struct window *self, int width, int height);
+void window_resize(struct window *self, int width, int height);
 void window_post_event(struct window *self, struct window_event *event);
 
 #endif

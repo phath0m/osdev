@@ -193,12 +193,13 @@ handle_open_canvas(struct xtc_session *session, struct xtc_msg_hdr *hdr)
 
     struct window *win = session->windows[window_id];
 
-    uint32_t params[2] = {
+    uint32_t params[3] = {
         win->width,
-        win->height
+        win->height,
+        win->pixbuf_size
     };
 
-    send_response_ex(session, params, 2, 0, win->shm_name, 256);
+    send_response_ex(session, params, 3, 0, win->shm_name, 256);
 }
 
 static void
@@ -258,6 +259,27 @@ handle_next_event(struct xtc_session *session, struct xtc_msg_hdr *hdr)
 }
 
 static void
+handle_resize(struct xtc_session *session, struct xtc_msg_hdr *hdr)
+{
+    uint32_t window_id = hdr->parameters[0];
+
+    if (window_id >= SESSION_MAX_WINDOWS ||
+            !session->windows[window_id])
+    {
+        send_response(session, NULL, 0, XTC_ERR_NOSUCHWIN);
+        printf("XTC_ERR_NOSUCHWIN\n");
+        return;
+    }
+
+    struct window *win = session->windows[window_id];
+
+    window_resize(win, hdr->parameters[1], hdr->parameters[2]);
+
+    send_response(session, NULL, 0, 0);
+}
+
+
+static void
 handle_request(struct xtc_session *session, struct xtc_msg_hdr *hdr, void *payload)
 {
     switch (hdr->opcode) {
@@ -281,6 +303,9 @@ handle_request(struct xtc_session *session, struct xtc_msg_hdr *hdr, void *paylo
             break;
         case XTC_OPEN_CANVAS:
             handle_open_canvas(session, hdr);
+            break;
+        case XTC_RESIZE:
+            handle_resize(session, hdr);
             break;
     }
 }

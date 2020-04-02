@@ -50,8 +50,11 @@ window_new(int x, int y, int width, int height)
     sprintf(window->shm_name, "/xtc_win_%d", win_counter++);
 
     int memfd = shm_open(window->shm_name, O_RDWR | O_CREAT, 0700);
-   
-    size_t pixbuf_size = sizeof(pixbuf_t)+(width*height*4);
+
+    int screen_width = XTC_GET_PROPERTY(XTC_SCREEN_WIDTH);
+    int screen_height = XTC_GET_PROPERTY(XTC_SCREEN_HEIGHT);
+
+    size_t pixbuf_size = sizeof(pixbuf_t)+(screen_width*screen_height*4);
     ftruncate(memfd, pixbuf_size); 
 
     pixbuf_t *pixbuf = mmap(NULL, pixbuf_size, PROT_READ | PROT_WRITE,
@@ -60,6 +63,8 @@ window_new(int x, int y, int width, int height)
     memset(pixbuf, 0, pixbuf_size);
 
     window->canvas = canvas_from_mem(width, height, 0, pixbuf);
+    window->pixbuf = pixbuf;
+    window->pixbuf_size = pixbuf_size;
 
     strcpy(window->title, "Form 1");
 
@@ -94,13 +99,18 @@ window_draw(struct window *win, canvas_t *canvas)
             chisel_color_light = XTC_GET_PROPERTY(XTC_CHISEL_ACTIVE_LIGHT_COL);
         }
 
-        canvas_fill(canvas, win->x + 1, win->y, win->width - 1, 19, title_color);
-        canvas_fill(canvas, win->x + 2, win->y + 1, win->width - 2, 1, chisel_color_light);
-        canvas_fill(canvas, win->x + 2, win->y + 18, win->width - 2, 1, chisel_color_dark);
+        canvas_fill(canvas, win->x + 1, win->y, win->width, 19, title_color);
+        canvas_fill(canvas, win->x + 2, win->y + 1, win->width - 1, 1, chisel_color_light);
+        canvas_fill(canvas, win->x + 2, win->y + 18, win->width - 1, 1, chisel_color_dark);
         canvas_fill(canvas, win->x + 1, win->y + 1, 1, 19, chisel_color_light);
-        canvas_fill(canvas, win->x + win->width - 1, win->y + 1, 1, 19, chisel_color_dark); 
-        canvas_rect(canvas, win->x, win->y, win->width, 19, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
-        canvas_rect(canvas, win->x, win->y, win->width, win->height + 20, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
+        canvas_fill(canvas, win->x + win->width, win->y + 1, 1, 19, chisel_color_dark); 
+        canvas_rect(canvas, win->x, win->y, win->width + 1, 19, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
+        canvas_rect(canvas, win->x, win->y, win->width + 1, win->height + 20, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
+
+        // maximize button
+        canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 12, 12, text_color);
+        canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 8, 8, text_color);
+        canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 5, 5, text_color);
 
         int text_width = strlen(win->title) * 10;
 
@@ -142,7 +152,12 @@ window_click(struct window *self, struct click_event *event)
         self->prev_y = self->y;
         return;
     }
-  
+ 
+    if (relative_y > (self->absolute_height - 10)) {
+        self->resized = 1;
+        return;
+    }
+
     if (LIST_SIZE(&self->events) > 5) {
         return;
     }
@@ -154,7 +169,6 @@ void
 window_keypress(struct window *self, uint8_t scancode)
 {
     struct window_event *winevent = calloc(1, sizeof(struct window_event));
-
     winevent->type = WINEVENT_KEYPRESS;
     winevent->x = scancode;
     window_post_event(self, winevent);
@@ -180,6 +194,29 @@ window_hover(struct window *self, struct click_event *event)
 }
 
 void
+window_resize(struct window *self, int width, int height)
+{
+    self->width = width;
+    self->height = height;
+    self->absolute_width = width + 2;
+    self->absolute_height = height + 21;
+    
+    canvas_resize(self->canvas, width, height);
+    self->redraw = 1;
+}
+
+void
+window_request_resize(struct window *self, int width, int height)
+{
+    struct window_event *winevent = calloc(1, sizeof(struct window_event));
+    winevent->type = WINEVENT_RESIZE;
+    winevent->x = width;
+    winevent->y = height;
+    
+    window_post_event(self, winevent);
+}
+
+void
 window_post_event(struct window *self, struct window_event *event)
 {
     thread_spin_lock(&self->event_lock);
@@ -187,6 +224,5 @@ window_post_event(struct window *self, struct window_event *event)
     list_append(&self->events, event);
 
     thread_spin_unlock(&self->event_lock);
-    
     thread_cond_signal(&self->event_cond);
 }

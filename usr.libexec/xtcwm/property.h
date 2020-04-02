@@ -12,7 +12,9 @@ typedef enum {
     XTC_CHISEL_DARK_COL         = 7,
     XTC_CHISEL_LIGHT_COL        = 8,
     XTC_CHISEL_ACTIVE_DARK_COL  = 9,
-    XTC_CHISEL_ACTIVE_LIGHT_COL = 0xA
+    XTC_CHISEL_ACTIVE_LIGHT_COL = 0xA,
+    XTC_SCREEN_WIDTH            = 0xB,
+    XTC_SCREEN_HEIGHT           = 0xC
 } xtc_property_t;
 
 extern int xtc_properties[];
