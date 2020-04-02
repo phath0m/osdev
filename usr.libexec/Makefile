@@ -4,6 +4,7 @@ export DESTDIR
 MAKE = make
 
 SUBDIRS += systerm
+SUBDIRS += xtclogin
 SUBDIRS += xtcwm
 
 all: $(SUBDIRS)
