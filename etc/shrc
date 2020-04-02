@@ -1,2 +1,2 @@
-setenv PATH "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/games"
-setenv PS1 "\$ "
+PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/games"
+PS1="\$ "
