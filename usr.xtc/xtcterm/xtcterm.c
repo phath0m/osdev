@@ -306,6 +306,16 @@ main(int argc, const char *argv[])
                 process_character(emu, scancode);
                 break;
             }
+            case XTC_EVT_RESIZE: {
+                int width = (event.parameters[0] / 8);
+                int height = (event.parameters[1] / 12);
+                state.width = width;
+                state.height = height;
+                canvas_resize(canvas, width*8, height*12);
+                xtc_resize(win, width*8, height*12);
+                vtemu_resize(emu, state.width, state.height-1);
+                break;
+            }
             default:
                 break;
         }
