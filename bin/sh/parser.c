@@ -43,17 +43,14 @@ void
 ast_node_destroy(struct ast_node *node)
 {
     list_iter_t iter;
-
     list_get_iter(&node->children, &iter);
 
     struct ast_node *child;
-
     while (iter_move_next(&iter, (void**)&child)) {
         ast_node_destroy(child);
     }
 
     list_destroy(&node->children, false);
-
     free(node);
 }
 
@@ -93,14 +90,35 @@ parse_command(struct parser *parser)
 }
 
 static struct ast_node *
+parse_assignment(struct parser *parser)
+{
+    struct token *token = peek_token(parser);
+    char *substr = strstr(token->value, "=");
+
+    if (!substr) {
+        return parse_command(parser);
+    }
+    
+    *substr = 0;
+    char *val = substr + 1;
+
+    struct ast_node *root = ast_node_new(AST_ASSIGNMENT, (char*)token->value);
+    struct ast_node *child = ast_node_new(AST_ARGUMENT, (void*)val);
+
+    list_append(&root->children, child);
+
+    return root;
+}
+
+static struct ast_node *
 parse_pipe(struct parser *parser)
 {
-    struct ast_node *left = parse_command(parser);
+    struct ast_node *left = parse_assignment(parser);
 
     while (match_token_kind(parser, TOKEN_PIPE)) {
         read_token(parser);
         
-        struct ast_node *right = parse_command(parser);
+        struct ast_node *right = parse_assignment(parser);
         struct ast_node *pipe = ast_node_new(AST_PIPE, NULL);
         
         list_append(&pipe->children, left);
