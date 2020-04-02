@@ -68,6 +68,14 @@ canvas_from_mem(int width, int height, int flags, pixbuf_t *pixels)
     return canvas;
 }
 
+void
+canvas_resize(canvas_t *canvas, int width, int height)
+{
+    canvas->buffersize = width*height*sizeof(color_t);
+    canvas->width = width;
+    canvas->height = height;
+}
+
 canvas_t *
 canvas_new(int width, int height, int flags)
 {
