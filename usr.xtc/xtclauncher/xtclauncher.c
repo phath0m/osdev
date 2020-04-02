@@ -51,10 +51,7 @@ draw_menu_items(canvas_t *canvas, struct menu_context *ctx)
     struct menu_entry *entry;
 
     while (iter_move_next(&iter, (void**)&entry)) {
-      
-        canvas_rect(canvas, 1, MENU_TEXT_PADDING+i*TEXT_CELL_HEIGHT, canvas->width - 3, TEXT_CELL_HEIGHT, 0);
         canvas_puts(canvas, MENU_TEXT_PADDING, MENU_TEXT_PADDING+MENU_TEXT_PADDING / 2 + i*TEXT_CELL_HEIGHT, entry->text, 0x0);
-        
         i++;
     }
 }
@@ -133,8 +130,7 @@ main(int argc, const char *argv[])
 
     draw_menu_items(canvas, &ctx);
 
-    xtc_set_window_title(win, "Launcher");
-
+    xtc_set_window_title(win, "Menu");
     xtc_event_t event;
 
     while (xtc_next_event(win, &event) == 0) {
