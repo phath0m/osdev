@@ -4,8 +4,6 @@ export DESTDIR
 MAKE = make
 
 SUBDIRS += systerm
-SUBDIRS += xtclogin
-SUBDIRS += xtcwm
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
