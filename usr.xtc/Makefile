@@ -7,6 +7,8 @@ MAKE = make
 
 SUBDIRS += xtclauncher
 SUBDIRS += xtcterm
+SUBDIRS += xtclogin
+SUBDIRS += xtcwm
 
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)

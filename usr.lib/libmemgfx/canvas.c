@@ -69,11 +69,26 @@ canvas_from_mem(int width, int height, int flags, pixbuf_t *pixels)
 }
 
 void
-canvas_resize(canvas_t *canvas, int width, int height)
+canvas_resize(canvas_t *canvas, color_t col, int width, int height)
 {
     canvas->buffersize = width*height*sizeof(color_t);
+    color_t *oldpixels = canvas->pixels->pixels;
+    color_t *newpixels = calloc(1, canvas->buffersize);
+
+    fast_memset_d(newpixels, col, width*height);
+
+    for (int x = 0; x < MIN(width, canvas->width); x++) {
+        for (int y = 0; y < MIN(height, canvas->height); y++) {
+            newpixels[y * width + x] = oldpixels[y*canvas->width+x];
+        }
+    }
+
+    memcpy(oldpixels, newpixels, canvas->buffersize);
+    free(newpixels);
+
     canvas->width = width;
     canvas->height = height;
+    canvas_invalidate_region(canvas, 0, 0, width, height);
 }
 
 canvas_t *

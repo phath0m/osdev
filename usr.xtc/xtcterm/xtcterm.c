@@ -86,13 +86,9 @@ vtop_erase_area(vtemu_t *emu, int start_x, int start_y, int end_x, int end_y)
     int old_pos = state->position; 
     state->position = new_pos;
 
-    printf("Clear (%d,%d) -> (%d,%d)\n", start_x, start_y, end_x, end_y);
     while (state->position < end_pos) {
-        //put_char(state, ' ');
-
         canvas_fill(state->canvas, GET_TERM_X(state)*8, GET_TERM_Y(state)*12,
                     8, 12, state->background);
-
         state->position++;
     }
 
@@ -311,8 +307,9 @@ main(int argc, const char *argv[])
                 int height = (event.parameters[1] / 12);
                 state.width = width;
                 state.height = height;
-                canvas_resize(canvas, width*8, height*12);
-                xtc_resize(win, width*8, height*12);
+                canvas->width = width*8;
+                canvas->height = height*12;
+                xtc_resize(win, state.background, width*8, height*12);
                 vtemu_resize(emu, state.width, state.height-1);
                 break;
             }

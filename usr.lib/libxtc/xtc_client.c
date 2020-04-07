@@ -187,13 +187,14 @@ xtc_redraw(xtc_win_t win)
 }
 
 int
-xtc_resize(xtc_win_t win, int width, int height)
+xtc_resize(xtc_win_t win, color_t fillcolor, int width, int height)
 {
     struct xtc_msg_hdr msg;
     msg.opcode = XTC_RESIZE;
     msg.parameters[0] = win;
     msg.parameters[1] = width;
     msg.parameters[2] = height;
+    msg.parameters[3] = fillcolor;
 
     write(xtc_sock_fd, &msg, sizeof(msg));
     read(xtc_sock_fd, &msg, sizeof(msg));

@@ -23,7 +23,7 @@ int xtc_next_event(xtc_win_t win, xtc_event_t *event);
 int xtc_clear(xtc_win_t win, int col);
 int xtc_put_string(xtc_win_t win, int x, int y, const char *str, int col);
 int xtc_redraw(xtc_win_t win);
-int xtc_resize(xtc_win_t win, int width, int height);
+int xtc_resize(xtc_win_t win, color_t fillcolor, int width, int height);
 canvas_t *xtc_open_canvas(xtc_win_t win, int flags);
 
 #endif
