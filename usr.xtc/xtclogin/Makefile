@@ -7,6 +7,7 @@ LDFLAGS = -lmemgfx -linput -lauth
 XTCLOGIN_OBJECTS += xtclogin.o
 
 XTCLOGIN = xtclogin
+XTCLOGIN_SERVICE=xtclogin.service
 
 all: $(XTCLOGIN)
 
@@ -15,6 +16,9 @@ $(XTCLOGIN): $(XTCLOGIN_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(XTCLOGIN) "$(DESTDIR)/$(PREFIX)/libexec/xtclogin"
+	mkdir -p "$(DESTDIR)/etc/doit.d"
+	mkdir -p "$(DESTDIR)/$(PREFIX)/bin"
+	cp $(XTCLOGIN_SERVICE) "$(DESTDIR)/etc/doit.d/$(XTCLOGIN_SERVICE)"
+	cp $(XTCLOGIN) "$(DESTDIR)/$(PREFIX)/bin/xtclogin"
 clean:
 	rm -f $(XTCLOGIN_OBJECTS) $(XTCLOGIN)
