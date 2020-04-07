@@ -109,8 +109,7 @@ handle_new_win(struct xtc_session *session, struct xtc_msg_hdr *hdr)
     
     session->windows[window_id] = win;
 
-    wm_add_window(session->ctx, win);
-
+    wm_add_window(win);
     send_response(session, &window_id, 1, 0);
 }
 
@@ -273,9 +272,11 @@ handle_resize(struct xtc_session *session, struct xtc_msg_hdr *hdr)
 
     struct window *win = session->windows[window_id];
 
-    window_resize(win, hdr->parameters[1], hdr->parameters[2]);
+    window_resize(win, hdr->parameters[3], hdr->parameters[1], hdr->parameters[2]);
 
     send_response(session, NULL, 0, 0);
+    
+    //wm_redraw(session->ctx);
 }
 
 
@@ -344,7 +345,7 @@ handle_connection(void *arg)
 
     for (int i = 0; i < SESSION_MAX_WINDOWS; i++) {
         if (session->windows[i]) {
-            wm_remove_window(session->ctx, session->windows[i]);
+            wm_remove_window(session->windows[i]);
             window_destroy(session->windows[i]);
         }
     }
@@ -355,7 +356,7 @@ handle_connection(void *arg)
 }
 
 void
-server_listen(void *ctx)
+server_listen()
 {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -375,7 +376,6 @@ server_listen(void *ctx)
         set_no_exec(sfd);
 
         struct xtc_session *session = calloc(1, sizeof(struct xtc_session));
-        session->ctx = ctx;
         session->sfd = sfd;
 
         thread_t thread;

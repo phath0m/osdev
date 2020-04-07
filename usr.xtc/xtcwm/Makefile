@@ -17,6 +17,6 @@ $(XTCWM): $(XTCWM_OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 install:
-	cp $(XTCWM) "$(DESTDIR)/$(PREFIX)/libexec/xtcwm"
+	cp $(XTCWM) "$(DESTDIR)/$(PREFIX)/bin/xtcwm"
 clean:
 	rm -f $(XTCWM_OBJECTS) $(XTCWM)

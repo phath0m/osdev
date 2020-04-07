@@ -12,6 +12,7 @@
 #include <sys/mman.h>
 #include "property.h"
 #include "window.h"
+#include "wm.h"
 
 /* for some reason newlib isn't putting this prototype inside unistd.h */
 extern int ftruncate(int fd, off_t length); 
@@ -86,13 +87,16 @@ window_set_title(struct window *win, const char *title)
 void
 window_draw(struct window *win, canvas_t *canvas)
 {
+    bool iconified = (win->state & WIN_ICONIFIED) == WIN_ICONIFIED;
+    bool focused = (win->state & WIN_FOCUSED) == WIN_FOCUSED;
+
     if (win->redraw) {
         int title_color = XTC_GET_PROPERTY(XTC_WIN_TITLE_COL);
         int text_color = XTC_GET_PROPERTY(XTC_WIN_TEXT_COL);
         int chisel_color_dark = XTC_GET_PROPERTY(XTC_CHISEL_DARK_COL);
         int chisel_color_light = XTC_GET_PROPERTY(XTC_CHISEL_LIGHT_COL);
 
-        if (win->active) {
+        if (focused) {
             title_color = XTC_GET_PROPERTY(XTC_WIN_ACTIVE_TITLE_COL);
             text_color = XTC_GET_PROPERTY(XTC_WIN_ACTIVE_TEXT_COL);
             chisel_color_dark = XTC_GET_PROPERTY(XTC_CHISEL_ACTIVE_DARK_COL);
@@ -107,30 +111,38 @@ window_draw(struct window *win, canvas_t *canvas)
         canvas_rect(canvas, win->x, win->y, win->width + 1, 19, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
         canvas_rect(canvas, win->x, win->y, win->width + 1, win->height + 20, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
 
-        // maximize button
-        canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 12, 12, text_color);
-        canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 8, 8, text_color);
-        canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 5, 5, text_color);
+        if (!iconified) {
+            // iconify button
+            canvas_rect(canvas, win->x + 4, win->y + 3, 12, 12, text_color);
+            canvas_fill(canvas, win->x + 7, win->y + 11, 7, 2, text_color);
+
+            // maximize button
+            canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 12, 12, text_color);
+            canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 8, 8, text_color);
+            canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 5, 5, text_color);
+        }
 
         int text_width = strlen(win->title) * 10;
 
         int center_x = win->width / 2 - text_width / 2;
 
         canvas_puts(canvas, win->x + center_x, win->y + 4, win->title, text_color);
-        canvas_putcanvas(canvas, win->x + 1, win->y + 20, 0, 0, 
-                win->width, win->height, win->canvas);
 
-        canvas_invalidate_region(canvas, win->prev_x, win->prev_y,
-                win->absolute_width,
-                win->absolute_height);
+        if (!iconified) {
+            canvas_putcanvas(canvas, win->x + 1, win->y + 20, 0, 0, 
+                    win->width, win->height, win->canvas);
 
+            canvas_invalidate_region(canvas, win->prev_x, win->prev_y,
+                    win->absolute_width,
+                    win->absolute_height);
+        }
 
         win->redraw = 0;
     }
 
     pixbuf_t *buf = win->canvas->pixels;
 
-    if (buf->dirty) {
+    if (buf->dirty && !iconified) {
         
         int width = buf->max_x - buf->min_x;
         int height = buf->max_y - buf->min_y;
@@ -145,16 +157,17 @@ void
 window_click(struct window *self, struct click_event *event)
 {
     int relative_y = event->y - self->y;
+    int relative_x = event->x - self->x;
 
-    if (relative_y < 20) {
-        self->dragged = 1;
+    if (relative_y < 20 && relative_x > 20) {
+        self->state |= WIN_DRAGGED;
         self->prev_x = self->x;
         self->prev_y = self->y;
         return;
     }
  
     if (relative_y > (self->absolute_height - 10)) {
-        self->resized = 1;
+        self->state |= WIN_RESIZED;
         return;
     }
 
@@ -181,27 +194,51 @@ window_hover(struct window *self, struct click_event *event)
         int relative_x = event->x - self->x;
         int relative_y = event->y - self->y;
 
-        struct window_event *winevent = calloc(1, sizeof(struct window_event));
-    
-        winevent->type = WINEVENT_CLICK;
-        winevent->x = relative_x - 1;
-        winevent->y = relative_y - 21;
+    	if ((self->state & WIN_ICONIFIED)) {
+        	self->state &= ~WIN_ICONIFIED;
+            self->width = self->prev_width;
+            self->height = self->prev_height;
+            self->absolute_height = 21 + self->height;
+            self->absolute_width = self->width + 2;
+            self->x = self->restore_x;
+            self->y = self->restore_y;
+            wm_redraw();
+    	} else if (relative_y < 20 && relative_x < 20) {
+        	self->state |= WIN_ICONIFIED;
+            self->prev_width = self->width;
+            self->prev_height = self->height;
+            self->restore_x = self->x;
+            self->restore_y = self->y;
+            self->absolute_height = 21;
+            self->height = 0;
+            self->width = strlen(self->title)*12 + 8;
+            self->absolute_width = self->width + 2;
+            wm_redraw();
+	    } else if (relative_y > 20) {
+            struct window_event *winevent = calloc(1, sizeof(struct window_event));
+        
+            winevent->type = WINEVENT_CLICK;
+            winevent->x = relative_x - 1;
+            winevent->y = relative_y - 21;
 
-        window_post_event(self, winevent);
+            window_post_event(self, winevent);
+		}
 
         self->mouse_down = false;
     }
 }
 
 void
-window_resize(struct window *self, int width, int height)
+window_resize(struct window *self, int color, int width, int height)
 {
     self->width = width;
     self->height = height;
     self->absolute_width = width + 2;
     self->absolute_height = height + 21;
-    
-    canvas_resize(self->canvas, width, height);
+    //self->canvas->width = width;
+    //self->canvas->height = height;
+    //self->canvas->buffersize = width*height*4;
+    canvas_resize(self->canvas, (color_t)color, width, height);
     self->redraw = 1;
 }
 

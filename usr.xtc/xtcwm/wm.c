@@ -29,7 +29,6 @@
 #include "window.h"
 #include "wm.h"
 
-static void set_redraw(struct wmctx *ctx);
 // delete
 static int actual_mouse_delta_x = 0;
 static int actual_mouse_delta_y = 0;
@@ -48,47 +47,89 @@ int xtc_properties[256] = {
     0xA0A0A0 	/* window chisel color light (active) */
 };
 
+/* container for global state about the window manager */
+struct wmctx xtc_context;
+
+static int *cursor_icons[] = {
+    /* normal cursor icon */
+    (int[]) {
+		2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		2, 2, 0, 0, 0, 0, 0, 0, 0, 0,
+		2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
+		2, 1, 1, 2, 0, 0, 0, 0, 0, 0,
+		2, 1, 1, 1, 2, 0, 0, 0, 0, 0,
+		2, 1, 1, 1, 1, 2, 0, 0, 0, 0,
+		2, 1, 1, 1, 1, 1, 2, 0, 0, 0,
+		2, 1, 1, 1, 1, 1, 1, 2, 0, 0,
+		2, 1, 1, 1, 1, 1, 1, 1, 2, 0,
+		2, 1, 1, 1, 1, 1, 1, 1, 1, 2,
+		2, 1, 1, 1, 1, 1, 1, 2, 2, 2,
+		2, 1, 1, 2, 1, 1, 2, 0, 0, 0,
+		2, 1, 2, 0, 2, 1, 1, 2, 0, 0,
+		2, 2, 0, 0, 0, 2, 1, 1, 2, 0,
+		0, 0, 0, 0, 0, 2, 1, 1, 2, 0,
+		0, 0, 0, 0, 0, 0, 2, 2, 0, 0,
+    },
+    /* window resize cursor icon */
+    (int[]) {
+        2, 2, 2, 2, 2, 2, 0, 0, 0, 0,
+        2, 1, 1, 1, 1, 2, 0, 0, 0, 0,
+        2, 1, 2, 2, 2, 2, 0, 0, 0, 0,
+        2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
+        2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
+        2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
+        2, 1, 2, 0, 1, 1, 0, 0, 0, 0,
+        2, 2, 2, 0, 1, 2, 0, 2, 2, 2,
+        0, 0, 0, 0, 1, 2, 0, 2, 1, 2,
+        0, 0, 1, 1, 1, 2, 0, 2, 1, 2,
+        0, 0, 1, 2, 2, 2, 0, 2, 1, 2,
+        0, 0, 0, 0, 0, 0, 0, 2, 1, 2,
+        0, 0, 0, 0, 0, 0, 0, 2, 1, 2,
+        0, 0, 0, 0, 2, 2, 2, 2, 1, 2,
+        0, 0, 0, 0, 2, 1, 1, 1, 1, 2,
+        0, 0, 0, 0, 2, 2, 2, 2, 2, 2,
+    }
+};
+
 void
-wm_add_window(struct wmctx *ctx, struct window *win)
+wm_add_window(struct window *win)
 {
-    list_append(&ctx->windows, win);
+    list_append(&xtc_context.windows, win);
 }
 
 void
-wm_remove_window(struct wmctx *ctx, struct window *win)
+wm_remove_window(struct window *win)
 {
-    list_remove(&ctx->windows, win);
-
-    set_redraw(ctx);
+    list_remove(&xtc_context.windows, win);
+    wm_redraw();
 }
 
 /* mark a window as being active and trigger a re-draw */
 static void
-set_active_window(struct wmctx *ctx, struct window *win)
+set_active_window(struct window *win)
 {
-    if (ctx->focused_window == win) {
+    if (xtc_context.focused_window == win) {
         return;
     }
 
-    if (ctx->focused_window) {
-        ctx->focused_window->active = 0;
-        ctx->focused_window->redraw = 1;
+    if (xtc_context.focused_window) {
+        xtc_context.focused_window->state &= ~WIN_FOCUSED;
+        xtc_context.focused_window->redraw = 1;
     }
 
-    ctx->focused_window = win;
-    win->active = 1;
+    xtc_context.focused_window = win;
+    win->state |= WIN_FOCUSED;
     win->redraw = 1;
 }
 
 /* force re-draw of everything */
-static void
-set_redraw(struct wmctx *ctx)
+void
+wm_redraw()
 {
-    ctx->redraw_flag = 1;
+    xtc_context.redraw_flag = 1;
 
     list_iter_t iter;
-
-    list_get_iter(&ctx->windows, &iter);
+    list_get_iter(&xtc_context.windows, &iter);
 
     struct window *win = NULL;
 
@@ -99,22 +140,22 @@ set_redraw(struct wmctx *ctx)
 
 /* dispatch actual mouse events to the window */
 static void
-handle_click(struct wmctx *ctx, struct click_event *event)
+handle_click(struct click_event *event)
 {
-    if (ctx->focused_window && ctx->focused_window->dragged) {
-        ctx->focused_window->x = event->x;
-        ctx->focused_window->y = event->y;
+    if (xtc_context.focused_window && IS_WINDOW_DRAGGED(xtc_context.focused_window)) {
+        xtc_context.focused_window->x = event->x;
+        xtc_context.focused_window->y = event->y;
         return;
     }
 
-    if (ctx->focused_window && ctx->focused_window->resized) {
-        ctx->focused_window->resize_width = event->x - ctx->focused_window->x;
-        ctx->focused_window->resize_height = event->y - ctx->focused_window->y;
+    if (xtc_context.focused_window && IS_WINDOW_RESIZED(xtc_context.focused_window)) {
+        xtc_context.focused_window->resize_width = event->x - xtc_context.focused_window->x;
+        xtc_context.focused_window->resize_height = event->y - xtc_context.focused_window->y;
         return;
     }
 
     list_iter_t iter;
-    list_get_iter(&ctx->windows, &iter);
+    list_get_iter(&xtc_context.windows, &iter);
 
     void *win = NULL;
     struct window *active_win = NULL;
@@ -129,21 +170,24 @@ handle_click(struct wmctx *ctx, struct click_event *event)
         window_click(active_win, event);
         
         if (active_win != win) {
-            list_remove(&ctx->windows, active_win);
-            list_append(&ctx->windows, active_win);
+            list_remove(&xtc_context.windows, active_win);
+            list_append(&xtc_context.windows, active_win);
         }
       
-        set_active_window(ctx, active_win); 
+        set_active_window(active_win); 
+
+        if (IS_WINDOW_RESIZED(active_win)) {
+            xtc_context.cursor_icon = CURSOR_ICON_RESIZE;
+        }
     }
 }
 
 /* handle hover events */
 static void
-handle_hover(struct wmctx *ctx, struct click_event *event)
+handle_hover(struct click_event *event)
 {
     list_iter_t iter;
-
-    list_get_iter(&ctx->windows, &iter);
+    list_get_iter(&xtc_context.windows, &iter);
 
     void *win = NULL;
     struct window *active_win = NULL;
@@ -158,17 +202,18 @@ handle_hover(struct wmctx *ctx, struct click_event *event)
         return;  
     }
 
-    if (active_win->dragged) {
-        active_win->dragged = 0;
+    if (IS_WINDOW_DRAGGED(active_win)) {
+        active_win->state &= ~WIN_DRAGGED;
         active_win->redraw = 1;
-        set_redraw(ctx);
+        wm_redraw();
     }
 
-    if (active_win->resized) {
-        active_win->resized = 0;
+    if (IS_WINDOW_RESIZED(active_win)) {
+        active_win->state &= ~WIN_RESIZED;
         active_win->redraw = 1;
+        xtc_context.cursor_icon = CURSOR_ICON_NORMAL;
         window_request_resize(active_win, active_win->resize_width, active_win->resize_height);
-        set_redraw(ctx);
+        wm_redraw();
     }
 
     window_hover(active_win, event);
@@ -176,16 +221,16 @@ handle_hover(struct wmctx *ctx, struct click_event *event)
 
 /* handle key event */
 static void
-handle_key_event(struct wmctx *ctx, struct kbd_event *eventbuf)
+handle_key_event(struct kbd_event *eventbuf)
 {
-    if (ctx->focused_window) {
-        window_keypress(ctx->focused_window, eventbuf->scancode);
+    if (xtc_context.focused_window) {
+        window_keypress(xtc_context.focused_window, eventbuf->scancode);
     }
 }
 
 /* actually figure out wtf the mouse is doing */
 static void
-handle_mouse_event(struct wmctx *ctx, struct mouse_event *eventbuf)
+handle_mouse_event(struct mouse_event *eventbuf)
 {
     if (eventbuf->x == 1 || eventbuf->x == -1) {
         eventbuf->x = 0;
@@ -203,37 +248,37 @@ handle_mouse_event(struct wmctx *ctx, struct mouse_event *eventbuf)
         case MOUSE_RIGHT_CLICK:
         case MOUSE_MOVE:
             
-            ctx->mouse_delta_x = eventbuf->x;
-            ctx->mouse_delta_y = eventbuf->y;
+            xtc_context.mouse_delta_x = eventbuf->x;
+            xtc_context.mouse_delta_y = eventbuf->y;
             break;
         case MOUSE_NOP:
-            ctx->mouse_delta_x = eventbuf->x;
-            ctx->mouse_delta_y = eventbuf->y;
+            xtc_context.mouse_delta_x = eventbuf->x;
+            xtc_context.mouse_delta_y = eventbuf->y;
             return;
         default:
             break;
     }*/
 
     if (eventbuf->x != 0 && eventbuf->x != actual_mouse_delta_x) {
-        ctx->mouse_delta_x = eventbuf->x;
+        xtc_context.mouse_delta_x = eventbuf->x;
         actual_mouse_delta_x = eventbuf->x;
     }
 
     if (eventbuf->y != 0 && eventbuf->y != actual_mouse_delta_x) {
-        ctx->mouse_delta_y = eventbuf->y;
+        xtc_context.mouse_delta_y = eventbuf->y;
         actual_mouse_delta_y = eventbuf->y;
     }
 
     struct click_event event;
-    event.x = ctx->mouse_x;
-    event.y = ctx->mouse_y;
+    event.x = xtc_context.mouse_x;
+    event.y = xtc_context.mouse_y;
 
     switch (eventbuf->event) {
         case MOUSE_MOVE:
-            handle_hover(ctx, &event);
+            handle_hover(&event);
             break;
         case MOUSE_LEFT_CLICK:
-            handle_click(ctx, &event);
+            handle_click(&event);
             break;
         default:
             break;
@@ -244,19 +289,17 @@ handle_mouse_event(struct wmctx *ctx, struct mouse_event *eventbuf)
 static void *
 io_loop(void *argp)
 {
-    struct wmctx *ctx = (struct wmctx*)argp;
     inmux_t *inmux = inmux_open();
 
     for (;;) {
         struct inevent event;
-
         inmux_next_event(inmux, &event);
 
         switch (event.type) {
             case INMUX_KBD:
-                handle_key_event(ctx, &event.un.kbd_event);
+                handle_key_event(&event.un.kbd_event);
             case INMUX_MOUSE:
-                handle_mouse_event(ctx, &event.un.mouse_event);
+                handle_mouse_event(&event.un.mouse_event);
                 break;
         }
     }
@@ -279,10 +322,10 @@ draw_wireframe(canvas_t *canvas, int x, int y, int width, int height)
 
 /* draw all windows inefficiently */
 static void
-draw_windows(struct wmctx *ctx, canvas_t *canvas)
+draw_windows(canvas_t *canvas)
 {
     list_iter_t iter;
-    list_get_iter(&ctx->windows, &iter);
+    list_get_iter(&xtc_context.windows, &iter);
 
     struct window *win = NULL;
     while (iter_move_next(&iter, (void**)&win)) {
@@ -300,11 +343,36 @@ render_wireframe(display_t *display, canvas_t *canvas, int x, int y, int width, 
     display_render(display, canvas, x + width - 4, y, 4, height);
 }
 
+/* draw icon */
+static void
+draw_icon(canvas_t *canvas, int x, int y, int *icon)
+{
+    color_t pixels[10];
+
+    for (int py = 0; py < 16; py++) {
+        for (int px = 0; px < 10; px++) {
+            int entry = icon[py*10+px];
+
+            switch (entry) {
+                case 0:
+                    pixels[px] = 0xFFFFFFFF;
+                    break;
+                case 1:
+                    pixels[px] = 0x00;
+                    break;
+                case 2:
+                    pixels[px] = 0xFFFFFF;
+                    break;
+            }
+        }
+        canvas_putpixels(canvas, x, py + y, 10, 1, pixels);
+    }
+}
+
 /* thread responsible for rendering the screen, roughly 120 times a second */
 static void *
 display_loop(void *argp)
 {
-    struct wmctx *ctx = (struct wmctx*)argp;
     display_t *display = display_open();
 
     int width = display_width(display);
@@ -332,7 +400,7 @@ display_loop(void *argp)
         canvas_clear(bg, XTC_GET_PROPERTY(XTC_BACKGROUND_COL));
     }    
 
-    ctx->redraw_flag = 1;
+    xtc_context.redraw_flag = 1;
 
     /* 
      * feels kind of dirty but here we will keep track of the past rendered
@@ -353,34 +421,34 @@ display_loop(void *argp)
     int mouse_bounds_y = height - 12;
 
     for (;;) {
-        if (ctx->redraw_flag) {
+        if (xtc_context.redraw_flag) {
             canvas_putcanvas(backbuffer, 0, 0, 0, 0, bg->width, bg->height, bg);
-            ctx->redraw_flag = 0;
+            xtc_context.redraw_flag = 0;
         }
 
-        ctx->mouse_x += ctx->mouse_delta_x;
-        ctx->mouse_y -= ctx->mouse_delta_y;
+        xtc_context.mouse_x += xtc_context.mouse_delta_x;
+        xtc_context.mouse_y -= xtc_context.mouse_delta_y;
         
-        ctx->mouse_delta_x = 0;
-        ctx->mouse_delta_y = 0;
+        xtc_context.mouse_delta_x = 0;
+        xtc_context.mouse_delta_y = 0;
 
-        if (ctx->mouse_x > mouse_bounds_x) {
-            ctx->mouse_x = mouse_bounds_x;
+        if (xtc_context.mouse_x > mouse_bounds_x) {
+            xtc_context.mouse_x = mouse_bounds_x;
         }
 
-        if (ctx->mouse_y > mouse_bounds_y) {
-            ctx->mouse_y = mouse_bounds_y;
+        if (xtc_context.mouse_y > mouse_bounds_y) {
+            xtc_context.mouse_y = mouse_bounds_y;
         }
 
-        if (ctx->mouse_x < 0) {
-            ctx->mouse_x = 0;
+        if (xtc_context.mouse_x < 0) {
+            xtc_context.mouse_x = 0;
         }
 
-        if (ctx->mouse_y < 0) {
-            ctx-> mouse_y = 0;
+        if (xtc_context.mouse_y < 0) {
+            xtc_context. mouse_y = 0;
         }
 
-        draw_windows(ctx, backbuffer);
+        draw_windows(backbuffer);
 
         pixbuf_t *buf = backbuffer->pixels;
         
@@ -394,28 +462,28 @@ display_loop(void *argp)
             display_render(display, frontbuffer, buf->min_x, buf->min_y, dirty_width, dirty_height);
         }
 
-        if (last_rendered_mouse_x != ctx->mouse_x || last_rendered_mouse_y != ctx->mouse_y) {
+        if (last_rendered_mouse_x != xtc_context.mouse_x || last_rendered_mouse_y != xtc_context.mouse_y) {
             /* re-draw the cursor at the current mouse position */
 
             /* first; re-draw over the previous location */
             canvas_putcanvas(frontbuffer, last_rendered_mouse_x, last_rendered_mouse_y, 
-                last_rendered_mouse_x, last_rendered_mouse_y, 8, 12, backbuffer);        
+                last_rendered_mouse_x, last_rendered_mouse_y, 10, 16, backbuffer);        
 
             /* now actually draw a cursor*/
-            canvas_putc(frontbuffer, ctx->mouse_x, ctx->mouse_y, 'x', 0x0);
-     
+            draw_icon(frontbuffer, xtc_context.mouse_x, xtc_context.mouse_y, cursor_icons[xtc_context.cursor_icon]);
+
             /* put the data to the screen */
-            display_render(display, frontbuffer, last_rendered_mouse_x, last_rendered_mouse_y, 8, 12);
-            display_render(display, frontbuffer, ctx->mouse_x, ctx->mouse_y, 8, 12);
+            display_render(display, frontbuffer, last_rendered_mouse_x, last_rendered_mouse_y, 10, 16);
+            display_render(display, frontbuffer, xtc_context.mouse_x, xtc_context.mouse_y, 10, 16);
         }
         
-        if (ctx->focused_window && (ctx->focused_window->dragged || ctx->focused_window->resized)) {
-            struct window *win = ctx->focused_window;
+        struct window *win = xtc_context.focused_window;
 
-            int wf_width = win->width;
-            int wf_height = win->height;
+        if (win && (IS_WINDOW_DRAGGED(win) || IS_WINDOW_RESIZED(win))) {
+            int wf_width = win->absolute_width;
+            int wf_height = win->absolute_height;
 
-            if (ctx->focused_window->resized) {
+            if (IS_WINDOW_RESIZED(win)) {
                 wf_width = win->resize_width;
                 wf_height = win->resize_height;
             }
@@ -439,8 +507,8 @@ display_loop(void *argp)
 
         buf->dirty = 0;
         
-        last_rendered_mouse_x = ctx->mouse_x;
-        last_rendered_mouse_y = ctx->mouse_y;
+        last_rendered_mouse_x = xtc_context.mouse_x;
+        last_rendered_mouse_y = xtc_context.mouse_y;
 
         /* 
          * this is something that is in my libc but not an official function
@@ -562,18 +630,16 @@ main(int argc, const char *argv[])
 
 	set_properties();
 
-    static struct wmctx ctx;
-
-    memset(&ctx, 0, sizeof(ctx));
+    memset(&xtc_context, 0, sizeof(xtc_context));
 
     thread_t input_thread;
     thread_t display_thread;
-    thread_create(&input_thread, io_loop, &ctx);
-    thread_create(&display_thread, display_loop, &ctx);
+    thread_create(&input_thread, io_loop, NULL);
+    thread_create(&display_thread, display_loop, NULL);
 
     init_session();
 
-    server_listen(&ctx);
+    server_listen();
 
     return 0;
 }
