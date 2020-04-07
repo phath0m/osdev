@@ -18,4 +18,4 @@ CHISEL_ACTIVE_DARK_COLOR=0x404040
 CHISEL_ACTIVE_LIGHT_COLOR=0xA0A0A0
 
 source /etc/xtc/xtcwm.rc.local
-exec /usr/libexec/xtcwm
+exec /usr/xtc/bin/xtcwm
