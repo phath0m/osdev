@@ -1,4 +1,0 @@
-[Service]
-Name=XTC Window Manager
-ExecStart=/usr/libexec/xtclogin
-RunLevel=5
