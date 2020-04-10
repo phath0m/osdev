@@ -1,5 +1,5 @@
 /*
- * bus.h
+ * interrupt.h
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,23 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_BUS_H
-#define _SYS_BUS_H
+#ifndef _SYS_INTERRUPT_H
+#define _SYS_INTERRUPT_H
 #ifdef __cplusplus
 extern "C" {
 #endif
 #ifdef __KERNEL__
 
-#include <machine/bus.h>
+#include <machine/interrupt.h>
 
 struct regs;
 
 typedef int (*intr_handler_t)(int inum, struct regs *regs);
 
-int bus_register_intr(int inum, intr_handler_t handler);
+int intr_register(int inum, intr_handler_t handler);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-#endif /* _SYS_BUS_H */
+#endif /* _SYS_INTERRUPT_H */

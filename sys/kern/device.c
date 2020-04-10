@@ -20,7 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <ds/list.h>
-#include <sys/device.h>
+#include <sys/cdev.h>
 #include <sys/errno.h>
 #include <sys/types.h>
 

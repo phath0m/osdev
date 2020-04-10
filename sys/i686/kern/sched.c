@@ -18,7 +18,7 @@
 #include <ds/list.h>
 #include <machine/portio.h>
 #include <machine/reg.h>
-#include <sys/bus.h>
+#include <sys/interrupt.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/string.h>

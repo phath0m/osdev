@@ -16,7 +16,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <machine/reg.h>
-#include <sys/bus.h>
+#include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/systm.h>
 
@@ -175,8 +175,8 @@ void
 traps_init()
 {
     for (int i = 0; i < 14; i++) {
-        bus_register_intr(i, handle_generic_exception);
+        intr_register(i, handle_generic_exception);
     }
 
-    bus_register_intr(14, handle_page_fault);
+    intr_register(14, handle_page_fault);
 }

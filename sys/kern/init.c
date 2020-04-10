@@ -36,17 +36,13 @@ exec_init(const char *args)
         NULL
     };
 
-    
     const char *init_envp[] = {
         "CONSOLE=/dev/lfb",
-        "TERM=xterm",
         NULL
     };
 
     printf("kernel: invoke /sbin/doit\n\r");
-
     current_proc->umask = 0744;
-
     proc_execve(init_argv[0], init_argv, init_envp);
 
     return 0;
@@ -56,12 +52,6 @@ exec_init(const char *args)
 int
 init_thread(void *argp)
 {
-    /* this is sort of a hack because it assumes we're using LFB for output*/
-    /* TODO: something that makes less assumptions */
-    extern struct cdev lfb_device;
-
-    set_kernel_output(&lfb_device);
-
     extern struct thread *sched_curr_thread;
 
     /* setup the first process */    
@@ -122,7 +112,6 @@ kmain(const char *args)
     syscalls_init();
 
     extern void pseudo_devices_init();
-
     pseudo_devices_init();
 
     thread_run((kthread_entry_t)init_thread, NULL, (void*)args);

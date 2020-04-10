@@ -19,8 +19,8 @@
 #include <machine/elf32.h>
 #include <machine/multiboot.h>
 #include <machine/vm.h>
-#include <sys/bus.h>
-#include <sys/device.h>
+#include <sys/cdev.h>
+#include <sys/interrupt.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/systm.h>

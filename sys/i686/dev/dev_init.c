@@ -15,7 +15,9 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <sys/device.h>
+#include <machine/pci.h>
+#include <sys/cdev.h>
+#include <sys/systm.h>
 
 extern struct cdev kbd_device;
 extern struct cdev lfb_device;
@@ -63,4 +65,12 @@ machine_dev_init()
     while ((dev = machine_dev_all[i++])) {
         cdev_register(dev);
     }
+
+    pci_init();
+
+#ifdef ENABLE_DEV_VGA
+    set_kernel_output(&vga_device);
+#elif ENABLE_DEV_LFB
+    set_kernel_output(&lfb_device);
+#endif
 }

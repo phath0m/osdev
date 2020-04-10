@@ -22,7 +22,7 @@
  */
 #include <machine/multiboot.h>
 #include <machine/vm.h>
-#include <sys/device.h>
+#include <sys/cdev.h>
 #include <sys/devno.h>
 #include <sys/errno.h>
 #include <sys/ioctl.h>

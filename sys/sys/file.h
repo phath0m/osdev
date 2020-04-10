@@ -22,7 +22,7 @@ extern "C" {
 #endif
 #ifdef __KERNEL__
 
-#include <sys/device.h>
+#include <sys/cdev.h>
 #include <sys/dirent.h>
 #include <sys/pool.h>
 #include <sys/proc.h>

@@ -21,7 +21,7 @@
  */
 #include <ds/dict.h>
 #include <ds/list.h>
-#include <sys/device.h>
+#include <sys/cdev.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>

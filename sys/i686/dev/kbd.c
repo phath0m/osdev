@@ -17,10 +17,10 @@
  */
 #include <ds/fifo.h>
 #include <machine/portio.h>
-#include <sys/bus.h>
-#include <sys/device.h>
+#include <sys/cdev.h>
 #include <sys/devno.h>
 #include <sys/errno.h>
+#include <sys/interrupt.h>
 #include <sys/ioctl.h>
 #include <sys/proc.h>
 #include <sys/types.h>
@@ -62,7 +62,7 @@ static int
 keyboard_init(struct cdev *dev)
 {
     keyboard_buf = fifo_new(4096);
-    bus_register_intr(33, keyboard_irq_handler);
+    intr_register(33, keyboard_irq_handler);
 
     return 0;
 }

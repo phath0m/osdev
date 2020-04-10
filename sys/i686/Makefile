@@ -20,6 +20,7 @@ KERNEL_I686_OBJECTS += kern/interrupt_dispatch.o
 KERNEL_I686_OBJECTS += kern/interrupt_handler.o
 KERNEL_I686_OBJECTS += kern/exec.o
 KERNEL_I686_OBJECTS += kern/fork.o
+KERNEL_I686_OBJECTS += kern/pci.o
 KERNEL_I686_OBJECTS += kern/sched.o
 KERNEL_I686_OBJECTS += kern/signal.o
 KERNEL_I686_OBJECTS += kern/stacktrace.o

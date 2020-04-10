@@ -16,9 +16,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <machine/portio.h>
-#include <sys/bus.h>
-#include <sys/device.h>
+#include <sys/cdev.h>
 #include <sys/devno.h>
+#include <sys/interrupt.h>
 #include <sys/types.h>
 
 static int mouse_init(struct cdev *dev);
@@ -116,7 +116,7 @@ mouse_init(struct cdev *dev)
     mouse_send_cmd(0xF4);
     mouse_recv_resp();
 
-    bus_register_intr(44, mouse_irq_handler);
+    intr_register(44, mouse_irq_handler);
 
     return 0;
 }

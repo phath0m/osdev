@@ -1,5 +1,5 @@
 /*
- * portio.h
+ * pci.h
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,47 +15,23 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_PORTIO_H
-#define _SYS_PORTIO_H
+#ifndef _MACHINE_PCI_H
+#define _MACHINE_PCI_H
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __KERNEL__
 
+#include <sys/device.h>
 #include <sys/types.h>
 
-static inline uint8_t
-io_read_byte(uint16_t port)
-{
-    uint8_t res;
+int     pci_config_read(struct device *dev, int offset);
+int     pci_get_device_id(struct device *dev);
+int     pci_get_vendor_id(struct device *dev);
+void    pci_init();
 
-    asm volatile("inb %1, %0" : "=a"(res) : "Nd"(port));
-
-    return res;
+#endif /* __KERNEL__ */
+#ifdef __cplusplus
 }
-
-static inline uint32_t
-io_read_long(uint16_t port)
-{
-    uint32_t res;
-
-    asm volatile("inl %1, %0" : "=a"(res) : "Nd"(port));
-
-    return res;
-}
-
-static inline void
-io_write_byte(uint16_t port, uint8_t val)
-{
-    asm volatile("outb %0, %1" : : "a"(val), "Nd"(port));
-}
-
-static inline void
-io_write_short(uint16_t port, uint16_t val)
-{
-    asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
-}
-
-static inline void
-io_write_long(uint16_t port, uint32_t val)
-{
-    asm volatile("outl %0, %1" : : "a"(val), "Nd"(port));
-}
-
-#endif
+#endif /* __cplusplus */
+#endif /* _MACHINE_PCI_H */

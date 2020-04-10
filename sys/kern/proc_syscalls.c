@@ -18,10 +18,10 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
+#include <sys/interrupt.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/procdesc.h>

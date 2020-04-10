@@ -18,9 +18,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <machine/reg.h>
-#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/file.h>
+#include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/string.h>

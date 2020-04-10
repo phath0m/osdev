@@ -23,11 +23,11 @@ extern "C" {
 #ifdef __KERNEL__
 
 #include <ds/dict.h>
+#include <sys/cdev.h>
 #include <sys/dirent.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/device.h>
 #include <sys/limits.h>
 #include <sys/pool.h>
 #include <sys/proc.h>

@@ -16,7 +16,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <machine/reg.h>
-#include <sys/bus.h>
+#include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/syscall.h>
@@ -74,5 +74,5 @@ syscall_handler(int inum, struct regs *regs)
 void
 syscall_init()
 {
-    bus_register_intr(0x80, syscall_handler);
+    intr_register(0x80, syscall_handler);
 }

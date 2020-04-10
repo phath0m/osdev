@@ -16,7 +16,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <machine/portio.h>
-#include <sys/device.h>
+#include <sys/cdev.h>
 #include <sys/devno.h>
 #include <sys/types.h>
 

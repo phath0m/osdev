@@ -22,8 +22,8 @@ extern "C" {
 #endif
 #ifdef __KERNEL__
 #include <stdarg.h>
+#include <sys/cdev.h>
 #include <sys/vnode.h>
-#include <sys/device.h>
 
 #define ELYSIUM_SYSNAME     "Elysium"
 #define ELYSIUM_RELEASE     "v0.0.1"

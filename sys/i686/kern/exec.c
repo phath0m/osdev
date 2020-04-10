@@ -20,10 +20,10 @@
 #include <ds/list.h>
 #include <machine/elf32.h>
 #include <machine/vm.h>
-#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
+#include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
