@@ -25,9 +25,27 @@ extern "C" {
 #include <sys/device.h>
 #include <sys/types.h>
 
+#define PCI_CONFIG_BAR0		0x10
+#define PCI_CONFIG_BAR1		0x14
+#define PCI_CONFIG_BAR2		0x18
+#define PCI_CONFIG_BAR3		0x1C
+#define PCI_CONFIG_BAR4		0x20
+#define PCI_CONFIG_BAR5		0x24
+#define PCI_CONFIG_IRQLINE  0x3C
+
+#define PCI_IO_BASE(bar)    ((bar) & 0xFFFFFFFC)
+
 int     pci_config_read(struct device *dev, int offset);
 int     pci_get_device_id(struct device *dev);
 int     pci_get_vendor_id(struct device *dev);
+int     pci_get_class(struct device *dev);
+int     pci_get_subclass(struct device *dev);
+int     pci_get_subsystem_id(struct device *dev);
+
+uint8_t     pci_get_config8(struct device *dev, int offset);
+uint16_t 	pci_get_config16(struct device *dev, int offset);
+uint32_t	pci_get_config32(struct device *dev, int offset);
+
 void    pci_init();
 
 #endif /* __KERNEL__ */

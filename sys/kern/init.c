@@ -26,6 +26,9 @@
 #include <sys/vm.h>
 #include <sys/vnode.h>
 
+// DELETE!!!
+#include <sys/device.h>
+
 /* stage three of kernel initialization; exec /sbin/doit */
 static int
 exec_init(const char *args)
@@ -64,6 +67,10 @@ init_thread(void *argp)
     
     sched_curr_thread->proc = init;
     current_proc = init;
+
+    // DELETE
+    extern struct driver ide_driver;
+    driver_register(&ide_driver);
 
     /* this is ugly and not how I want to do this (Initializing these filesystems
      * here). I'd prefer a more modular approach. We'll fix this some day

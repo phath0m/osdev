@@ -231,6 +231,14 @@ strreverse(char *str)
 }
 
 static inline int
+vsprint_c(char *str, int ch)
+{
+    *str = (char)ch;
+
+    return 1;
+}
+
+static inline int
 vsprint_d(char *str, int arg)
 {
     char buf[16];
@@ -269,6 +277,8 @@ vsprint_arg(char *str, const char spec, va_list arg)
         case '%':
             *str = '%';
             return 1;
+        case 'c':
+            return vsprint_c(str, va_arg(arg, int));
         case 'd':
             return vsprint_d(str, va_arg(arg, int));
         case 's':

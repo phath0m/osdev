@@ -15,6 +15,6 @@
 /* physical address to kernel virtual address */
 #define PTOKVA(addr) ((uintptr_t)KERNEL_VIRTUAL_BASE+(uintptr_t)(addr))
 /* higher half virtual address to physical address */
-#define KVATOP(addr) ((uintptr_t)(addr) - KERNEL_VIRTUAL_BASE)
+#define KVATOP(addr) (((uintptr_t)(addr)) - KERNEL_VIRTUAL_BASE)
 
 #endif

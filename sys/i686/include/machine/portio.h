@@ -30,6 +30,16 @@ io_read_byte(uint16_t port)
     return res;
 }
 
+static inline uint16_t
+io_read_short(uint16_t port)
+{
+    uint16_t res;
+
+    asm volatile("inw %1, %0" : "=a"(res) : "Nd"(port));
+
+    return res;
+}
+
 static inline uint32_t
 io_read_long(uint16_t port)
 {
