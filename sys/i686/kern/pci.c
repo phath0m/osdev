@@ -48,9 +48,9 @@ pci_read_short(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset)
     address = (uint32_t)((bus << 16) | (slot << 11) |
             (func << 8) | (offset & 0xfC) | 0x80000000);
 
-    io_write_long(0xCF8, address);
+    io_write32(0xCF8, address);
     
-    return (io_read_long(0xCFC) >> ((offset & 2) << 3) & 0xFFFF);
+    return (io_read32(0xCFC) >> ((offset & 2) << 3) & 0xFFFF);
 }
 
 uint32_t
@@ -68,8 +68,8 @@ pci_write_long(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t
     address = (uint32_t)((bus << 16) | (slot << 11) |
             (func << 8) | (offset & 0xfC) | 0x80000000);
 
-    io_write_long(0xCF8, address);
-	io_write_long(0xCFC, data);
+    io_write32(0xCF8, address);
+	io_write32(0xCFC, data);
 }
 
 int

@@ -163,21 +163,21 @@ struct pallete_entry {
 static void
 vga_set_regs(uint8_t *regs)
 {   
-    io_write_byte(VGA_MISC_WRITE, *regs);
+    io_write8(VGA_MISC_WRITE, *regs);
     regs++;
 
     /* write SEQUENCER regs */
     for (int i = 0; i < VGA_NUM_SEQ_REGS; i++) {
-      io_write_byte(VGA_SEQ_INDEX, i);
-      io_write_byte(VGA_SEQ_DATA, *regs);
+      io_write8(VGA_SEQ_INDEX, i);
+      io_write8(VGA_SEQ_DATA, *regs);
       regs++;
     }
 
     /* unlock CRTC registers */
-    io_write_byte(VGA_SEQ_INDEX, 0x03);
-    io_write_byte(VGA_SEQ_DATA, io_read_byte(VGA_CRTC_DATA) | 0x80);
-    io_write_byte(VGA_SEQ_INDEX, 0x11);
-    io_write_byte(VGA_SEQ_DATA, io_read_byte(VGA_CRTC_DATA) & ~0x80);
+    io_write8(VGA_SEQ_INDEX, 0x03);
+    io_write8(VGA_SEQ_DATA, io_read8(VGA_CRTC_DATA) | 0x80);
+    io_write8(VGA_SEQ_INDEX, 0x11);
+    io_write8(VGA_SEQ_DATA, io_read8(VGA_CRTC_DATA) & ~0x80);
 
     /* make sure they remain unlocked */
     regs[0x03] |= 0x80;
@@ -185,43 +185,43 @@ vga_set_regs(uint8_t *regs)
 
     /* write CRTC regs */
     for (int i = 0; i < VGA_NUM_CRTC_REGS; i++) {
-        io_write_byte(VGA_CRTC_INDEX, i);
-        io_write_byte(VGA_CRTC_DATA, *regs);
+        io_write8(VGA_CRTC_INDEX, i);
+        io_write8(VGA_CRTC_DATA, *regs);
         regs++;
     }
 
     /* write GRAPHICS CONTROLLER regs */
     for (int i = 0; i < VGA_NUM_GC_REGS; i++) {
-        io_write_byte(VGA_GC_INDEX, i);
-        io_write_byte(VGA_GC_DATA, *regs);
+        io_write8(VGA_GC_INDEX, i);
+        io_write8(VGA_GC_DATA, *regs);
         regs++;
     }
 
     /* write ATTRIBUTE CONTROLLER regs */
     for (int i = 0; i < VGA_NUM_AC_REGS; i++) {
-        io_read_byte(VGA_INSTAT_READ);
-        io_write_byte(VGA_AC_INDEX, i);
-        io_write_byte(VGA_AC_WRITE, *regs);
+        io_read8(VGA_INSTAT_READ);
+        io_write8(VGA_AC_INDEX, i);
+        io_write8(VGA_AC_WRITE, *regs);
         i++;
     }
 
     /* lock 16-color palette and unblank display */
-    io_read_byte(VGA_INSTAT_READ);
-    io_write_byte(VGA_AC_INDEX, 0x20);
+    io_read8(VGA_INSTAT_READ);
+    io_write8(VGA_AC_INDEX, 0x20);
 }
 
 static inline void
 vga_write_reg(uint16_t iport, uint8_t reg, uint8_t val)
 {
-   io_write_byte(iport, reg);
-   io_write_byte(iport + 1, val);
+   io_write8(iport, reg);
+   io_write8(iport + 1, val);
 }
 
 static inline uint8_t
 vga_read_reg(uint16_t iport, uint8_t reg)
 {
-   io_write_byte(iport, reg);
-   return io_read_byte(iport + 1);
+   io_write8(iport, reg);
+   return io_read8(iport + 1);
 }
 
 static void
@@ -255,10 +255,10 @@ vga_write_font(uint8_t *buf, int font_height)
 static void
 vga_set_pallete_color(struct pallete_entry *entry)
 {
-    io_write_byte(0x03c8, entry->index);
-    io_write_byte(0x03c9, entry->red);
-    io_write_byte(0x03c9, entry->green);
-    io_write_byte(0x03c9, entry->blue);
+    io_write8(0x03c8, entry->index);
+    io_write8(0x03c9, entry->red);
+    io_write8(0x03c9, entry->green);
+    io_write8(0x03c9, entry->blue);
 }
 
 static void
@@ -304,20 +304,20 @@ vga_draw(struct vga_state *state, struct draw_req *req)
 static void
 textscreen_update_cursor(uint16_t pos)
 {
-    io_write_byte(0x3D4, 0x0F);
-    io_write_byte(0x3D5, (uint8_t) (pos & 0xFF));
-    io_write_byte(0x3D4, 0x0E);
-    io_write_byte(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
+    io_write8(0x3D4, 0x0F);
+    io_write8(0x3D5, (uint8_t) (pos & 0xFF));
+    io_write8(0x3D4, 0x0E);
+    io_write8(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
 }
 
 static void
 textscreen_enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
 {
-    io_write_byte(0x3D4, 0x0A);
-    io_write_byte(0x3D5, (io_read_byte(0x3D5) & 0xC0) | cursor_start);
+    io_write8(0x3D4, 0x0A);
+    io_write8(0x3D5, (io_read8(0x3D5) & 0xC0) | cursor_start);
  
-    io_write_byte(0x3D4, 0x0B);
-    io_write_byte(0x3D5, (io_read_byte(0x3D5) & 0xE0) | cursor_end);
+    io_write8(0x3D4, 0x0B);
+    io_write8(0x3D5, (io_read8(0x3D5) & 0xE0) | cursor_end);
 }
 
 static void

@@ -118,9 +118,9 @@ echo_char(struct serial_state *state, char ch)
 {
     int port = state->port;
 
-    while ((io_read_byte(port + 5) & 0x20) == 0);
+    while ((io_read8(port + 5) & 0x20) == 0);
 
-    io_write_byte(port, ch);
+    io_write8(port, ch);
 }
 
 static char
@@ -128,9 +128,9 @@ read_char(struct serial_state *state)
 {
     int port = state->port;
 
-    while ((io_read_byte(port + 5) & 0x1) == 0);
+    while ((io_read8(port + 5) & 0x1) == 0);
 
-    char ch = io_read_byte(port);
+    char ch = io_read8(port);
     
     switch (ch) {
         case 0x0D:
@@ -155,13 +155,13 @@ serial_init(struct cdev *dev)
 
     int port = state->port;
     
-    io_write_byte(port + 1, 0x00); // disable all interupts
-    io_write_byte(port + 3, 0x80);  // enable DLAB
-    io_write_byte(port + 0, 0x01);
-    io_write_byte(port + 1, 0x00);
-    io_write_byte(port + 3, 0x03);
-    io_write_byte(port + 2, 0xC7);
-    io_write_byte(port + 4, 0x0B);
+    io_write8(port + 1, 0x00); // disable all interupts
+    io_write8(port + 3, 0x80);  // enable DLAB
+    io_write8(port + 0, 0x01);
+    io_write8(port + 1, 0x00);
+    io_write8(port + 3, 0x03);
+    io_write8(port + 2, 0xC7);
+    io_write8(port + 4, 0x0B);
 
     return 0;
 }

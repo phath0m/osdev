@@ -38,12 +38,12 @@ dispatch_intr(struct regs *regs)
     uint8_t inum = regs->inum;
 
     if (inum >= 40) {
-        io_write_byte(0xA0, 0x20);
+        io_write8(0xA0, 0x20);
     }
 
     dispatch_to_intr_handler(inum, regs);
     
-    io_write_byte(0x20, 0x20);
+    io_write8(0x20, 0x20);
 
     if (sched_curr_thread) {
         thread_interrupt_leave(sched_curr_thread, regs);

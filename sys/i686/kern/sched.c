@@ -209,9 +209,9 @@ void
 sched_init()
 {
     uint32_t divisor = 1193180 / sched_hz;
-    io_write_byte(0x43, 0x36);
-    io_write_byte(0x40, divisor & 0xFF);
-    io_write_byte(0x40, (divisor >> 8) & 0xFF);
+    io_write8(0x43, 0x36);
+    io_write8(0x40, divisor & 0xFF);
+    io_write8(0x40, (divisor >> 8) & 0xFF);
 
     sched_curr_address_space = vm_space_new();
 

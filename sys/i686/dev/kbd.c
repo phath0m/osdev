@@ -50,9 +50,9 @@ static struct fifo *keyboard_buf;
 static int
 keyboard_irq_handler(int inum, struct regs *regs)
 {
-    while ((io_read_byte(0x64) & 2));
+    while ((io_read8(0x64) & 2));
 
-    uint8_t scancode = io_read_byte(0x60);
+    uint8_t scancode = io_read8(0x60);
     fifo_write(keyboard_buf, &scancode, 1);
 
     return 0;

@@ -44,17 +44,17 @@ struct cdev rtc_device = {
 static int
 cmos_update_in_progress()
 {
-    io_write_byte(CMOS_ADDRESS, 0x0A);
+    io_write8(CMOS_ADDRESS, 0x0A);
 
-    return (io_read_byte(CMOS_DATA) & 0x80);
+    return (io_read8(CMOS_DATA) & 0x80);
 }
 
 static uint8_t
 get_rtc_register(int reg)
 {
-    io_write_byte(CMOS_ADDRESS, reg);
+    io_write8(CMOS_ADDRESS, reg);
 
-    return io_read_byte(CMOS_DATA);
+    return io_read8(CMOS_DATA);
 }
 
 static int seconds_per_month_lut[] = {

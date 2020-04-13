@@ -21,7 +21,7 @@
 #include <sys/types.h>
 
 static inline uint8_t
-io_read_byte(uint16_t port)
+io_read8(uint16_t port)
 {
     uint8_t res;
 
@@ -31,7 +31,7 @@ io_read_byte(uint16_t port)
 }
 
 static inline uint16_t
-io_read_short(uint16_t port)
+io_read16(uint16_t port)
 {
     uint16_t res;
 
@@ -41,7 +41,7 @@ io_read_short(uint16_t port)
 }
 
 static inline uint32_t
-io_read_long(uint16_t port)
+io_read32(uint16_t port)
 {
     uint32_t res;
 
@@ -51,19 +51,19 @@ io_read_long(uint16_t port)
 }
 
 static inline void
-io_write_byte(uint16_t port, uint8_t val)
+io_write8(uint16_t port, uint8_t val)
 {
     asm volatile("outb %0, %1" : : "a"(val), "Nd"(port));
 }
 
 static inline void
-io_write_short(uint16_t port, uint16_t val)
+io_write16(uint16_t port, uint16_t val)
 {
     asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
 static inline void
-io_write_long(uint16_t port, uint32_t val)
+io_write32(uint16_t port, uint32_t val)
 {
     asm volatile("outl %0, %1" : : "a"(val), "Nd"(port));
 }

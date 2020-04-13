@@ -33,8 +33,8 @@ virtq_init(struct virtio_dev *vdev, uint16_t addr, int nelems)
 
     memset(buf, 0, total_size);
 
-    io_write_short(vdev->iobase+0x0E, addr);
-    io_write_long(vdev->iobase+0x08, PAGE_INDEX(KVATOP(buf)));
+    io_write16(vdev->iobase+0x0E, addr);
+    io_write32(vdev->iobase+0x08, PAGE_INDEX(KVATOP(buf)));
 
 	/* disable interrupts because current interrupt handling sucks */
 	vdev->queues[addr].available->flags = 1;
@@ -69,7 +69,7 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
     }
 
     queue->available->index++;
-    io_write_byte(vdev->iobase + 0x10, 0);
+    io_write8(vdev->iobase + 0x10, 0);
 
 	bool acknowledged = false;	
 	while (!acknowledged) {
@@ -100,20 +100,20 @@ virtio_attach(struct device *dev)
     struct virtio_dev *vdev = calloc(1, sizeof(struct virtio_dev));
     vdev->iobase = PCI_IO_BASE(pci_get_config32(dev, PCI_CONFIG_BAR0));
 
-	io_write_byte(vdev->iobase+0x12, 0);
-    io_write_byte(vdev->iobase+0x12, VIRTIO_ACKNOWLEDGE);
-    io_write_byte(vdev->iobase+0x12, VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
+	io_write8(vdev->iobase+0x12, 0);
+    io_write8(vdev->iobase+0x12, VIRTIO_ACKNOWLEDGE);
+    io_write8(vdev->iobase+0x12, VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
 
-    uint32_t features = io_read_long(vdev->iobase);
+    uint32_t features = io_read32(vdev->iobase);
 
     features &= ~VIRTIO_BLK_F_RO;
     features &= ~VIRTIO_BLK_F_BLK_SIZE;
     features &= ~VIRTIO_BLK_F_TOPOLOGY;
 
-    io_write_long(vdev->iobase+0x04, features);
-    io_write_byte(vdev->iobase+0x12, VIRTIO_FEATURES_OK | VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
+    io_write32(vdev->iobase+0x04, features);
+    io_write8(vdev->iobase+0x12, VIRTIO_FEATURES_OK | VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
 
-    if ((io_read_byte(vdev->iobase+0x12) & VIRTIO_FEATURES_OK) == 0) {
+    if ((io_read8(vdev->iobase+0x12) & VIRTIO_FEATURES_OK) == 0) {
         printf("virtio: features not accepted\n\r");
         return -1;
     }
@@ -124,8 +124,8 @@ virtio_attach(struct device *dev)
     uint16_t addr = 0;
 
 	do {
-        io_write_short(vdev->iobase+0x0E, addr);
-        size = io_read_short(vdev->iobase+0x0C);
+        io_write16(vdev->iobase+0x0E, addr);
+        size = io_read16(vdev->iobase+0x0C);
 
         if (size > 0) {
             virtq_init(vdev, addr, size);
@@ -139,7 +139,7 @@ virtio_attach(struct device *dev)
 
     dev->state = vdev;
     intr_register(irq+32, virtio_irq_handler);
-    io_write_byte(vdev->iobase+0x12, VIRTIO_DRIVER_OK | VIRTIO_FEATURES_OK | VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
+    io_write8(vdev->iobase+0x12, VIRTIO_DRIVER_OK | VIRTIO_FEATURES_OK | VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
 
     return 0;
 }

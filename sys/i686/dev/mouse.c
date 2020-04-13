@@ -50,9 +50,9 @@ mouse_wait(int a_type)
     int timeout = 10000;
 
     if (a_type) {
-        while (timeout-- && io_read_byte(0x64));
+        while (timeout-- && io_read8(0x64));
     } else {
-        while (timeout-- && !(io_read_byte(0x64) & 1));
+        while (timeout-- && !(io_read8(0x64) & 1));
     }
 }
 
@@ -60,16 +60,16 @@ static void
 mouse_send_cmd(uint8_t cmd)
 {
     mouse_wait(1);
-    io_write_byte(0x64, 0xD4);
+    io_write8(0x64, 0xD4);
     mouse_wait(1);
-    io_write_byte(0x60, cmd);
+    io_write8(0x60, cmd);
 }
 
 static uint8_t
 mouse_recv_resp()
 {
     mouse_wait(0);
-    return io_read_byte(0x60);
+    return io_read8(0x60);
 }
 
 static int
@@ -81,10 +81,10 @@ mouse_irq_handler(int inum, struct regs *regs)
     switch (mouse_cycle) {
         case 0x00:
         case 0x01:
-            mouse_data[mouse_cycle++] = io_read_byte(0x60);
+            mouse_data[mouse_cycle++] = io_read8(0x60);
             break;
         default:
-            mouse_data[mouse_cycle] = io_read_byte(0x60);
+            mouse_data[mouse_cycle] = io_read8(0x60);
             mouse_buttons = mouse_data[0];
             mouse_x = mouse_data[1];
             mouse_y = mouse_data[2];
@@ -100,15 +100,15 @@ static int
 mouse_init(struct cdev *dev)
 {
     mouse_wait(1);
-    io_write_byte(0x64, 0xA8);
+    io_write8(0x64, 0xA8);
     mouse_wait(1);
-    io_write_byte(0x64, 0x20);
+    io_write8(0x64, 0x20);
     mouse_wait(0);
-    int status = io_read_byte(0x60) | 2;
+    int status = io_read8(0x60) | 2;
     mouse_wait(1);
-    io_write_byte(0x64, 0x60);
+    io_write8(0x64, 0x60);
     mouse_wait(1);
-    io_write_byte(0x60, status);
+    io_write8(0x60, status);
 
     mouse_send_cmd(0xF6);
     mouse_recv_resp();
