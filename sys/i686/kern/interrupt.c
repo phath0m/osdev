@@ -19,8 +19,22 @@
  */
 #include <machine/portio.h>
 #include <machine/reg.h>
+#include <sys/device.h>
+#include <sys/interrupt.h>
+#include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/types.h>
+
+typedef enum {
+    INTR_SWI,
+    INTR_IRQ
+} intr_type;
+
+struct intr_handler {
+    struct device   *   dev; /* IRQs only, not for software interrupts! */
+    intr_type           type;
+    void            *   handler;
+};
 
 struct dt_ptr {
     uint16_t    limit;
@@ -75,9 +89,11 @@ struct tss_entry {
 } __attribute__((packed));
 
 
-struct gdt_entry global_descriptor_table[6];
-struct idt_entry interrupt_table[256];
-struct tss_entry task_state_segment;
+struct intr_handler intr_handlers[256];
+
+struct gdt_entry    global_descriptor_table[6];
+struct idt_entry    interrupt_table[256];
+struct tss_entry    task_state_segment;
 
 void
 gdt_set_gate(uint8_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity)
@@ -133,6 +149,61 @@ set_task_segment(uint32_t num, uint16_t ss0, uint32_t esp0)
 }
 
 void
+dispatch_intr(struct regs *regs)
+{
+    extern struct thread * sched_curr_thread;
+
+    if (sched_curr_thread) {
+        __sync_lock_test_and_set(&sched_curr_thread->interrupt_in_progress, 1);
+        thread_interrupt_enter(sched_curr_thread, regs);
+    }
+
+    uint8_t inum = regs->inum;
+
+    if (inum >= 40) {
+        io_write8(0xA0, 0x20);
+    }
+
+	struct intr_handler *handler = &intr_handlers[inum];
+
+	switch (handler->type) {
+		case INTR_IRQ:
+			((dev_intr_t)handler->handler)((struct device*)handler->dev, inum);
+			break;
+		case INTR_SWI:
+			((intr_handler_t)handler->handler)(inum, regs);
+			break;
+		default:
+			break;
+	}
+
+    io_write8(0x20, 0x20);
+
+    if (sched_curr_thread) {
+        thread_interrupt_leave(sched_curr_thread, regs);
+        __sync_lock_test_and_set(&sched_curr_thread->interrupt_in_progress, 0);
+    }
+}
+
+int
+irq_register(struct device *dev, int inum, dev_intr_t handler)
+{
+    intr_handlers[32+inum].handler = handler;
+    intr_handlers[32+inum].type = INTR_IRQ;
+    intr_handlers[32+inum].dev = dev;
+    return 0;
+}
+
+int
+swi_register(int inum, intr_handler_t handler)
+{
+    intr_handlers[inum].handler = handler;
+    intr_handlers[inum].type = INTR_SWI;
+    intr_handlers[inum].dev = NULL;
+    return 0;
+}
+
+void
 intr_init()
 {
     struct dt_ptr gdt_ptr;
@@ -150,8 +221,8 @@ intr_init()
     gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // usermode data segment
 
     set_task_segment(5, 0x10, 0xFFFFFFFF);
+
     /* defined in sys/i686/kern/gdt.asm */
-    
     extern void gdt_flush_ptr(struct dt_ptr *ptr);
 
     gdt_flush_ptr(&gdt_ptr);

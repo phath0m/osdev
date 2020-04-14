@@ -59,7 +59,21 @@ struct cdev {
     void *          state;      /* private data */
 };
 
+struct cdev_ops {
+    cdev_close_t    close;
+    cdev_init_t     init;
+    cdev_ioctl_t    ioctl;
+    cdev_isatty_t   isatty;
+    cdev_mmap_t     mmap;
+    cdev_open_t     open;
+    cdev_read_t     read;
+    cdev_write_t    write;
+};
+
 struct vnode;
+
+struct cdev *	cdev_new(const char *name, int mode, int majorno, int minorno,
+							struct cdev_ops *ops, void *state);
 
 struct cdev *   cdev_from_devno(dev_t dev);
 struct file *   cdev_to_file(struct vnode *host, dev_t devno);

@@ -24,11 +24,17 @@ extern "C" {
 
 #include <machine/interrupt.h>
 
+struct device;
 struct regs;
 
+/* software interrupt (trap) */
 typedef int (*intr_handler_t)(int inum, struct regs *regs);
 
-int intr_register(int inum, intr_handler_t handler);
+/* device interrupt handler (IRQs) */
+typedef int (*dev_intr_t)(struct device *dev, int inum);
+
+int swi_register(int inum, intr_handler_t handler);
+int	irq_register(struct device *dev, int inum, dev_intr_t handler);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

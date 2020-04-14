@@ -80,21 +80,27 @@ _preinit(multiboot_info_t *multiboot_hdr)
     /* load kernel symbols */
     ksym_init();
 
-    printf("base=0x%p initrd=0x%p heap=0x%p\n", KERNEL_VIRTUAL_BASE, initrd, heap);
-    printf("physical memory map:\n"); 
+    printf(ELYSIUM_SYSNAME " " ELYSIUM_RELEASE " " ELYSIUM_VERSION "\n\r");
+    printf("base=0x%p initrd=0x%p heap=0x%p\n\r", KERNEL_VIRTUAL_BASE, initrd, heap);
+    printf("physical memory map:\n\r"); 
 
-    uint32_t usable_memory = 0;
+    uint32_t real_memory = 0;
+    uint32_t avail_memory = 0;
 
     for (int i = 0; i < multiboot_hdr->mmap_length; i+= sizeof(struct multiboot_mmap_entry)) {
         struct multiboot_mmap_entry * entry = (struct multiboot_mmap_entry*)PTOKVA(multiboot_hdr->mmap_addr + i);
 
         if (entry->type == 1) {
-            printf("  %p-%p\n", (int)entry->addr, (int)(entry->addr+entry->len));
-            usable_memory += entry->len;
+            printf("  %p-%p\n\r", (int)entry->addr, (int)(entry->addr+entry->len));
+            avail_memory += entry->len;
         }
+        
+        real_memory += entry->len;
     }
 
-    printf("kernel: detected %dMB of usable memory\n", (usable_memory / 1024 / 1024));
+    //printf("kernel: detected %dMB of usable memory\n\r", (usable_memory / 1024 / 1024));
+    printf("real  mem = %d KB\n\r", real_memory / 1024);
+    printf("avail mem = %d KB\n\r", avail_memory / 1024);
 
     extern void vm_init();
     extern void intr_init();

@@ -17,26 +17,18 @@
  */
 #include <machine/portio.h>
 #include <sys/cdev.h>
+#include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/interrupt.h>
 #include <sys/types.h>
 
-static int mouse_init(struct cdev *dev);
+static int mouse_attach(struct driver *driver, struct device *dev);
 static int mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 
-struct cdev mouse_device = {
-    .name       =   "mouse",
-    .mode       =   0666,
-    .majorno    =   DEV_MAJOR_MOUSE,
-    .minorno    =   0,
-    .close      =   NULL,
-    .init       =   mouse_init,
-    .ioctl      =   NULL,
-    .isatty     =   NULL,
-    .open       =   NULL,
-    .read       =   mouse_read,
-    .write      =   NULL,
-    .state      =   NULL
+struct driver mouse_driver = {
+    .attach     =   mouse_attach,
+    .deattach   =   NULL,
+    .probe      =   NULL
 };
 
 static uint8_t mouse_x;
@@ -73,7 +65,7 @@ mouse_recv_resp()
 }
 
 static int
-mouse_irq_handler(int inum, struct regs *regs)
+mouse_irq_handler(struct device *dev, int inum)
 {
     static int mouse_cycle;
     static uint8_t mouse_data[3];
@@ -97,7 +89,7 @@ mouse_irq_handler(int inum, struct regs *regs)
 }
 
 static int
-mouse_init(struct cdev *dev)
+mouse_attach(struct driver *driver, struct device *dev)
 {
     mouse_wait(1);
     io_write8(0x64, 0xA8);
@@ -116,9 +108,26 @@ mouse_init(struct cdev *dev)
     mouse_send_cmd(0xF4);
     mouse_recv_resp();
 
-    intr_register(44, mouse_irq_handler);
+    irq_register(dev, 12, mouse_irq_handler);
 
-    return 0;
+    struct cdev_ops mouse_ops = {
+        .close  = NULL,
+        .init   = NULL,
+        .ioctl  = NULL,
+        .isatty = NULL,
+        .mmap   = NULL,
+        .open   = NULL,
+        .read   = mouse_read,
+        .write  = NULL
+    };
+
+    struct cdev *cdev = cdev_new("mouse", 0666, DEV_MAJOR_MOUSE, 0, &mouse_ops, NULL);
+
+    if (cdev && cdev_register(cdev) == 0) {
+        return 0;
+    }
+
+    return -1;
 }
 
 static int

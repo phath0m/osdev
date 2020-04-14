@@ -17,26 +17,19 @@
  */
 #include <machine/portio.h>
 #include <sys/cdev.h>
+#include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/string.h>
 #include <sys/types.h>
 
+static int rtc_attach(struct driver *driver, struct device *dev);
 static int rtc_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
     
-struct cdev rtc_device = {
-    .name       =   "rtc",
-    .mode       =   0600,
-    .majorno    =   DEV_MAJOR_RTC,
-    .minorno    =   0,
-    .close      =   NULL,
-    .init       =   NULL,
-    .ioctl      =   NULL,
-    .isatty     =   NULL,
-    .open       =   NULL,
-    .read       =   rtc_read,
-    .write      =   NULL,
-    .state      =   NULL
-};  
+struct driver rtc_driver = {
+    .attach     =   rtc_attach,
+    .deattach   =   NULL,
+    .probe      =   NULL
+};
 
 #define CMOS_ADDRESS    0x70
 #define CMOS_DATA       0x71
@@ -111,6 +104,29 @@ get_cmos_time()
     epoch += minute * 60;
 
     return epoch;
+}
+
+static int
+rtc_attach(struct driver *driver, struct device *dev)
+{
+    struct cdev_ops rtc_ops = {
+        .close  = NULL,
+        .init   = NULL,
+        .ioctl  = NULL,
+        .isatty = NULL,
+        .mmap   = NULL,
+        .open   = NULL,
+        .read   = rtc_read,
+        .write  = NULL
+    };
+
+    struct cdev *cdev = cdev_new("rtc", 0666, DEV_MAJOR_RTC, 0, &rtc_ops, NULL);
+
+    if (cdev && cdev_register(cdev) == 0) {
+        return 0;
+    }
+
+    return -1;
 }
 
 static int

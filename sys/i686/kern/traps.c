@@ -175,8 +175,7 @@ void
 traps_init()
 {
     for (int i = 0; i < 14; i++) {
-        intr_register(i, handle_generic_exception);
+        swi_register(i, handle_generic_exception);
     }
-
-    intr_register(14, handle_page_fault);
+    swi_register(14, handle_page_fault);
 }

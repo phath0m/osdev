@@ -17,6 +17,7 @@
  */
 #include <machine/portio.h>
 #include <sys/cdev.h>
+#include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/ioctl.h>
 #include <sys/malloc.h>
@@ -121,25 +122,14 @@ struct vga_state {
 
 struct vga_state state;
 
-static int vga_close(struct cdev *dev);
-static int vga_init(struct cdev *dev);
+static int vga_attach(struct driver *driver, struct device *dev);
 static int vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
-static int vga_open(struct cdev *dev);
 static int vga_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
-struct cdev vga_device = {
-    .name       =   "vga",
-    .mode       =   0600,
-    .majorno    =   DEV_MAJOR_CON,
-    .minorno    =   0,
-    .close      =   vga_close,
-    .init       =   vga_init,
-    .ioctl      =   vga_ioctl,
-    .open       =   vga_open,
-    .isatty     =   NULL,
-    .read       =   NULL,
-    .write      =   vga_write,
-    .state      =   &state
+struct driver vga_driver = {
+    .attach     =   vga_attach,
+    .deattach   =   NULL,
+    .probe      =   NULL
 };
 
 struct draw_req {
@@ -355,20 +345,31 @@ textscreen_scroll(uint8_t attr)
 }
 
 static int
-vga_close(struct cdev *dev)
-{
-    return 0;
-}
-
-static int
-vga_init(struct cdev *dev)
+vga_attach(struct driver *driver, struct device *dev)
 {
     state.position = 0;
     state.foreground_color = 15;
     state.background_color = 0;
     state.video_buffer = (uint8_t*)0xC00A0000;
 
-    return 0;
+    struct cdev_ops vga_ops = {
+        .close  = NULL,
+        .init   = NULL,
+        .ioctl  = vga_ioctl,
+        .isatty = NULL,
+        .mmap   = NULL,
+        .open   = NULL,
+        .read   = NULL,
+        .write  = vga_write
+    };
+
+    struct cdev *cdev = cdev_new("vga", 0666, DEV_MAJOR_CON, 0, &vga_ops, &state);
+
+    if (cdev && cdev_register(cdev) == 0) {
+        return 0;
+    }
+
+    return -1;
 }
 
 static int
@@ -403,12 +404,6 @@ vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
         break;
     }
 
-    return 0;
-}
-
-static int
-vga_open(struct cdev *dev)
-{
     return 0;
 }
 

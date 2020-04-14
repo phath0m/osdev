@@ -28,6 +28,9 @@ extern "C" {
 struct device;
 struct driver;
 
+/* device interrupt handler (IRQs) */
+typedef int (*dev_intr_t)(struct device *dev, int inum);
+
 /* device driver method prototypes */
 typedef int (*driver_probe_t)(struct driver *driver, struct device *dev);
 typedef int (*driver_attach_t)(struct driver *driver, struct device *dev);
@@ -49,6 +52,7 @@ struct driver {
 };
 
 int     device_register(struct device *device);
+int     device_setup_intr(struct device *dev, int inum, dev_intr_t handler);
 int     driver_register(struct driver *driver);
 
 #endif /* __KERNEL__ */

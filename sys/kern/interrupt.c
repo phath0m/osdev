@@ -20,9 +20,8 @@
 #include <ds/list.h>
 #include <sys/device.h>
 #include <sys/interrupt.h>
+#include <sys/malloc.h>
 #include <sys/types.h>
-
-intr_handler_t intr_handlers[256];
 
 struct list device_all;
 struct list driver_all;
@@ -54,42 +53,51 @@ device_register(struct device *dev)
     return 0;
 }
 
+int
+device_setup_intr(struct device *dev, int inum, dev_intr_t handler)
+{
+    return 0;
+}
 
 int
 driver_register(struct driver *driver)
 {
+    if (!driver->attach) {
+        return -1;
+    }
+
     list_append(&driver_all, driver);
+
+    struct device *dev;
+
+    if (!driver->probe) {
+        /* 
+         * if we can't probe devices, we will make one for the driver 
+         * 
+         * This is for stuff that can't be enumerated and whose existence is assumed
+         */
+        dev = calloc(1, sizeof(struct device));
+        
+        if (driver->attach(driver, dev) == 0) {
+            driver->attached = true;
+            list_append(&device_all, dev);
+        } else {
+            free(dev);
+        }
+
+        return 0;
+    }
 
     list_iter_t iter;
     list_get_iter(&device_all, &iter);
 
-    struct device *dev;
-
     while (iter_move_next(&iter, (void**)&dev)) {
-        if (driver->probe && driver->probe(driver, dev) == 0) {
+        if (driver->probe(driver, dev) == 0) {
             driver->attach(driver, dev);
         }
     }
 
     iter_close(&iter);
 
-    return 0;
-}
-
-void
-dispatch_to_intr_handler(int inum, struct regs *regs)
-{
-    intr_handler_t handler = intr_handlers[inum];
-
-    if (handler) {
-        handler(inum, regs);
-    }
-}
-
-int
-intr_register(int inum, intr_handler_t handler)
-{
-    intr_handlers[inum] = handler;
-    
     return 0;
 }

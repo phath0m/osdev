@@ -35,7 +35,7 @@ struct vblk_dev {
 
 };
 
-struct driver ide_driver = {
+struct driver virtio_blk_driver = {
     .attach     =   vblk_attach,
     .deattach   =   vblk_deattach,
     .probe      =   vblk_probe,

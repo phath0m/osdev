@@ -16,61 +16,64 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <machine/pci.h>
+#include <sys/device.h>
 #include <sys/cdev.h>
 #include <sys/systm.h>
 
-extern struct cdev kbd_device;
-extern struct cdev lfb_device;
-extern struct cdev mouse_device;
-extern struct cdev rtc_device;
-extern struct cdev serial0_device;
-extern struct cdev serial1_device;
-extern struct cdev serial2_device;
-extern struct cdev serial3_device;
-extern struct cdev vga_device;
+extern struct driver kbd_driver;
+extern struct driver lfb_driver;
+extern struct driver mouse_driver;
+extern struct driver rtc_driver;
+extern struct driver serial_driver;
+extern struct driver vga_driver;
+extern struct driver virtio_blk_driver;
 
-struct cdev *machine_dev_all[] = {
+struct driver *machine_driver_all[] = {
+#ifdef ENABLE_DEV_SERIAL
+    &serial_driver,
+#endif
+
+#ifdef ENABLE_DEV_VIRTIO
+	&virtio_blk_driver,
+#endif
+
 #ifdef ENABLE_DEV_KBD
-    &kbd_device,
+    &kbd_driver,
 #endif
 
 #ifdef ENABLE_DEV_LFB
-    &lfb_device,
+    &lfb_driver,
 #endif
 
 #ifdef ENABLE_DEV_MOUSE
-    &mouse_device,
+    &mouse_driver,
 #endif
 
 #ifdef ENABLE_DEV_SERIAL
-    &serial0_device,
-    &serial1_device,
-    &serial2_device,
-    &serial3_device,
 #endif
 
 #ifdef ENABLE_DEV_VGA
-    &vga_device,
+    &vga_driver,
 #endif
-    &rtc_device,
+    &rtc_driver,
     NULL
 };
 
 void
 machine_dev_init()
 {
-    int i = 0;
-    struct cdev *dev;
-
-    while ((dev = machine_dev_all[i++])) {
-        cdev_register(dev);
-    }
-
     pci_init();
 
+	int i = 0;
+
+	struct driver *driver;
+
+	while ((driver = machine_driver_all[i++])) {
+		driver_register(driver);
+	}
 #ifdef ENABLE_DEV_VGA
     set_kernel_output(&vga_device);
 #elif ENABLE_DEV_LFB
-    set_kernel_output(&lfb_device);
+    //set_kernel_output(&lfb_device);
 #endif
 }

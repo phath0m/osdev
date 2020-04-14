@@ -22,6 +22,8 @@
 #include <ds/list.h>
 #include <sys/cdev.h>
 #include <sys/errno.h>
+#include <sys/malloc.h>
+#include <sys/string.h>
 #include <sys/types.h>
 
 struct list device_list;
@@ -51,6 +53,34 @@ cdev_from_devno(dev_t devno)
     
     return ret;
 }
+
+struct cdev * 
+cdev_new(const char *name, int mode, int majorno, int minorno, struct cdev_ops *ops,
+	void *state)
+{
+    struct cdev *dev = calloc(1, sizeof(struct cdev) + strlen(name) + 1);
+    strcpy((char*)&dev[1], name);
+    dev->name = (char*)&dev[1];
+    dev->majorno = majorno;
+    dev->minorno = minorno;
+    dev->mode = mode;
+    dev->state = state;
+
+    /*
+     * because I'm too lazy and tired to put a struct cdev_ops in the cdev struct right now:
+     */
+    dev->close = ops->close;
+    dev->init = ops->init;
+    dev->ioctl = ops->ioctl;
+    dev->isatty = ops->isatty;
+    dev->mmap = ops->mmap;
+    dev->open = ops->open;
+    dev->read = ops->read;
+    dev->write = ops->write;
+
+    return dev;
+}
+
 
 int
 cdev_close(struct cdev *dev)

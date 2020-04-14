@@ -18,6 +18,7 @@
 #include <ds/fifo.h>
 #include <machine/portio.h>
 #include <sys/cdev.h>
+#include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/errno.h>
 #include <sys/interrupt.h>
@@ -25,30 +26,20 @@
 #include <sys/proc.h>
 #include <sys/types.h>
 
-static int keyboard_init(struct cdev *dev);
+static int keyboard_attach(struct driver *driver, struct device *dev);
 static int keyboard_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 
-struct cdev kbd_device = {
-    .name       =   "kbd",
-    .mode       =   0666,
-    .majorno    =   DEV_MAJOR_KBD,
-    .minorno    =   0,
-    .close      =   NULL,
-    .init       =   keyboard_init,
-    .ioctl      =   keyboard_ioctl,
-    .isatty     =   NULL,
-    .open       =   NULL,
-    .read       =   keyboard_read,
-    .write      =   NULL,
-    .state      =   NULL
+struct driver kbd_driver = {
+    .attach     =   keyboard_attach,
+    .deattach   =   NULL,
+    .probe      =   NULL
 };
-
 
 static struct fifo *keyboard_buf;
 
 static int
-keyboard_irq_handler(int inum, struct regs *regs)
+keyboard_irq_handler(struct device *dev, int inum)
 {
     while ((io_read8(0x64) & 2));
 
@@ -59,12 +50,29 @@ keyboard_irq_handler(int inum, struct regs *regs)
 }
 
 static int
-keyboard_init(struct cdev *dev)
+keyboard_attach(struct driver *driver, struct device *dev)
 {
     keyboard_buf = fifo_new(4096);
-    intr_register(33, keyboard_irq_handler);
+    irq_register(dev, 1, keyboard_irq_handler);
 
-    return 0;
+    struct cdev_ops kbd_ops = {
+        .close  = NULL,
+        .init   = NULL,
+        .ioctl  = keyboard_ioctl,
+        .isatty = NULL,
+        .mmap   = NULL,
+        .open   = NULL,
+        .read   = keyboard_read,
+        .write  = NULL
+    };
+
+    struct cdev *cdev = cdev_new("kbd", 0666, DEV_MAJOR_KBD, 0, &kbd_ops, NULL);
+    
+    if (cdev && cdev_register(cdev) == 0) {
+        return 0;
+    }
+
+    return -1;
 }
 
 static int      

@@ -23,6 +23,7 @@
 #include <machine/multiboot.h>
 #include <machine/vm.h>
 #include <sys/cdev.h>
+#include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/errno.h>
 #include <sys/ioctl.h>
@@ -70,27 +71,16 @@ static int default_color_palette[] = {
   /* foreground */
   0x102015
 };
-static int lfb_close(struct cdev *dev);
-static int lfb_init(struct cdev *dev);
+
+static int lfb_attach(struct driver *driver, struct device *device);
 static int lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset);
-static int lfb_open(struct cdev *dev);
 static int lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
 
-struct cdev lfb_device = {
-    .name       =   "lfb",
-    .mode       =   0666,
-    .majorno    =   DEV_MAJOR_CON,
-    .minorno    =   1,
-    .close      =   lfb_close,
-    .init       =   lfb_init,
-    .ioctl      =   lfb_ioctl,
-    .isatty     =   NULL,
-    .mmap       =   lfb_mmap,
-    .open       =   lfb_open,
-    .read       =   NULL,
-    .write      =   lfb_write,
-    .state      =   NULL
+struct driver lfb_driver = {
+    .attach     =   lfb_attach,
+    .deattach   =   NULL,
+    .probe      =   NULL
 };
 
 struct lfb_req {
@@ -213,13 +203,7 @@ lfb_tick(struct timer *timer, void *argp)
 }
 
 static int
-lfb_close(struct cdev *dev)
-{
-    return 0;
-}
-
-static int
-lfb_init(struct cdev *dev)
+lfb_attach(struct driver *driver, struct device *dev)
 {
     /* defined in sys/i686/kern/preinit.c */
     extern multiboot_info_t *multiboot_header;
@@ -245,10 +229,26 @@ lfb_init(struct cdev *dev)
     fast_memset(state.framebuffer, state.background_color, state.buffer_size);
     
     spinlock_unlock(&state.lock);
-    lfb_device.state = &state;
     timer_new(lfb_tick, 300, &state);
-    
-    return 0;
+   	
+    struct cdev_ops lfb_ops = {
+        .close  = NULL,
+        .init   = NULL,
+        .ioctl  = lfb_ioctl,
+        .isatty = NULL,
+        .mmap   = lfb_mmap,
+        .open   = NULL,
+        .read   = NULL,
+        .write  = lfb_write
+    };
+
+    struct cdev *cdev = cdev_new("lfb", 0666, DEV_MAJOR_CON, 0, &lfb_ops, &state);
+
+    if (cdev && cdev_register(cdev) == 0) {
+        return 0;
+    }
+
+    return -1;
 }
 
 static int
@@ -331,12 +331,6 @@ lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
     void *buf = vm_map_physical(sched_curr_address_space, NULL, info->physbase, state->buffer_size, prot);
 
     return (intptr_t)buf;
-}
-
-static int
-lfb_open(struct cdev *dev)
-{
-    return 0;
 }
 
 static int

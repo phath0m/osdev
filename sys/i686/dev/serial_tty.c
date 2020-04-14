@@ -17,6 +17,7 @@
  */
 #include <machine/portio.h>
 #include <sys/cdev.h>
+#include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/types.h>
 
@@ -29,8 +30,8 @@ struct serial_state {
     int     port;
 };
 
+static int serial_attach(struct driver *driver, struct device *dev);
 static int serial_close(struct cdev *dev);
-static int serial_init(struct cdev *dev);
 static int serial_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
 static int serial_isatty(struct cdev *dev);
 static int serial_open(struct cdev *dev);
@@ -59,7 +60,7 @@ struct cdev serial0_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   0,
     .close      =   serial_close,
-    .init       =   serial_init,
+    .init       =   NULL,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
@@ -74,7 +75,7 @@ struct cdev serial1_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   1,
     .close      =   serial_close,
-    .init       =   serial_init,
+    .init       =   NULL,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
@@ -89,7 +90,7 @@ struct cdev serial2_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   2,
     .close      =   serial_close,
-    .init       =   serial_init,
+    .init       =   NULL,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
@@ -104,13 +105,19 @@ struct cdev serial3_device = {
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   3,
     .close      =   serial_close,
-    .init       =   serial_init,
+    .init       =   NULL,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
     .read       =   serial_read,
     .write      =   serial_write,
     .state      =   &serial3_state
+};
+
+struct driver serial_driver = {
+    .attach     =   serial_attach,
+    .deattach   =   NULL,
+    .probe      =   NULL
 };
 
 static void
@@ -148,13 +155,13 @@ serial_close(struct cdev *dev)
     return 0;
 }
 
-static int
-serial_init(struct cdev *dev)
+static void
+serial_init_device(struct cdev *cdev)
 {
-    struct serial_state *state = (struct serial_state*)dev->state;
+	struct serial_state *state = (struct serial_state*)cdev->state;
 
-    int port = state->port;
-    
+	int port = state->port;
+
     io_write8(port + 1, 0x00); // disable all interupts
     io_write8(port + 3, 0x80);  // enable DLAB
     io_write8(port + 0, 0x01);
@@ -162,6 +169,17 @@ serial_init(struct cdev *dev)
     io_write8(port + 3, 0x03);
     io_write8(port + 2, 0xC7);
     io_write8(port + 4, 0x0B);
+    
+    cdev_register(cdev);
+}
+
+static int
+serial_attach(struct driver *driver, struct device *dev)
+{
+    serial_init_device(&serial0_device);
+    serial_init_device(&serial1_device);
+    serial_init_device(&serial2_device);
+    serial_init_device(&serial3_device);
 
     return 0;
 }

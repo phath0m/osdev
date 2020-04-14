@@ -74,5 +74,5 @@ syscall_handler(int inum, struct regs *regs)
 void
 syscall_init()
 {
-    intr_register(0x80, syscall_handler);
+    swi_register(0x80, syscall_handler);
 }

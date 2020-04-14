@@ -88,7 +88,7 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 }
 
 static int
-virtio_irq_handler(int inum, struct regs *regs)
+virtio_irq_handler(struct device *dev, int inum)
 {
 	printf("virtio: IRQ triggered\n\r");
 	return 0;
@@ -138,7 +138,7 @@ virtio_attach(struct device *dev)
     int irq = pci_get_config8(dev, PCI_CONFIG_IRQLINE);
 
     dev->state = vdev;
-    intr_register(irq+32, virtio_irq_handler);
+    irq_register(dev, irq, virtio_irq_handler);
     io_write8(vdev->iobase+0x12, VIRTIO_DRIVER_OK | VIRTIO_FEATURES_OK | VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
 
     return 0;
