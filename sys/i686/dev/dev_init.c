@@ -34,7 +34,7 @@ struct driver *machine_driver_all[] = {
 #endif
 
 #ifdef ENABLE_DEV_VIRTIO
-	&virtio_blk_driver,
+    &virtio_blk_driver,
 #endif
 
 #ifdef ENABLE_DEV_KBD
@@ -64,13 +64,13 @@ machine_dev_init()
 {
     pci_init();
 
-	int i = 0;
+    int i = 0;
 
-	struct driver *driver;
+    struct driver *driver;
 
-	while ((driver = machine_driver_all[i++])) {
-		driver_register(driver);
-	}
+    while ((driver = machine_driver_all[i++])) {
+        driver_register(driver);
+    }
 #ifdef ENABLE_DEV_VGA
     set_kernel_output(&vga_device);
 #elif ENABLE_DEV_LFB

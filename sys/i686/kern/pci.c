@@ -34,7 +34,7 @@ struct pci_device {
     uint8_t         func;
     uint16_t        device_id;
     uint16_t        vendor_id;
-	uint16_t		subsystem_id;
+    uint16_t        subsystem_id;
     uint8_t         class;
     uint8_t         subclass;
     uint8_t         header_type;
@@ -56,7 +56,7 @@ pci_read_short(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset)
 uint32_t
 pci_read_long(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset)
 {
-	return (pci_read_short(bus, slot, func, offset + 2) << 16) | pci_read_short(bus, slot, func, offset);
+    return (pci_read_short(bus, slot, func, offset + 2) << 16) | pci_read_short(bus, slot, func, offset);
 }
 
 
@@ -69,7 +69,7 @@ pci_write_long(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t
             (func << 8) | (offset & 0xfC) | 0x80000000);
 
     io_write32(0xCF8, address);
-	io_write32(0xCFC, data);
+    io_write32(0xCFC, data);
 }
 
 int
@@ -159,9 +159,9 @@ pci_get_config8(struct device *dev, int offset)
 uint16_t
 pci_get_config16(struct device *dev, int offset)
 {
-	if (dev->type != DEVICE_PCI) {
-		return (uint16_t)-1;
-	}
+    if (dev->type != DEVICE_PCI) {
+        return (uint16_t)-1;
+    }
     
     struct pci_device *pcidev = (struct pci_device*)dev;
 
@@ -192,15 +192,15 @@ pci_enumerate_device(uint8_t bus, uint8_t slot, uint8_t func)
     struct pci_device *dev = calloc(1, sizeof(struct pci_device));
 
     dev->_header.type = DEVICE_PCI;
-	dev->bus = bus;
-	dev->slot = slot;
-	dev->func = func;
+    dev->bus = bus;
+    dev->slot = slot;
+    dev->func = func;
     dev->vendor_id = vendor;
     dev->device_id = pci_read_short(bus, slot, func, 2);
     dev->class  = pci_read_short(bus, slot, func, 0x0A) >> 8;
     dev->subclass = pci_read_short(bus, slot, func, 0x0A) & 0xFF;
     dev->header_type = pci_read_short(bus, slot, func, 0x0E) & 0xFF;
-	dev->subsystem_id = pci_read_short(bus, slot, func, 0x2E);
+    dev->subsystem_id = pci_read_short(bus, slot, func, 0x2E);
     printf("PCI: %d:%d.%d\n\r", bus, slot, func);
 
     device_register((struct device*)dev);

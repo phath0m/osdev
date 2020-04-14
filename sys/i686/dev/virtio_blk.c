@@ -77,7 +77,7 @@ static int
 vblk_read_sector(struct device *dev, int sector, void *data)
 {
     uint8_t status = 0xFF;
-	struct virtio_blk_req req = {
+    struct virtio_blk_req req = {
         .type = VIRTIO_BLK_T_IN,
         .sector = sector,
         .reserved = 0
@@ -94,11 +94,11 @@ vblk_read_sector(struct device *dev, int sector, void *data)
             .flags = VIRTQ_DESC_F_WRITE | VIRTQ_DESC_F_NEXT,
             .buf = data
         },
-		{
-			.length = 1,
-			.flags = VIRTQ_DESC_F_WRITE,
-			.buf = &status
-		}
+        {
+            .length = 1,
+            .flags = VIRTQ_DESC_F_WRITE,
+            .buf = &status
+        }
     };
 
     virtq_send(dev, 0, buffers, 3);
@@ -107,7 +107,7 @@ vblk_read_sector(struct device *dev, int sector, void *data)
         printf("virtio_blk: read_sector() error %d\n\r", status);
         return -1;
     }
-	return 0;
+    return 0;
 }
 
 static int
@@ -172,10 +172,10 @@ vblk_attach(struct driver *driver, struct device *dev)
         return res;
     }
 
-	char cdev_name[16];
+    char cdev_name[16];
     sprintf(cdev_name, "vd%c", 'a' + vd_counter);
 
-	struct cdev_ops cdev_ops = {
+    struct cdev_ops cdev_ops = {
         .close  = NULL,
         .init   = NULL,
         .ioctl  = NULL,

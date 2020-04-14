@@ -158,9 +158,9 @@ serial_close(struct cdev *dev)
 static void
 serial_init_device(struct cdev *cdev)
 {
-	struct serial_state *state = (struct serial_state*)cdev->state;
+    struct serial_state *state = (struct serial_state*)cdev->state;
 
-	int port = state->port;
+    int port = state->port;
 
     io_write8(port + 1, 0x00); // disable all interupts
     io_write8(port + 3, 0x80);  // enable DLAB

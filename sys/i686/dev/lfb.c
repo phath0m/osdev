@@ -230,7 +230,7 @@ lfb_attach(struct driver *driver, struct device *dev)
     
     spinlock_unlock(&state.lock);
     timer_new(lfb_tick, 300, &state);
-   	
+       
     struct cdev_ops lfb_ops = {
         .close  = NULL,
         .init   = NULL,

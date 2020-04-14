@@ -20,11 +20,11 @@ static inline unsigned virtq_size(unsigned int qsz)
 static int
 virtq_init(struct virtio_dev *vdev, uint16_t addr, int nelems)
 {
-	size_t bufsize = sizeof(struct virtq_desc)*nelems;
-	size_t avail_size = 4 + (sizeof(uint16_t)*nelems);
-	size_t total_size = virtq_size(nelems);
+    size_t bufsize = sizeof(struct virtq_desc)*nelems;
+    size_t avail_size = 4 + (sizeof(uint16_t)*nelems);
+    size_t total_size = virtq_size(nelems);
 
-	uint8_t *buf = sbrk_a(total_size, 4096);
+    uint8_t *buf = sbrk_a(total_size, 4096);
 
     vdev->queues[addr].buffers = (struct virtq_desc*)buf;
     vdev->queues[addr].available = (struct virtq_avail*)&buf[bufsize];
@@ -36,9 +36,9 @@ virtq_init(struct virtio_dev *vdev, uint16_t addr, int nelems)
     io_write16(vdev->iobase+0x0E, addr);
     io_write32(vdev->iobase+0x08, PAGE_INDEX(KVATOP(buf)));
 
-	/* disable interrupts because current interrupt handling sucks */
-	vdev->queues[addr].available->flags = 0;
-	vdev->queues[addr].used->flags = 0;
+    /* disable interrupts because current interrupt handling sucks */
+    vdev->queues[addr].available->flags = 0;
+    vdev->queues[addr].used->flags = 0;
     return 0;
 }
 
@@ -73,16 +73,16 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 
     io_write8(vdev->iobase + 0x10, 0);
 
-	bool acknowledged = false;	
-	while (!acknowledged) {
-		for (int i = 0; i < 128; i++) {
-			if (queue->used->rings[i].length != 0 && queue->used->rings[i].index == start_idx) {
-				queue->used->rings[i].length = 0;
-				acknowledged = true;
-				break;
-			}
-		}
-	}
+    bool acknowledged = false;    
+    while (!acknowledged) {
+        for (int i = 0; i < 128; i++) {
+            if (queue->used->rings[i].length != 0 && queue->used->rings[i].index == start_idx) {
+                queue->used->rings[i].length = 0;
+                acknowledged = true;
+                break;
+            }
+        }
+    }
 
     return 0;
 }
@@ -90,13 +90,13 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 static int
 virtio_irq_handler(struct device *dev, int inum)
 {
-	printf("virtio: IRQ triggered\n\r");
+    printf("virtio: IRQ triggered\n\r");
 
     struct virtio_dev *vdev = dev->state;
 
     uint8_t isr_status = io_read8(vdev->iobase+0x13);
     printf("isr_status=%x\n\r", isr_status);
-	return 0;
+    return 0;
 }
 
 int
@@ -105,7 +105,7 @@ virtio_attach(struct device *dev)
     struct virtio_dev *vdev = calloc(1, sizeof(struct virtio_dev));
     vdev->iobase = PCI_IO_BASE(pci_get_config32(dev, PCI_CONFIG_BAR0));
 
-	io_write8(vdev->iobase+0x12, 0);
+    io_write8(vdev->iobase+0x12, 0);
     io_write8(vdev->iobase+0x12, VIRTIO_ACKNOWLEDGE);
     io_write8(vdev->iobase+0x12, VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
 
@@ -123,18 +123,18 @@ virtio_attach(struct device *dev)
         return -1;
     }
 
-	dev->state = vdev;
+    dev->state = vdev;
 
     int size = 0;
     uint16_t addr = 0;
 
-	do {
+    do {
         io_write16(vdev->iobase+0x0E, addr);
         size = io_read16(vdev->iobase+0x0C);
 
         if (size > 0) {
             virtq_init(vdev, addr, size);
-			break;
+            break;
         }
 
         addr++;

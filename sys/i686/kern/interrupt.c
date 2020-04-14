@@ -165,7 +165,7 @@ dispatch_intr(struct regs *regs)
         io_write8(0xA0, 0x20);
     }
 
-	struct intr_handler *handler = &intr_handlers[inum];
+    struct intr_handler *handler = &intr_handlers[inum];
 
     if (handler->handler) {
         switch (handler->type) {

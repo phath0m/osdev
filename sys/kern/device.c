@@ -56,7 +56,7 @@ cdev_from_devno(dev_t devno)
 
 struct cdev * 
 cdev_new(const char *name, int mode, int majorno, int minorno, struct cdev_ops *ops,
-	void *state)
+    void *state)
 {
     struct cdev *dev = calloc(1, sizeof(struct cdev) + strlen(name) + 1);
     strcpy((char*)&dev[1], name);

@@ -31,7 +31,7 @@ device_register(struct device *dev)
 {
     list_append(&device_all, dev);
 
-   	list_iter_t iter;
+       list_iter_t iter;
     list_get_iter(&driver_all, &iter);
 
     struct driver *driver;
@@ -42,7 +42,7 @@ device_register(struct device *dev)
         }
 
         if (driver->probe && driver->probe(driver, dev) == 0) {
-			if (driver->attach(driver, dev) == 0) {
+            if (driver->attach(driver, dev) == 0) {
                 driver->attached = true;
             }
         }
