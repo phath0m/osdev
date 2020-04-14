@@ -37,8 +37,8 @@ virtq_init(struct virtio_dev *vdev, uint16_t addr, int nelems)
     io_write32(vdev->iobase+0x08, PAGE_INDEX(KVATOP(buf)));
 
 	/* disable interrupts because current interrupt handling sucks */
-	vdev->queues[addr].available->flags = 1;
-	vdev->queues[addr].used->flags = 1;
+	vdev->queues[addr].available->flags = 0;
+	vdev->queues[addr].used->flags = 0;
     return 0;
 }
 
@@ -51,30 +51,30 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 
     int start_idx = queue->buffer_idx % queue->size;
     int avail_idx = queue->available->index;
+
     queue->available->rings[avail_idx] = start_idx;
+
     for (int i = 0; i < nbuffers; i++) {
         struct virtq_buffer *buffer = &buffers[i];
         int buffer_idx = queue->buffer_idx % queue->size;
         queue->buffers[buffer_idx].length = buffer->length;
-        queue->buffers[buffer_idx].address = (uint64_t)KVATOP(buffers->buf);
+        queue->buffers[buffer_idx].address = (uint64_t)KVATOP(buffer->buf);
+        queue->buffers[buffer_idx].flags = buffer->flags;
 
-        int flags = buffer->flags;
-
-        if ((flags & VIRTQ_DESC_F_NEXT)) {
+        if ((buffer->flags & VIRTQ_DESC_F_NEXT)) {
             queue->buffers[buffer_idx].next = (queue->buffer_idx + 1) % queue->size;
+        } else {
+            queue->buffers[buffer_idx].next = 0;
         }
-
-        queue->buffers[buffer_idx].flags = flags;
         queue->buffer_idx++;
     }
 
     queue->available->index++;
+
     io_write8(vdev->iobase + 0x10, 0);
 
 	bool acknowledged = false;	
 	while (!acknowledged) {
-		asm volatile("hlt");
-
 		for (int i = 0; i < 128; i++) {
 			if (queue->used->rings[i].length != 0 && queue->used->rings[i].index == start_idx) {
 				queue->used->rings[i].length = 0;
@@ -91,6 +91,11 @@ static int
 virtio_irq_handler(struct device *dev, int inum)
 {
 	printf("virtio: IRQ triggered\n\r");
+
+    struct virtio_dev *vdev = dev->state;
+
+    uint8_t isr_status = io_read8(vdev->iobase+0x13);
+    printf("isr_status=%x\n\r", isr_status);
 	return 0;
 }
 

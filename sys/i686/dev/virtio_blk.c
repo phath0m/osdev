@@ -11,13 +11,14 @@
 #include <sys/types.h>
 #include "virtio.h"
 
+#define MIN(X, Y) ((X < Y) ? X : Y)
+
 #define VIRTIO_BLK_T_IN           0 
 #define VIRTIO_BLK_T_OUT          1 
 #define VIRTIO_BLK_T_FLUSH        4 
 
 static int vblk_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
 static int vblk_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
-
 static int vblk_probe(struct driver *driver, struct device *dev);
 static int vblk_attach(struct driver *driver, struct device *dev);
 static int vblk_deattach(struct driver *driver, struct device *dev);
@@ -26,14 +27,7 @@ struct virtio_blk_req {
     uint32_t    type;
     uint32_t    reserved;
     uint64_t    sector;
-    uint8_t     data[512];
-    uint8_t     status;
 } __attribute__((packed));
-
-struct vblk_dev {
-    struct device   *   dev;
-
-};
 
 struct driver virtio_blk_driver = {
     .attach     =   vblk_attach,
@@ -44,42 +38,51 @@ struct driver virtio_blk_driver = {
 static int
 vblk_write_sector(struct device *dev, int sector, void *data)
 {
-    static struct virtio_blk_req req;
-    memset(&req, 0, sizeof(req));
-    memcpy(req.data, data, 512);
-    req.type = VIRTIO_BLK_T_OUT;
-    req.status = 0;
-    req.reserved = 0;
-    req.sector = sector;
+    uint8_t status = 0xFF;
+    struct virtio_blk_req req = {
+        .type = VIRTIO_BLK_T_OUT,
+        .sector = sector,
+        .reserved = 0
+    };
 
     struct virtq_buffer buffers[] = {
         {
-            .length = 528,
+            .length = 16,
             .flags = VIRTQ_DESC_F_NEXT,
             .buf = &req
         },
         {
+            .length = 512,
+            .flags = VIRTQ_DESC_F_NEXT,
+            .buf = data
+        },
+        {
             .length = 1,
             .flags = VIRTQ_DESC_F_WRITE,
-            .buf = &req.status
+            .buf = &status
         }
     };
 
-    virtq_send(dev, 0, buffers, 2);
+    virtq_send(dev, 0, buffers, 3);
+
+    if (status != 0) {
+        printf("virtio_blk: write_sector() error %d\n\r", status);
+        return -1;
+    }
+
     return 0;
 }
-/*
+
 static int
 vblk_read_sector(struct device *dev, int sector, void *data)
 {
-	static struct virtio_blk_req req;
-    memset(&req, 0, sizeof(req));
-    req.type = VIRTIO_BLK_T_IN;
-    req.status = 0;
-    req.reserved = 0;
-    req.sector = sector;
+    uint8_t status = 0xFF;
+	struct virtio_blk_req req = {
+        .type = VIRTIO_BLK_T_IN,
+        .sector = sector,
+        .reserved = 0
+    };
 
-	uint8_t status;
     struct virtq_buffer buffers[] = {
         {
             .length = 16,
@@ -100,27 +103,62 @@ vblk_read_sector(struct device *dev, int sector, void *data)
 
     virtq_send(dev, 0, buffers, 3);
 
+    if (status != 0) {
+        printf("virtio_blk: read_sector() error %d\n\r", status);
+        return -1;
+    }
 	return 0;
-}*/
+}
 
 static int
-vblk_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
+vblk_read(struct cdev *cdev, char *buf, size_t nbyte, uint64_t pos)
 {
+    static uint8_t block[512];
+    struct device *dev = cdev->state;
+
+    int bytes_read = 0;
+    int blocks_required = (nbyte >> 9) + 1;
+    int start_sector = pos >> 9;
+    int start_offset = pos & 0x1FF;
+
+    for (int i = 0; i < blocks_required; i++) {
+        int bytes_this_block = MIN(512, nbyte - bytes_read);
+        
+        vblk_read_sector(dev, start_sector + i, block);
+        memcpy(&buf[i<<9], &block[start_offset], bytes_this_block);
+
+        start_offset = 0;
+        bytes_read += bytes_this_block;
+    }
+
     return 0;
 }
 
 static int
 vblk_write(struct cdev *cdev, const char *buf, size_t nbyte, uint64_t pos)
 {
+    static uint8_t block[512];
     struct device *dev = cdev->state;
 
-    uint8_t block[512];
+    int bytes_written = 0;
+    int blocks_required = (nbyte >> 9) + 1;
+    int start_sector = pos >> 9;
+    int start_offset = pos & 0x1FF;
+    
+    for (int i = 0; i < blocks_required; i++) {
+        int bytes_this_block = MIN(512, nbyte - bytes_written);
+        
+        vblk_read_sector(dev, start_sector + i, block);
+        memcpy(&block[start_offset], &buf[i<<9], bytes_this_block);
+        vblk_write_sector(dev, start_sector + i, block);
+
+        start_offset = 0;
+        bytes_written += bytes_this_block;
+    }
 
     memcpy(block, buf, nbyte);
 
-    vblk_write_sector(dev, 0, block);
-
-    return 0;
+    return nbyte;
 }
 
 static int
@@ -133,27 +171,28 @@ vblk_attach(struct driver *driver, struct device *dev)
     if (res != 0) {
         return res;
     }
-    struct vblk_dev *vblk = calloc(1, sizeof(struct vblk_dev));
-    vblk->dev = dev;
 
-    struct cdev *vd = calloc(1, sizeof(struct cdev) + 14);
-   
-    char *name = (char*)&vd[1];
-    sprintf(name, "rvd%c", 'a' + vd_counter);
+	char cdev_name[16];
+    sprintf(cdev_name, "vd%c", 'a' + vd_counter);
 
-    vd->name = name;
-    vd->mode = 0600;
-    vd->majorno = DEV_MAJOR_RAW_DISK;
-    vd->minorno = vd_counter;
-    vd->state = vblk;
-    vd->read = vblk_read;
-    vd->write = vblk_write;
-    
-    vd_counter++;
+	struct cdev_ops cdev_ops = {
+        .close  = NULL,
+        .init   = NULL,
+        .ioctl  = NULL,
+        .isatty = NULL,
+        .mmap   = NULL,
+        .open   = NULL,
+        .read   = vblk_read,
+        .write  = vblk_write
+    };
 
-    cdev_register(vd);
-    printf("virtio_blk: initialized\n\r");
-    return 0;
+    struct cdev *cdev = cdev_new(cdev_name, 0666, DEV_MAJOR_RAW_DISK, vd_counter++, &cdev_ops, dev);
+
+    if (cdev && cdev_register(cdev) == 0) {
+        return 0;
+    }
+
+    return -1;
 }
 
 static int

@@ -23,6 +23,7 @@
 #include <sys/interrupt.h>
 #include <sys/proc.h>
 #include <sys/string.h>
+#include <sys/systm.h>
 #include <sys/types.h>
 
 typedef enum {
@@ -166,17 +167,18 @@ dispatch_intr(struct regs *regs)
 
 	struct intr_handler *handler = &intr_handlers[inum];
 
-	switch (handler->type) {
-		case INTR_IRQ:
-			((dev_intr_t)handler->handler)((struct device*)handler->dev, inum);
-			break;
-		case INTR_SWI:
-			((intr_handler_t)handler->handler)(inum, regs);
-			break;
-		default:
-			break;
-	}
-
+    if (handler->handler) {
+        switch (handler->type) {
+            case INTR_IRQ:
+                ((dev_intr_t)handler->handler)((struct device*)handler->dev, inum);
+                break;
+            case INTR_SWI:
+                ((intr_handler_t)handler->handler)(inum, regs);
+                break;
+            default:
+                break;
+        }
+    }
     io_write8(0x20, 0x20);
 
     if (sched_curr_thread) {
