@@ -14,14 +14,39 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <sys/mutex.h>
+#include <sys/systm.h>
+#include <machine/interrupt.h>
+
+static inline uint32_t
+get_eflags()
+{
+    uint32_t flags;
+
+    asm volatile("pushf ; pop %0" : "=rm" (flags) :: "memory");
+
+    return flags;
+}
 
 void
 spinlock_lock(spinlock_t volatile *lock)
 {
-    while (*lock) {
+    /* debug code to detect deadlocks. will remove */
+    uint32_t flags = get_eflags();
+    
+    bool deadlock =  (*lock && (flags & 0x200) == 0);
 
+    if (deadlock) {
+        printf("kernel: we will deadlock\n\r");
+        asm volatile("sti");
+    }
+
+    while (*lock) {
     }
     
+    if (deadlock) {
+        asm volatile("cli");
+    }
+
     __sync_lock_test_and_set(lock, 1);
 }
 

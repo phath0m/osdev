@@ -97,6 +97,5 @@ keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 
         thread_yield();
     }
-
     return fifo_read(keyboard_buf, buf, nbyte);
 }

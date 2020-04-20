@@ -34,13 +34,13 @@ void *start_initramfs;
 multiboot_info_t *multiboot_header;
 
 /* load all kernel symbols */
-static void
+void
 ksym_init()
 {
     struct elf32_shdr *shdr = (struct elf32_shdr*)PTOKVA(multiboot_header->u.elf_sec.addr);
-    
-    struct elf32_shdr *symtab = &shdr[15];
-    struct elf32_shdr *strtab = &shdr[16];
+    /* note to self: this is a hack, we're assuming where these are*/
+    struct elf32_shdr *symtab = &shdr[16];
+    struct elf32_shdr *strtab = &shdr[17];
     
     char *all_strings = (char*)PTOKVA(strtab->sh_addr);
     struct elf32_sym *all_syms = (struct elf32_sym*)PTOKVA(symtab->sh_addr);
@@ -98,7 +98,6 @@ _preinit(multiboot_info_t *multiboot_hdr)
         real_memory += entry->len;
     }
 
-    //printf("kernel: detected %dMB of usable memory\n\r", (usable_memory / 1024 / 1024));
     printf("real  mem = %d KB\n\r", real_memory / 1024);
     printf("avail mem = %d KB\n\r", avail_memory / 1024);
 

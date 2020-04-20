@@ -1,3 +1,21 @@
+/*
+ * virtio.c - underlying base functionality to communicate with Virtio
+ * devices
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include <machine/pci.h>
 #include <machine/portio.h>
 #include <machine/vm.h>
@@ -36,7 +54,6 @@ virtq_init(struct virtio_dev *vdev, uint16_t addr, int nelems)
     io_write16(vdev->iobase+0x0E, addr);
     io_write32(vdev->iobase+0x08, PAGE_INDEX(KVATOP(buf)));
 
-    /* disable interrupts because current interrupt handling sucks */
     vdev->queues[addr].available->flags = 0;
     vdev->queues[addr].used->flags = 0;
     return 0;
@@ -50,7 +67,7 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
     struct virtq *queue = &vdev->queues[queue_idx];
 
     int start_idx = queue->buffer_idx % queue->size;
-    int avail_idx = queue->available->index;
+    int avail_idx = queue->available->index % queue->size;
 
     queue->available->rings[avail_idx] = start_idx;
 
@@ -75,7 +92,7 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 
     bool acknowledged = false;    
     while (!acknowledged) {
-        for (int i = 0; i < 128; i++) {
+        for (int i = 0; i < queue->size; i++) {
             if (queue->used->rings[i].length != 0 && queue->used->rings[i].index == start_idx) {
                 queue->used->rings[i].length = 0;
                 acknowledged = true;
@@ -90,12 +107,9 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 static int
 virtio_irq_handler(struct device *dev, int inum)
 {
-    printf("virtio: IRQ triggered\n\r");
-
     struct virtio_dev *vdev = dev->state;
 
-    uint8_t isr_status = io_read8(vdev->iobase+0x13);
-    printf("isr_status=%x\n\r", isr_status);
+    io_read8(vdev->iobase+0x13);
     return 0;
 }
 

@@ -21,8 +21,8 @@
 #include <sys/systm.h>
 #include <sys/types.h>
 
-#define MALLOC_ALIGNMENT 128
-#define ALIGN_MASK 0xFFFFFF80
+#define MALLOC_ALIGNMENT    128
+#define ALIGN_MASK             0xFFFFFF80
 
 struct malloc_block {
     uint32_t    magic;
@@ -42,8 +42,6 @@ int      kernel_heap_free_blocks = 0;
 struct malloc_block *last_allocated = NULL;
 struct malloc_block *last_freed = NULL;
 
-spinlock_t malloc_lock;
-
 /*
 static inline size_t
 align_addr(size_t size, uint32_t align)
@@ -58,7 +56,6 @@ find_free_block(size_t size)
     struct malloc_block *prev = NULL;
 
     while (iter) {
-        
         if (iter->magic != HEAP_MAGIC) {
             panic("heap corruption detected");
         }
@@ -93,10 +90,10 @@ calloc(int num, size_t size)
 void *
 malloc(size_t size)
 {
-    spinlock_lock(&malloc_lock);
+    //spinlock_lock(&malloc_lock);
+    critical_enter();
 
     size_t aligned_size = (size + MALLOC_ALIGNMENT) & ALIGN_MASK;
-
     struct malloc_block *free_block = find_free_block(aligned_size);
 
     if (!free_block) {
@@ -111,7 +108,8 @@ malloc(size_t size)
 
     kernel_heap_allocated_blocks++;
 
-    spinlock_unlock(&malloc_lock);
+    //spinlock_unlock(&malloc_lock);
+    critical_exit();
 
     memset(free_block->ptr, 0, size);
 
@@ -121,7 +119,8 @@ malloc(size_t size)
 void
 free(void *ptr)
 {
-    spinlock_lock(&malloc_lock);
+    //spinlock_lock(&malloc_lock);
+    critical_enter();
 
     struct malloc_block *iter = last_allocated;
     struct malloc_block *prev = NULL;
@@ -148,8 +147,9 @@ free(void *ptr)
         iter = (struct malloc_block*)iter->prev;
     }
     
-    spinlock_unlock(&malloc_lock);
-    
+    //spinlock_unlock(&malloc_lock);
+    critical_exit();
+
     if (!block_freed) {
         stacktrace(5);
         panic("double free (0x%p)", ptr);
@@ -168,7 +168,7 @@ brk(void *ptr)
     kernel_heap_end = kernel_break + 0x1FC00000;
     kernel_heap_start = kernel_break;
     
-    spinlock_unlock(&malloc_lock);
+    //spinlock_unlock(&malloc_lock);
 
     return 0; 
 }

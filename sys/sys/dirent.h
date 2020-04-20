@@ -26,6 +26,7 @@ extern "C" {
 
 #define DT_REG      S_IFREG
 /* There are no block devices */
+#define DT_BLK      S_IFBLK
 #define DT_CHR      S_IFCHR
 #define DT_DIR      S_IFDIR
 #define DT_FIFO     S_IFIFO

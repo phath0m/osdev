@@ -73,6 +73,7 @@ init_thread(void *argp)
      */
     devfs_init();
     tmpfs_init();
+    ext2_init();
 
     /* now mount the ramdisk */
     struct vnode *root;

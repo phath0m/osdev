@@ -34,6 +34,9 @@ extern "C" {
         panic("kassert: %s", msg); \
     }
 
+void    critical_enter();
+void    critical_exit();
+
 int     kmain(const char *args);
 void    puts(const char *str);
 void    set_kernel_output(struct cdev *dev);

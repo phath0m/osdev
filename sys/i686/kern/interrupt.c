@@ -90,6 +90,8 @@ struct tss_entry {
 } __attribute__((packed));
 
 
+int interrupts_enabled = 0;
+
 struct intr_handler intr_handlers[256];
 
 struct gdt_entry    global_descriptor_table[6];
@@ -164,6 +166,8 @@ dispatch_intr(struct regs *regs)
     if (inum >= 40) {
         io_write8(0xA0, 0x20);
     }
+    
+    io_write8(0x20, 0x20);
 
     struct intr_handler *handler = &intr_handlers[inum];
 
@@ -179,7 +183,6 @@ dispatch_intr(struct regs *regs)
                 break;
         }
     }
-    io_write8(0x20, 0x20);
 
     if (sched_curr_thread) {
         thread_interrupt_leave(sched_curr_thread, regs);

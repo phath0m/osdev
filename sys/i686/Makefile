@@ -13,6 +13,7 @@ KERNEL_I686_OBJECTS += dev/virtio.o
 KERNEL_I686_OBJECTS += dev/virtio_blk.o
 KERNEL_I686_OBJECTS += kern/context_switch.o
 KERNEL_I686_OBJECTS += kern/clone.o
+KERNEL_I686_OBJECTS += kern/crit.o
 KERNEL_I686_OBJECTS += kern/preinit.o
 KERNEL_I686_OBJECTS += kern/boot.o
 KERNEL_I686_OBJECTS += kern/gdt.o

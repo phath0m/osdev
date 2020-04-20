@@ -1,3 +1,20 @@
+/*
+ * virtio_blk.c - virtio block devices
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include <machine/pci.h>
 #include <machine/portio.h>
 #include <machine/vm.h>
@@ -11,7 +28,7 @@
 #include <sys/types.h>
 #include "virtio.h"
 
-#define MIN(X, Y) ((X < Y) ? X : Y)
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 #define VIRTIO_BLK_T_IN           0 
 #define VIRTIO_BLK_T_OUT          1 
@@ -36,7 +53,7 @@ struct driver virtio_blk_driver = {
 };
 
 static int
-vblk_write_sector(struct device *dev, int sector, void *data)
+vblk_write_sector(struct device *dev, uint64_t sector, void *data)
 {
     uint8_t status = 0xFF;
     struct virtio_blk_req req = {
@@ -66,15 +83,14 @@ vblk_write_sector(struct device *dev, int sector, void *data)
     virtq_send(dev, 0, buffers, 3);
 
     if (status != 0) {
-        printf("virtio_blk: write_sector() error %d\n\r", status);
+        printf("virtio_blk: write_sector() error: sector=%d status=%d\n\r", sector, status);
         return -1;
     }
-
     return 0;
 }
 
 static int
-vblk_read_sector(struct device *dev, int sector, void *data)
+vblk_read_sector(struct device *dev, uint64_t sector, void *data)
 {
     uint8_t status = 0xFF;
     struct virtio_blk_req req = {
@@ -103,8 +119,11 @@ vblk_read_sector(struct device *dev, int sector, void *data)
 
     virtq_send(dev, 0, buffers, 3);
 
+    volatile uint8_t *status_p = &status;
+    while (*status_p == 0xFF);
+
     if (status != 0) {
-        printf("virtio_blk: read_sector() error %d\n\r", status);
+        panic("virtio_blk: read_sector() error: sector=%x status=%d\n\r", sector, status);
         return -1;
     }
     return 0;
@@ -116,22 +135,20 @@ vblk_read(struct cdev *cdev, char *buf, size_t nbyte, uint64_t pos)
     static uint8_t block[512];
     struct device *dev = cdev->state;
 
-    int bytes_read = 0;
-    int blocks_required = (nbyte >> 9) + 1;
-    int start_sector = pos >> 9;
-    int start_offset = pos & 0x1FF;
+    uint32_t bytes_read = 0;
+    uint64_t start_sector = pos >> 9;
+    uint32_t start_offset = (uint32_t)pos & 0x1FF;
 
-    for (int i = 0; i < blocks_required; i++) {
-        int bytes_this_block = MIN(512, nbyte - bytes_read);
-        
+    for (uint32_t i = 0; bytes_read < nbyte; i++) {
+        uint32_t bytes_this_block = MIN(512-start_offset, nbyte - bytes_read);
+
         vblk_read_sector(dev, start_sector + i, block);
-        memcpy(&buf[i<<9], &block[start_offset], bytes_this_block);
+        memcpy(&buf[bytes_read], &block[start_offset], bytes_this_block);
 
         start_offset = 0;
         bytes_read += bytes_this_block;
     }
-
-    return 0;
+    return bytes_read;
 }
 
 static int
@@ -173,7 +190,7 @@ vblk_attach(struct driver *driver, struct device *dev)
     }
 
     char cdev_name[16];
-    sprintf(cdev_name, "vd%c", 'a' + vd_counter);
+    sprintf(cdev_name, "rvd%c", '0' + vd_counter);
 
     struct cdev_ops cdev_ops = {
         .close  = NULL,

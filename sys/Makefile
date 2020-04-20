@@ -15,6 +15,7 @@ KERNEL_OBJECTS += ds/list.o
 KERNEL_OBJECTS += ds/membuf.o
 
 KERNEL_OBJECTS += fs/devfs.o
+KERNEL_OBJECTS += fs/ext2.o
 KERNEL_OBJECTS += fs/tarfs.o
 KERNEL_OBJECTS += fs/tmpfs.o
 

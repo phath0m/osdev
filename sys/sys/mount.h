@@ -49,6 +49,7 @@ int     fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int f
 void    fs_register(char *name, struct fs_ops *ops);
 void    devfs_init();
 void    tmpfs_init();
+void    ext2_init();
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

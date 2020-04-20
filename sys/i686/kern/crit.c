@@ -1,5 +1,5 @@
 /*
- * errno.h
+ * crit.c - prevents kernel level code from being pre-empted
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,33 +15,40 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_ERRNO_H
-#define _SYS_ERRNO_H
+#include <sys/types.h>
+#include <sys/mutex.h>
 
-#define EPERM       1
-#define ENOENT      2
-#define ESRCH       3
-#define EINTR       4
-#define EIO         5
-#define EBADF       9
-#define ENOMEM      12
-#define EACCES      13
-#define EFAULT      14
-#define ENODEV      19
-#define ENOTDIR     20
-#define EISDIR      21
-#define EINVAL      22
-#define ENFILE      23
-#define EMFILE      24
-#define ENOTTY      25
-#define ENOSPC      28
-#define ESPIPE      29
-#define EROFS       30
-#define EPIPE       32
-#define ENOTEMPTY   39
+static inline uint32_t
+get_eflags()
+{
+    uint32_t flags;
 
-#define ECONNRESET  104
+    asm volatile("pushf ; pop %0" : "=rm" (flags) :: "memory");
 
-#define ENOTSUP     129
+    return flags;
+}
 
-#endif
+static bool prev_if;
+static spinlock_t crit_lock = 0;
+
+void
+critical_enter()
+{
+    prev_if = (get_eflags() & 0x200) != 0;
+
+    if (prev_if) {
+        asm volatile("cli");
+    }
+
+    spinlock_lock(&crit_lock);
+}
+
+void
+critical_exit()
+{
+    spinlock_unlock(&crit_lock);
+
+    if (prev_if) {
+        asm volatile("sti");
+    }
+}
