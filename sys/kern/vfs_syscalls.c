@@ -25,6 +25,7 @@
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/interrupt.h>
+#include <sys/mount.h>
 #include <sys/pipe.h>
 #include <sys/proc.h>
 #include <sys/procdesc.h>
@@ -390,6 +391,56 @@ sys_mknod(struct thread *th, syscall_args_t argv)
 }
 
 static int
+sys_mount(struct thread *th, syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(const char *, source, 0, argv);
+    DEFINE_SYSCALL_PARAM(const char *, target, 1, argv);
+    DEFINE_SYSCALL_PARAM(const char *, fstype, 2, argv);
+    DEFINE_SYSCALL_PARAM(uint32_t, mountflags, 3, argv);
+  
+    if (source && vm_access(th->address_space, source, 1, VM_READ)) {
+        return -(EFAULT);
+    }
+
+    if (target && vm_access(th->address_space, target, 1, VM_READ)) {
+        return -(EFAULT);
+    }
+
+    if (fstype && vm_access(th->address_space, fstype, 1, VM_READ)) {
+        return -(EFAULT);
+    }
+
+    struct cdev *cdev;
+
+    if (source) {
+        struct stat sb;
+        
+        struct file *file;
+        int res = vfs_open_r(current_proc, &file, source, O_RDONLY);
+
+        if (res != 0) {
+            return res;
+        }
+
+        res = fop_stat(file, &sb);
+
+        if (res != 0) {
+            return res;
+        }
+
+        fop_close(file);
+
+        cdev = cdev_from_devno(sb.st_dev);
+
+        if (!cdev) {
+            return -(ENXIO);
+        }
+    }
+
+    return fs_mount(current_proc->root, cdev, fstype, target, mountflags);
+}
+
+static int
 sys_stat(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
@@ -514,4 +565,5 @@ vfs_syscalls_init()
     register_syscall(SYS_ACCESS, 2, sys_access);
     register_syscall(SYS_MKNOD, 3, sys_mknod);
     register_syscall(SYS_UTIMES, 2, sys_utimes);
+    register_syscall(SYS_MOUNT, 4, sys_mount);
 }

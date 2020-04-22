@@ -31,7 +31,7 @@
 
 #define MIN(X, Y) ((X < Y) ? X : Y)
 
-#define BLOCK_ADDR(bsize, bnum) ((uint64_t)(bsize)*(bnum))
+#define BLOCK_ADDR(bsize, bnum) ((uint64_t)(bsize)*(uint64_t)(bnum))
 #define BLOCK_NUM(bsize, offset) ((offset)/(bsize))
 
 /* inode number to block group */
@@ -219,7 +219,9 @@ ext2fs_read_block(struct ext2fs *fs, uint64_t block_addr, struct ext2_block_buf 
 int
 ext2fs_read_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
 {
-    if (cdev_read(fs->cdev, (char*)desc, sizeof(struct ext2_bg_desc), fs->bg_start + index*sizeof(struct ext2_bg_desc)) != fs->bsize) {
+    uint64_t bg_addr = fs->bg_start + index*sizeof(struct ext2_bg_desc);
+
+    if (cdev_read(fs->cdev, (char*)desc, sizeof(struct ext2_bg_desc), bg_addr) != sizeof(struct ext2_bg_desc)) {
         return -1;
     }
 
@@ -235,14 +237,12 @@ ext2fs_read_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
     struct ext2_bg_desc desc;
 
     if (ext2fs_read_bg(fs, bg, &desc) != 0) {
-        printf("ext2fs: could not read blockgroup %d\n\r", bg);
         return -1;
     }
 
     uint64_t inode_addr = BLOCK_ADDR(fs->bsize, desc.i_tables) + offset;
     
     if (cdev_read(fs->cdev, (char*)buf, sizeof(struct ext2_inode), inode_addr) != sizeof(struct ext2_inode)) {
-        printf("ext2fs: ext2 failed to read inode\n\r");
         return -1;
     }
     return 0;
@@ -257,17 +257,17 @@ ext2fs_read_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_a
     
     uint64_t ptrs_per_block = (fs->bsize / 4);
 
-    if (block_addr < ((ptrs_per_block + 12)*fs->bsize) && inode->blocks[12]) {
+    if (block_addr < ((ptrs_per_block + 12)) && inode->blocks[12]) {
         if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
             return -1;
         }
         uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
         uint32_t ptr_idx = block_addr - 12;
-        uint64_t block_num = fs->bsize*indirect_blocks[ptr_idx];
+        uint64_t block_num = BLOCK_ADDR(fs->bsize, indirect_blocks[ptr_idx]);
         return cdev_read(fs->cdev, (char*)buf, fs->bsize, block_num);
     } else {
-        uint64_t table_idx = ((block_addr + ptrs_per_block) - 12) / ptrs_per_block;
-        uint64_t ptr_idx = (block_addr - 12) % ptrs_per_block;
+        uint32_t table_idx = (block_addr - (ptrs_per_block + 12)) / ptrs_per_block;
+        uint32_t ptr_idx = (block_addr - (ptrs_per_block + 12)) % ptrs_per_block;
         if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
             return -1;
         }
@@ -279,6 +279,42 @@ ext2fs_read_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_a
 
         uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
         return cdev_read(fs->cdev, (char*)buf, fs->bsize, BLOCK_ADDR(fs->bsize, block_ptrs[ptr_idx]));
+    }
+
+    return -1;
+}
+
+int
+ext2fs_write_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_addr, void *buf)
+{
+    if (block_addr < 12) {
+        return cdev_write(fs->cdev, (char*)buf, fs->bsize, BLOCK_ADDR(fs->bsize, inode->blocks[block_addr]));
+    }
+
+    uint64_t ptrs_per_block = (fs->bsize / 4);
+
+    if (block_addr < ((ptrs_per_block + 12)) && inode->blocks[12]) {
+        if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
+            return -1;
+        }
+        uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
+        uint32_t ptr_idx = block_addr - 12;
+        uint64_t block_num = BLOCK_ADDR(fs->bsize, indirect_blocks[ptr_idx]);
+        return cdev_write(fs->cdev, (char*)buf, fs->bsize, block_num);
+    } else {
+        uint32_t table_idx = (block_addr - (ptrs_per_block + 12)) / ptrs_per_block;
+        uint32_t ptr_idx = (block_addr - (ptrs_per_block + 12)) % ptrs_per_block;
+        if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
+            return -1;
+        }
+
+        uint32_t *indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+        if (ext2fs_read_block(fs, indirect_table[table_idx], &fs->block_ptr_buf) != 0) {
+            return -1;
+        }
+
+        uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
+        return cdev_write(fs->cdev, (char*)buf, fs->bsize, BLOCK_ADDR(fs->bsize, block_ptrs[ptr_idx]));
     }
 
     return -1;
@@ -393,7 +429,7 @@ ext2_mount(struct vnode *parent, struct cdev *cdev, struct vnode **root)
     cdev_read(cdev, (char*)&superblock, sizeof(superblock), 1024);
 
     if (superblock.magic != 0xef53) {
-        return -1;
+        return -(EINVAL);
     }
 
     struct ext2fs *fs = calloc(1, sizeof(struct ext2fs));
@@ -401,7 +437,7 @@ ext2_mount(struct vnode *parent, struct cdev *cdev, struct vnode **root)
     fs->cdev = cdev;
     fs->inode_size = superblock.inode_size;
     fs->igp =  superblock.ipg;
-    fs->block_cache = calloc(1, 4096);
+    fs->block_cache = calloc(1, fs->bsize);
     fs->bg_start = BLOCK_ADDR(fs->bsize, 1024/fs->bsize+1);
 
     ext2fs_init_block_buf(fs, &fs->block_ptr_buf);
@@ -485,7 +521,31 @@ ext2_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev)
 static int
 ext2_seek(struct vnode *vn, off_t *cur_pos, off_t off, int whence)
 {
-    return 0;
+    struct ext2_inode inode;
+    off_t new_pos;
+
+    switch (whence) {
+        case SEEK_CUR:
+            new_pos = *cur_pos + off;
+            break;
+        case SEEK_END:
+            if (ext2fs_read_inode((struct ext2fs*)vn->state, vn->inode, &inode) != 0) {
+                return -(EIO);
+            }
+            new_pos = inode.size - off;
+            break;
+        case SEEK_SET:
+            new_pos = off;
+            break;
+    }
+
+    if (new_pos < 0) {
+        return -(ESPIPE);
+    }
+
+    *cur_pos = new_pos;
+
+    return new_pos;
 }
 
 static int

@@ -207,7 +207,7 @@ devfs_stat(struct vnode *node, struct stat *stat)
 
     stat->st_mode = dev->mode | S_IFCHR;
     stat->st_uid = dev->uid;
-
+    stat->st_dev = makedev(dev->majorno, dev->minorno);
     return 0;
 }
 

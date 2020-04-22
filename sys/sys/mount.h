@@ -52,6 +52,10 @@ void    tmpfs_init();
 void    ext2_init();
 
 #endif /* __KERNEL__ */
+
+int     mount(const char *source, const char *target, const char *fsname,
+            unsigned long mountflags, const void *data);
+
 #ifdef __cplusplus
 }
 #endif

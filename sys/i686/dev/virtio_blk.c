@@ -21,6 +21,7 @@
 #include <sys/cdev.h>
 #include <sys/device.h>
 #include <sys/devno.h>
+#include <sys/errno.h>
 #include <sys/interrupt.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
@@ -225,5 +226,5 @@ vblk_probe(struct driver *driver, struct device *dev)
         if (pci_get_subsystem_id(dev) == 0x02) return 0;
     }
 
-    return -1;
+    return -(ENXIO);
 }

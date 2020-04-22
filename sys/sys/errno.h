@@ -23,6 +23,7 @@
 #define ESRCH       3
 #define EINTR       4
 #define EIO         5
+#define ENXIO       6
 #define EBADF       9
 #define ENOMEM      12
 #define EACCES      13
