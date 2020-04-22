@@ -14,6 +14,7 @@ SUBDIRS += echo
 SUBDIRS += kill
 SUBDIRS += ls
 SUBDIRS += sh
+SUBDIRS += sha1
 SUBDIRS += ps
 SUBDIRS += pwd
 SUBDIRS += mkdir
