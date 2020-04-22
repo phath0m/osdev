@@ -75,6 +75,7 @@
 #define SYS_SHM_UNLINK      0x49
 #define SYS_SYSCTL          0x4A
 #define SYS_ADJTIME         0x4B
+#define SYS_MOUNT           0x4C
 
 struct mmap_args {
     uintptr_t   addr;

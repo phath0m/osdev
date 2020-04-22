@@ -114,6 +114,19 @@ chown(const char *path, uid_t owner, gid_t group)
 }
 
 int
+chroot(const char *path)
+{
+    int ret = _SYSCALL1(int, SYS_CHROOT, path);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return 0;
+}
+
+int
 close(int file)
 {
     int ret = _SYSCALL1(int, SYS_CLOSE, file);
@@ -610,6 +623,21 @@ mmap(void *addr, size_t length, int prot, int flags,
     }
 
     return (void*)ret;
+}
+
+int
+mount(const char *source, const char *target, const char *fstype,
+        unsigned long mountflags, const void *data)
+{
+
+    int ret = _SYSCALL4(int, SYS_MOUNT, source, target, fstype, mountflags);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return 0;
 }
 
 unsigned int
