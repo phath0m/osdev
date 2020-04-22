@@ -4,6 +4,7 @@ export DESTDIR
 MAKE = make
 
 SUBDIRS += doit
+SUBDIRS += mount
 SUBDIRS += newtty
 
 all: $(SUBDIRS)
