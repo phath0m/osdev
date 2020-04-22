@@ -5,6 +5,7 @@ export PREFIX
 
 MAKE = make
 
+SUBDIRS += chroot
 SUBDIRS += env
 SUBDIRS += fbctl
 SUBDIRS += id
