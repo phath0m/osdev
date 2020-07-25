@@ -29,12 +29,12 @@ struct device;
 struct driver;
 
 /* device interrupt handler (IRQs) */
-typedef int (*dev_intr_t)(struct device *dev, int inum);
+typedef int (*dev_intr_t)(struct device *, int);
 
 /* device driver method prototypes */
-typedef int (*driver_probe_t)(struct driver *driver, struct device *dev);
-typedef int (*driver_attach_t)(struct driver *driver, struct device *dev);
-typedef int (*driver_deattach_t)(struct driver *driver, struct device *dev);
+typedef int (*driver_probe_t)(struct driver *, struct device *);
+typedef int (*driver_attach_t)(struct driver *, struct device *);
+typedef int (*driver_deattach_t)(struct driver *, struct device *);
 
 /* device is created by machdep portion for each device attached to host  */
 struct device {
@@ -51,9 +51,9 @@ struct driver {
     struct list         devices;
 };
 
-int     device_register(struct device *device);
-int     device_setup_intr(struct device *dev, int inum, dev_intr_t handler);
-int     driver_register(struct driver *driver);
+int     device_register(struct device *);
+int     device_setup_intr(struct device *, int, dev_intr_t);
+int     driver_register(struct driver *);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

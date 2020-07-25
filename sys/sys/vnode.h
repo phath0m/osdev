@@ -46,26 +46,26 @@ struct fs_ops;
 struct stat;
 struct vnode;
 
-typedef int (*vn_chmod_t)(struct vnode *node, mode_t mode);
-typedef int (*vn_chown_t)(struct vnode *node, uid_t owner, uid_t group);
-typedef int (*vn_node_destroy_t)(struct vnode *node);
-typedef int (*vn_close_t)(struct vnode *node, struct file *fp);
-typedef int (*vn_creat_t)(struct vnode *node, struct vnode **result, const char *name, mode_t mode);
-typedef int (*vn_duplicate_t)(struct vnode *node, struct file *fp);
-typedef int (*vn_ioctl_t)(struct vnode *node, uint64_t request, void *arg);
-typedef int (*vn_lookup_t)(struct vnode *parent, struct vnode **result, const char *name);
-typedef int (*vn_mkdir_t)(struct vnode *parent, const char *name, mode_t mode); 
-typedef int (*vn_mknod_t)(struct vnode *parent, const char *name, mode_t mode, dev_t dev);
-typedef int (*vn_mmap_t)(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset);
-typedef int (*vn_readdirent_t)(struct vnode *node, struct dirent *dirent, uint64_t entry);
-typedef int (*vn_read_t)(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
-typedef int (*vn_rmdir_t)(struct vnode *node, const char *path);
-typedef int (*vn_seek_t)(struct vnode *node, off_t *pos, off_t off, int whence);
-typedef int (*vn_stat_t)(struct vnode *node, struct stat *stat);
-typedef int (*vn_truncate_t)(struct vnode *node, off_t length);
-typedef int (*vn_unlink_t)(struct vnode *parent, const char *name);
-typedef int (*vn_utimes_t)(struct vnode *node, struct timeval times[2]);
-typedef int (*vn_write_t)(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
+typedef int (*vn_chmod_t)(struct vnode *, mode_t);
+typedef int (*vn_chown_t)(struct vnode *, uid_t, uid_t);
+typedef int (*vn_node_destroy_t)(struct vnode *);
+typedef int (*vn_close_t)(struct vnode *, struct file *);
+typedef int (*vn_creat_t)(struct vnode *, struct vnode **, const char *, mode_t);
+typedef int (*vn_duplicate_t)(struct vnode *, struct file *);
+typedef int (*vn_ioctl_t)(struct vnode *, uint64_t, void *);
+typedef int (*vn_lookup_t)(struct vnode *, struct vnode **, const char *);
+typedef int (*vn_mkdir_t)(struct vnode *, const char *, mode_t); 
+typedef int (*vn_mknod_t)(struct vnode *, const char *, mode_t, dev_t);
+typedef int (*vn_mmap_t)(struct vnode *, uintptr_t, size_t size, int, off_t);
+typedef int (*vn_readdirent_t)(struct vnode *, struct dirent *, uint64_t);
+typedef int (*vn_read_t)(struct vnode *, void *, size_t, uint64_t);
+typedef int (*vn_rmdir_t)(struct vnode *, const char *);
+typedef int (*vn_seek_t)(struct vnode *, off_t *, off_t, int);
+typedef int (*vn_stat_t)(struct vnode *, struct stat *);
+typedef int (*vn_truncate_t)(struct vnode *, off_t);
+typedef int (*vn_unlink_t)(struct vnode *, const char *);
+typedef int (*vn_utimes_t)(struct vnode *, struct timeval[2]);
+typedef int (*vn_write_t)(struct vnode *, const void *, size_t, uint64_t);
 
 /* vnode methods */
 struct vops {
@@ -123,35 +123,35 @@ struct vnode {
 
 extern struct pool  vn_pool;
 
-void            vn_destroy(struct vnode *node);
-int             vn_lookup(struct vnode *parent, struct vnode **result, const char *name);
-struct vnode *  vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops);
-int             vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char *path);
+void            vn_destroy(struct vnode *);
+int             vn_lookup(struct vnode *, struct vnode **, const char *);
+struct vnode *  vn_new(struct vnode *, struct cdev *, struct vops *);
+int             vn_open(struct vnode *, struct vnode *, struct vnode **, const char *);
 
 
 /*
  * new functions
  */
-int             vop_fchmod(struct vnode *node, mode_t mode);
-int             vop_fchown(struct vnode *node, uid_t owner, gid_t group);
-int             vop_ftruncate(struct vnode *node, off_t length);
-int             vop_read(struct vnode *node, char *buf, size_t nbyte, off_t offset);
-int             vop_readdirent(struct vnode *node, struct dirent *dirent, int dirno);
-int             vop_stat(struct vnode *node, struct stat *stat);
-int             vop_write(struct vnode *node, const char *buf, size_t nbyte, off_t offset);
+int             vop_fchmod(struct vnode *, mode_t);
+int             vop_fchown(struct vnode *, uid_t, gid_t);
+int             vop_ftruncate(struct vnode *, off_t);
+int             vop_read(struct vnode *, char *, size_t, off_t);
+int             vop_readdirent(struct vnode *, struct dirent *, int);
+int             vop_stat(struct vnode *, struct stat *);
+int             vop_write(struct vnode *, const char *, size_t, off_t);
 
-int             vfs_open(struct proc *proc, struct file **result, const char *path, int flags);
-int             vfs_open_r(struct proc *proc, struct file **result, const char *path, int flags);
-int             vfs_access(struct proc *proc, const char *path, int mode);
-int             vfs_chmod(struct proc *proc, const char *path, mode_t mode);
-int             vfs_chown(struct proc *proc, const char *path, uid_t owner, gid_t group);
-int             vfs_creat(struct proc *proc, struct file **result, const char *path, mode_t mode);
-int             vfs_mkdir(struct proc *proc, const char *path, mode_t mode);
-int             vfs_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev);
-int             vfs_rmdir(struct proc *proc, const char *path);
-int             vfs_truncate(struct proc *proc, const char *path, off_t length);
-int             vfs_unlink(struct proc *proc, const char *path);
-int             vfs_utimes(struct proc *proc, const char *path, struct timeval times[2]);
+int             vfs_open(struct proc *, struct file **, const char *, int);
+int             vfs_open_r(struct proc *, struct file **, const char *, int);
+int             vfs_access(struct proc *, const char *, int);
+int             vfs_chmod(struct proc *, const char *, mode_t);
+int             vfs_chown(struct proc *, const char *, uid_t, gid_t);
+int             vfs_creat(struct proc *, struct file **, const char *, mode_t);
+int             vfs_mkdir(struct proc *, const char *, mode_t);
+int             vfs_mknod(struct proc *, const char *, mode_t, dev_t);
+int             vfs_rmdir(struct proc *, const char *);
+int             vfs_truncate(struct proc *, const char *, off_t);
+int             vfs_unlink(struct proc *, const char *);
+int             vfs_utimes(struct proc *, const char *, struct timeval[2]);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

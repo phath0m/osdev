@@ -32,14 +32,14 @@ extern "C" {
 struct cdev;
 
 /* character device methods */
-typedef int (*cdev_close_t)(struct cdev *dev);
-typedef int (*cdev_init_t)(struct cdev *dev);
-typedef int (*cdev_ioctl_t)(struct cdev *dev, uint64_t request, uintptr_t argp);
-typedef int (*cdev_isatty_t)(struct cdev *dev);
-typedef int (*cdev_mmap_t)(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset);
-typedef int (*cdev_open_t)(struct cdev *dev);
-typedef int (*cdev_read_t)(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
-typedef int (*cdev_write_t)(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
+typedef int (*cdev_close_t)(struct cdev *);
+typedef int (*cdev_init_t)(struct cdev *);
+typedef int (*cdev_ioctl_t)(struct cdev *, uint64_t, uintptr_t);
+typedef int (*cdev_isatty_t)(struct cdev *);
+typedef int (*cdev_mmap_t)(struct cdev *, uintptr_t, size_t, int, off_t);
+typedef int (*cdev_open_t)(struct cdev *);
+typedef int (*cdev_read_t)(struct cdev *, char *, size_t, uint64_t);
+typedef int (*cdev_write_t)(struct cdev *, const char *, size_t, uint64_t);
 
 /* represents a character device */
 struct cdev {
@@ -72,21 +72,19 @@ struct cdev_ops {
 
 struct vnode;
 
-struct cdev *	cdev_new(const char *name, int mode, int majorno, int minorno,
-							struct cdev_ops *ops, void *state);
+struct cdev *	cdev_new(const char *, int, int, int, struct cdev_ops *, void *);
+struct cdev *   cdev_from_devno(dev_t);
+struct file *   cdev_to_file(struct vnode *, dev_t);
 
-struct cdev *   cdev_from_devno(dev_t dev);
-struct file *   cdev_to_file(struct vnode *host, dev_t devno);
-
-int             cdev_close(struct cdev *dev);
-int             cdev_destroy(struct cdev *dev);
-int             cdev_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
-int             cdev_isatty(struct cdev *dev);
-int             cdev_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset);
-int             cdev_open(struct cdev *dev);
-int             cdev_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
-int             cdev_register(struct cdev *dev);
-int             cdev_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
+int             cdev_close(struct cdev *);
+int             cdev_destroy(struct cdev *);
+int             cdev_ioctl(struct cdev *, uint64_t, uintptr_t);
+int             cdev_isatty(struct cdev *);
+int             cdev_mmap(struct cdev *, uintptr_t, size_t, int, off_t);
+int             cdev_open(struct cdev *);
+int             cdev_read(struct cdev *, char *, size_t, uint64_t);
+int             cdev_register(struct cdev *);
+int             cdev_write(struct cdev *, const char *, size_t, uint64_t);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

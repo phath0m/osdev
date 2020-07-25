@@ -4,24 +4,24 @@
 #include <stdarg.h>
 #include <sys/types.h>
 
-int atoi(const char *str, int base);
+int         atoi(const char *, int);
 
 /* not actually part of the ansii string.h */
-char *itoa(int value, char *str, int base);
-char *itoa_u(unsigned int value, char *str, int base);
+char    *   itoa(int, char *, int);
+char    *   itoa_u(unsigned int, char *, int);
 
-void *memcpy(void *dest, const void *src, size_t nbyte);
-void *memset(void *ptr, int value, size_t nbyte);
+void    *   memcpy(void *, const void *, size_t);
+void    *   memset(void *, int, size_t);
 
-void sprintf(char *str, const char *fmt, ...);
-char *strchr(const char *str, char ch);
-char *strcpy(char *dest, const char *src);
-int strlen(const char *str);
-int strcmp(const char *str1, const char *str2);
-char *strncpy(char *dest, const char *src, size_t nbyte);
-int strncmp(const char *str1, const char *str2, size_t nbyte);
-char *strrchr(const char *str, char ch);
-void strreverse(char *str);
-void vsprintf(char *str, const char *fmt, va_list arg);
+void        sprintf(char *, const char *, ...);
+char    *   strchr(const char *, char);
+char    *   strcpy(char *, const char *);
+int         strlen(const char *);
+int         strcmp(const char *, const char *);
+char    *   strncpy(char *, const char *, size_t);
+int         strncmp(const char *, const char *, size_t);
+char    *   strrchr(const char *, char);
+void        strreverse(char *);
+void        vsprintf(char *, const char *, va_list);
 
 #endif

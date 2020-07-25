@@ -24,12 +24,12 @@ extern "C" {
 
 #include <sys/file.h>
 
-struct file *   procdesc_getfile(int fildes);
+struct file *   procdesc_getfile(int);
 int             procdesc_getfd();
-int             procdesc_newfd(struct file *file);
-int             procdesc_dup(int oldfd);
-int             procdesc_dup2(int oldfd, int newfd);
-int             procdesc_fcntl(int fd, int cmd, void *arg);
+int             procdesc_newfd(struct file *);
+int             procdesc_dup(int); 
+int             procdesc_dup2(int, int);
+int             procdesc_fcntl(int, int, void *);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

@@ -30,7 +30,7 @@ struct utsname {
 };
 
 #ifndef __KERNEL__
-int uname(struct utsname *buf);
+int uname(struct utsname *);
 #endif
 #ifdef __cplusplus
 }

@@ -26,7 +26,7 @@ extern "C" {
 
 struct timer;
 
-typedef void (*timer_tick_t)(struct timer *timer, void *argp);
+typedef void (*timer_tick_t)(struct timer *, void *);
 
 struct timer {
     timer_tick_t    handler;
@@ -35,9 +35,9 @@ struct timer {
     bool            expired;
 };
 
-void timer_new(timer_tick_t handler, uint32_t timeout, void *argp);
-void timer_expire(struct timer *timer);
-void timer_renew(struct timer *timer, uint32_t newtimeout);
+void timer_new(timer_tick_t, uint32_t, void *);
+void timer_expire(struct timer *);
+void timer_renew(struct timer *, uint32_t);
 void timer_tick();
 
 #endif /* __KERNEL__ */

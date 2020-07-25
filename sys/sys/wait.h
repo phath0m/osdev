@@ -11,8 +11,8 @@ struct wait_queue {
 };
 
 
-void wq_empty(struct wait_queue *queue);
-void wq_pulse(struct wait_queue *queue);
-void wq_wait(struct wait_queue *queue);
+void wq_empty(struct wait_queue *);
+void wq_pulse(struct wait_queue *);
+void wq_wait(struct wait_queue *);
 
 #endif

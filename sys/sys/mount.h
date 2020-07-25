@@ -27,7 +27,7 @@ extern "C" {
 #ifdef __KERNEL__
 #include <sys/vnode.h>
 
-typedef int (*fs_mount_t)(struct vnode *parent, struct cdev *dev, struct vnode **root);
+typedef int (*fs_mount_t)(struct vnode *, struct cdev *, struct vnode **);
 
 struct fs_ops {
     fs_mount_t          mount;
@@ -39,22 +39,21 @@ struct filesystem {
 };
 
 struct mount {
-    struct cdev *     device;
-    struct filesystem * filesystem;
-    uint64_t            flags;
+    struct cdev         *   device;
+    struct filesystem   *   filesystem;
+    uint64_t                flags;
 };
 
-int     fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *path, int flags);
-int     fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags);
-void    fs_register(char *name, struct fs_ops *ops);
+int     fs_mount(struct vnode *, struct cdev *, const char *, const char *, int);
+int     fs_open(struct cdev *, struct vnode **, const char *, int);
+void    fs_register(char *, struct fs_ops *);
 void    devfs_init();
 void    tmpfs_init();
 void    ext2_init();
 
 #endif /* __KERNEL__ */
 
-int     mount(const char *source, const char *target, const char *fsname,
-            unsigned long mountflags, const void *data);
+int     mount(const char *, const char *, const char *, unsigned long, const void *);
 
 #ifdef __cplusplus
 }

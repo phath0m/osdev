@@ -65,7 +65,7 @@ struct palentry {
 };
 
 #ifndef __KERNEL__
-int ioctl(int fd, unsigned long request, void *arg);
+int ioctl(int, unsigned long, void *);
 #endif /* __KERNEL__ */
 #ifdef __cplusplus
 }

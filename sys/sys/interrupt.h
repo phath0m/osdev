@@ -28,13 +28,13 @@ struct device;
 struct regs;
 
 /* software interrupt (trap) */
-typedef int (*intr_handler_t)(int inum, struct regs *regs);
+typedef int (*intr_handler_t)(int, struct regs *);
 
 /* device interrupt handler (IRQs) */
-typedef int (*dev_intr_t)(struct device *dev, int inum);
+typedef int (*dev_intr_t)(struct device *, int);
 
-int swi_register(int inum, intr_handler_t handler);
-int	irq_register(struct device *dev, int inum, dev_intr_t handler);
+int swi_register(int, intr_handler_t);
+int	irq_register(struct device *, int, dev_intr_t);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

@@ -37,18 +37,18 @@ extern "C" {
 void    critical_enter();
 void    critical_exit();
 
-int     kmain(const char *args);
-void    puts(const char *str);
-void    set_kernel_output(struct cdev *dev);
-void    panic(const char *fmt, ...);
+int     kmain(const char *);
+void    puts(const char *);
+void    set_kernel_output(struct cdev *);
+void    panic(const char *, ...);
 void    shutdown();
-void    stacktrace(int max_frames);
-void    printf(const char *fmt, ...);
-void    vprintf(const char *fmt, va_list arg);
+void    stacktrace(int);
+void    printf(const char *, ...);
+void    vprintf(const char *, va_list);
 
-void    ksym_declare(const char *name, uintptr_t val);
-int     ksym_find_nearest(uintptr_t needle, uintptr_t *dist, char *buf, size_t bufsize);
-int     ksym_resolve(const char *name, uintptr_t *val);
+void    ksym_declare(const char *, uintptr_t);
+int     ksym_find_nearest(uintptr_t, uintptr_t *, char *, size_t);
+int     ksym_resolve(const char *, uintptr_t *);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

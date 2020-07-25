@@ -29,12 +29,12 @@ align_addr(size_t size, uint32_t align)
     return (size + align) - (size + align) % align;
 }
 
-void *  calloc(int num, size_t size);
-void *  malloc(size_t size);
-void    free(void *ptr);
-int     brk(void *ptr);
-void *  sbrk(size_t increment);
-void *  sbrk_a(size_t increment, uintptr_t align);
+void *  calloc(int, size_t);
+void *  malloc(size_t);
+void    free(void *);
+int     brk(void *);
+void *  sbrk(size_t);
+void *  sbrk_a(size_t, uintptr_t);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

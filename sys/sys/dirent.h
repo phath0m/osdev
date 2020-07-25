@@ -43,10 +43,11 @@ typedef struct {
     struct dirent   buf;
 } DIR;
 
-DIR *           opendir(const char *dirname);
-int             closedir(DIR *dirp);
-struct dirent * readdir(DIR *dirp);
-void            rewinddir(DIR *dirp);
+DIR *           opendir(const char *);
+int             closedir(DIR *);
+struct dirent * readdir(DIR *);
+void            rewinddir(DIR *);
+
 #endif /* __KERNEL__  */
 #ifdef __cplusplus
 }

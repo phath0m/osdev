@@ -126,7 +126,7 @@ struct sysctl_args {
 struct thread;
 
 typedef struct syscall_args * syscall_args_t;
-typedef int (*syscall_t)(struct thread *th, syscall_args_t argv);
+typedef int (*syscall_t)(struct thread *, syscall_args_t);
 
 struct syscall {
     uint8_t     num;
@@ -134,7 +134,7 @@ struct syscall {
     syscall_t   handler;
 };
 
-int register_syscall(int num, int argc, syscall_t handler);
+int register_syscall(int, int, syscall_t);
 
 static inline void
 syscalls_init()

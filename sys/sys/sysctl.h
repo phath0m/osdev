@@ -41,10 +41,10 @@ struct kinfo_proc {
 };
 
 #ifdef __KERNEL__
-int kern_sysctl(int *name, int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+int kern_sysctl(int *, int, void *, size_t *, void *, size_t);
 #endif
 
-int sysctl(int *name, int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+int sysctl(int *, int, void *, size_t *, void *, size_t);
 
 #ifdef __cplusplus
 }

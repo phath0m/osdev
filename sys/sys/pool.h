@@ -33,9 +33,9 @@ struct pool {
     uintptr_t       align;
 };
 
-void    pool_init(struct pool *pp, size_t size, uintptr_t align);
-void *  pool_get(struct pool *pp);
-void    pool_put(struct pool *pp, void *ptr);
+void    pool_init(struct pool *, size_t, uintptr_t);
+void *  pool_get(struct pool *);
+void    pool_put(struct pool *, void *);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

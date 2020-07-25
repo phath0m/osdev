@@ -25,8 +25,8 @@ extern "C" {
 
 typedef unsigned char spinlock_t;
 
-void spinlock_lock(spinlock_t volatile *lock);
-void spinlock_unlock(spinlock_t volatile *lock);
+void spinlock_lock(spinlock_t volatile *);
+void spinlock_unlock(spinlock_t volatile *);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

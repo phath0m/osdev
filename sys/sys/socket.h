@@ -58,15 +58,15 @@ struct sockaddr {
 struct socket;
 struct socket_ops;
 
-typedef int (*sock_accept_t)(struct socket *socket, struct socket **result, void *address, size_t *address_len);
-typedef int (*sock_bind_t)(struct socket *socket, void *address, size_t address_len);
-typedef int (*sock_close_t)(struct socket *socket);
-typedef int (*sock_connect_t)(struct socket *socket, void *address, size_t address_len);
-typedef int (*sock_destroy_t)(struct socket *socket);
-typedef int (*sock_duplicate_t)(struct socket *sock);
-typedef int (*sock_init_t)(struct socket *socket, int type, int protocol);
-typedef size_t (*sock_recv_t)(struct socket *socket, void *buf, size_t size);
-typedef size_t (*sock_send_t)(struct socket *socket, const void *buf, size_t size);
+typedef int (*sock_accept_t)(struct socket *, struct socket **, void *, size_t *);
+typedef int (*sock_bind_t)(struct socket *, void *, size_t);
+typedef int (*sock_close_t)(struct socket *);
+typedef int (*sock_connect_t)(struct socket *, void *, size_t);
+typedef int (*sock_destroy_t)(struct socket *);
+typedef int (*sock_duplicate_t)(struct socket *);
+typedef int (*sock_init_t)(struct socket *, int, int);
+typedef size_t (*sock_recv_t)(struct socket *, void *, size_t);
+typedef size_t (*sock_send_t)(struct socket *, const void *, size_t);
 
 struct protocol {
     uint32_t            address_family;
@@ -92,18 +92,18 @@ struct socket_ops {
     sock_send_t         send;
 };
 
-void            register_protocol(struct protocol *protocol);
-int             sock_accept(struct socket *sock, struct socket **result, void *address, size_t *address_len);
-int             sock_bind(struct socket *sock, void *address, size_t address_len);
-int             sock_close(struct socket *sock);
-int             sock_connect(struct socket *sock, void *address, size_t address_size);
-int             sock_destroy(struct socket *sock);
-int             sock_duplicate(struct socket *sock);
-int             sock_new(struct socket **result, int domain, int type, int protocol);
-size_t          sock_recv(struct socket *sock, void *buf, size_t nbyte);
-size_t          sock_send(struct socket *sock, const void *buf, size_t nbyte);
-struct file *   sock_to_file(struct socket *sock);
-struct socket * file_to_sock(struct file *file);
+void            register_protocol(struct protocol *);
+int             sock_accept(struct socket *, struct socket **, void *, size_t *);
+int             sock_bind(struct socket *, void *, size_t);
+int             sock_close(struct socket *);
+int             sock_connect(struct socket *, void *, size_t);
+int             sock_destroy(struct socket *);
+int             sock_duplicate(struct socket *);
+int             sock_new(struct socket **, int, int, int);
+size_t          sock_recv(struct socket *, void *, size_t);
+size_t          sock_send(struct socket *, const void *, size_t);
+struct file *   sock_to_file(struct socket *);
+struct socket * file_to_sock(struct file *);
 
 void            sock_init();
 #else /* __KERNEL__ */

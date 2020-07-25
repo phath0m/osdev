@@ -46,7 +46,7 @@ extern "C" {
 #define PROC_SID(s) ((s)->group->session->sid)
 #define PROC_PGID(s) ((s)->group->pgid)
 
-typedef int (*kthread_entry_t)(void *state);
+typedef int (*kthread_entry_t)(void *);
 
 struct regs;
 struct proc;
@@ -62,7 +62,7 @@ struct cred {
 struct session {
     struct list         groups;
     struct proc *       leader;
-    struct cdev *     ctty;
+    struct cdev *       ctty;
     pid_t               sid;
 };
 
@@ -139,39 +139,38 @@ extern struct proc *current_proc;
 extern struct pool  proc_pool;
 extern struct pool  thread_pool;
 
-struct pgrp *   pgrp_find(pid_t pgid);
-void            pgrp_leave_session(struct pgrp *group, struct session *session);
-struct pgrp *   pgrp_new(struct proc *leader, struct session *session);
+struct pgrp *   pgrp_find(pid_t);
+void            pgrp_leave_session(struct pgrp *, struct session *);
+struct pgrp *   pgrp_new(struct proc *, struct session *);
 
-int             proc_execve(const char *path, const char **argv, const char **envp);
-int             proc_fork(struct regs *regs);
-int             proc_clone(void *func, void *stack, int flags, void *arg);
-char *          proc_getctty(struct proc *proc);
-void            proc_getcwd(struct proc *proc, char *buf, int bufsize);
+int             proc_execve(const char *, const char **, const char **);
+int             proc_fork(struct regs *);
+int             proc_clone(void *, void *, int, void *);
+char *          proc_getctty(struct proc *);
+void            proc_getcwd(struct proc *, char *, int);
 pid_t           proc_get_new_pid();
 void            proc_destroy(struct proc *);
-int             proc_kill(struct proc *proc, int sig);
-void            proc_leave_group(struct proc *proc, struct pgrp *group);
-struct proc *   proc_find(int pid);
+int             proc_kill(struct proc *, int);
+void            proc_leave_group(struct proc *, struct pgrp *);
+struct proc *   proc_find(int);
 struct proc *   proc_new();
-int             proc_signal(struct proc *proc, int sig, struct signal_args *sargs);
-int             proc_sysctl(int *name, int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+int             proc_signal(struct proc *, int, struct signal_args *);
+int             proc_sysctl(int *, int, void *, size_t *, void *, size_t);
 
-struct session *    session_new(struct proc *leader);
+struct session *    session_new(struct proc *);
 
-uintptr_t       sched_init_thread(  struct vm_space *space, uintptr_t stack_start,
-                                    kthread_entry_t entry, void *arg);
+uintptr_t       sched_init_thread(struct vm_space *, uintptr_t, kthread_entry_t, void *);
 
-void            thread_call_sa_handler(struct thread *thread, struct sigcontext *ctx);
+void            thread_call_sa_handler(struct thread *, struct sigcontext *);
 
-void            thread_interrupt_enter(struct thread *thread, struct regs *regs);
-void            thread_interrupt_leave(struct thread *thread, struct regs *regs);
-void            thread_restore_signal_state(struct sigcontext *ctx, struct regs *regs);
-void            thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg);
+void            thread_interrupt_enter(struct thread *, struct regs *);
+void            thread_interrupt_leave(struct thread *, struct regs *);
+void            thread_restore_signal_state(struct sigcontext *, struct regs *);
+void            thread_run(kthread_entry_t, struct vm_space *, void *);
 void            thread_yield();
-void            thread_schedule(int state, struct thread *thread);
-void            thread_destroy(struct thread *thread);
-struct thread * thread_new(struct vm_space *space);
+void            thread_schedule(int, struct thread *);
+void            thread_destroy(struct thread *);
+struct thread * thread_new(struct vm_space *);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

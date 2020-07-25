@@ -22,8 +22,8 @@ extern "C" {
 #endif
 #ifdef __KERNEL__
 
-int shm_open(struct proc *proc, struct file **result, const char *name, int oflag, mode_t mode);
-int shm_unlink(struct proc *proc, const char *name);
+int shm_open(struct proc *, struct file **, const char *, int, mode_t);
+int shm_unlink(struct proc *, const char *);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

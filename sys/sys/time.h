@@ -35,7 +35,7 @@ extern time_t           time_second; // seconds since boot
 extern struct timeval   time_delta; // delta set via adjtime()
 #endif 
 
-time_t  time(time_t *tmloc);
-int     adjtime(const struct timeval *newval, struct timeval *old);
+time_t  time(time_t *);
+int     adjtime(const struct timeval *, struct timeval *);
 
 #endif

@@ -69,22 +69,22 @@ extern struct vm_statistics vm_stat;
 #define VA_BOUNDCHECK(vamap, addr, len) (((uintptr_t)(addr) >= (vamap)->base) && \
                                          ((uintptr_t)(addr) + (uintptr_t)(len) <= (vamap)->limit))
 
-struct va_map *     va_map_new(uintptr_t base, uintptr_t limit);
-uintptr_t           va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length);
-uintptr_t           va_find_block(struct va_map *vamap, size_t length);
-void                va_mark_block(struct va_map *vamap, uintptr_t addr, size_t length);
-void                va_free_block(struct va_map *vamap, uintptr_t addr, size_t length);
+struct va_map *     va_map_new(uintptr_t, uintptr_t);
+uintptr_t           va_alloc_block(struct va_map *, uintptr_t, size_t);
+uintptr_t           va_find_block(struct va_map *, size_t);
+void                va_mark_block(struct va_map *, uintptr_t, size_t);
+void                va_free_block(struct va_map *, uintptr_t, size_t);
 
-int                 vm_access(struct vm_space *space, const void *buf, size_t nbyte, int prot);
+int                 vm_access(struct vm_space *, const void *, size_t, int);
 
-struct vm_block *   vm_find_block(struct vm_space *space, uintptr_t vaddr);
+struct vm_block *   vm_find_block(struct vm_space *, uintptr_t);
 
-void *              vm_map(struct vm_space *space, void *addr, size_t length, int prot);
-void *              vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t length, int prot);
-void *              vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *addr2, size_t length, int prot);
-void                vm_clone(struct vm_space *space1, struct vm_space *space2);
-void                vm_space_destroy(struct vm_space *space);
+void *              vm_map(struct vm_space *, void *, size_t, int);
+void *              vm_map_physical(struct vm_space *, void *, uintptr_t, size_t, int);
+void *              vm_share(struct vm_space *, struct vm_space *, void *, void *, size_t, int);
+void                vm_clone(struct vm_space *, struct vm_space *);
+void                vm_space_destroy(struct vm_space *);
 struct              vm_space *vm_space_new();
-void                vm_unmap(struct vm_space *space, void *addr, size_t length);
+void                vm_unmap(struct vm_space *, void *, size_t);
 
 #endif
