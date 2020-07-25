@@ -184,9 +184,12 @@ struct ext2fs {
     struct ext2_superblock  superblock;
     uint32_t                bsize;
     uint32_t                igp;
+    uint32_t                bpg;
     uint32_t                inode_size;
     uint64_t                bg_start;
-    void *                  block_cache;
+    uint64_t                bg_count;
+    uint8_t *               block_cache;
+    struct ext2_block_buf   superblock_cache;
     struct ext2_block_buf   block_ptr_buf;
     struct ext2_block_buf   single_indirect_buf;
     struct ext2_block_buf   double_indirect_buf;
@@ -229,6 +232,18 @@ ext2fs_read_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
 }
 
 int
+ext2fs_write_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
+{
+    uint64_t bg_addr = fs->bg_start + index*sizeof(struct ext2_bg_desc);
+
+    if (cdev_write(fs->cdev, (char*)desc, sizeof(struct ext2_bg_desc), bg_addr) != sizeof(struct ext2_bg_desc)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int
 ext2fs_read_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
 {
     uint64_t bg = INOTOBG(fs->igp, ino);
@@ -243,6 +258,27 @@ ext2fs_read_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
     uint64_t inode_addr = BLOCK_ADDR(fs->bsize, desc.i_tables) + offset;
     
     if (cdev_read(fs->cdev, (char*)buf, sizeof(struct ext2_inode), inode_addr) != sizeof(struct ext2_inode)) {
+        return -1;
+    }
+    return 0;
+}
+
+
+int
+ext2fs_write_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
+{
+    uint64_t bg = INOTOBG(fs->igp, ino);
+    uint64_t idx = INOIDX(fs->igp, ino);
+    uint64_t offset = idx*fs->inode_size;
+    struct ext2_bg_desc desc;
+
+    if (ext2fs_read_bg(fs, bg, &desc) != 0) {
+        return -1;
+    }
+
+    uint64_t inode_addr = BLOCK_ADDR(fs->bsize, desc.i_tables) + offset;
+
+    if (cdev_write(fs->cdev, (char*)buf, sizeof(struct ext2_inode), inode_addr) != sizeof(struct ext2_inode)) {
         return -1;
     }
     return 0;
@@ -387,6 +423,134 @@ ext2fs_fill_vnode(struct ext2fs *fs, int ino, struct vnode *vn)
     return 0;
 }
 
+uint32_t
+ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
+{
+    struct ext2_bg_desc bg;
+    int64_t bgnum = -1;
+
+    for (uint64_t i = 0; i < fs->bg_count; i++) {
+        int64_t bg_low = preferred_bg - i;
+        int64_t bg_high = preferred_bg + i;
+
+        if (bg_low >= 0) {
+            ext2fs_read_bg(fs, bg_low, &bg);
+            
+            if (bg.num_free_blocks !=  0) {
+                bgnum = bg_low;
+                break;
+            }
+        }
+
+        if (bg_low != bg_high && bg_high < fs->bg_count) {
+            ext2fs_read_bg(fs, bg_high, &bg);
+
+            if (bg.num_free_blocks != 0) {
+                bgnum = bg_high;
+                break;
+            }
+        }
+
+    }
+
+    if (bgnum == -1) {
+        return (uint32_t)-1;
+    }
+
+    if (cdev_read(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, bg.b_bitmap)) != fs->bsize) {
+        return (uint32_t)-1;
+    }
+
+    uint32_t ret = 0;
+
+    for (int i = 0; i < fs->bsize && ret != 0; i++) {
+        uint8_t byte = fs->block_cache[i];
+
+        for (int b = 0; b < 8; b++) {
+            if (((1<<b) & byte) == 0) {
+                fs->block_cache[i] = (byte | (1<<b));
+                ret = 8 * i + b;
+                break;
+            }
+
+        }
+    }
+
+    if (ret != 0) {
+        cdev_write(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, bg.b_bitmap));
+        bg.num_free_blocks++;
+        ext2fs_write_bg(fs, bgnum, &bg);
+        /* rewrite superblock */
+        return fs->superblock.first_dblock + bgnum*fs->bpg + ret;
+    }
+
+    return 0;
+}
+
+uint32_t
+ext2fs_inode_alloc(struct ext2fs *fs, int preferred_bg)
+{
+    struct ext2_bg_desc bg;
+	int64_t bgnum;
+
+    for (uint64_t i = 0; i < fs->bg_count; i++) {
+        int64_t bg_low = preferred_bg - i;
+        int64_t bg_high = preferred_bg + i;
+
+        if (bg_low >= 0) {
+            ext2fs_read_bg(fs, bg_low, &bg);
+
+            if (bg.num_free_inodes != 0) {
+                bgnum = bg_low;
+                break;
+            }
+        }
+
+        if (bg_low != bg_high && bg_high < fs->bg_count) {
+            ext2fs_read_bg(fs, bg_high, &bg);
+
+            if (bg.num_free_inodes != 0) {
+                bgnum = bg_high;
+                break;
+            }
+        }
+
+    }
+
+    if (bgnum == -1) {
+        return (uint32_t)-1;
+    }
+
+    if (cdev_read(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, bg.i_bitmap)) != fs->bsize) {
+        return (uint32_t)-1;
+    }
+
+    uint32_t ret = 0;
+
+    for (int i = 0; i < fs->bsize && ret != 0; i++) {
+        uint8_t byte = fs->block_cache[i];
+
+        for (int b = 0; b < 8; b++) {
+            if (((1<<b) & byte) == 0) {
+                fs->block_cache[i] = (byte | (1<<b));
+                ret = 8 * i + b;
+                break;
+            }
+
+        }
+    }
+
+    if (ret != 0) {
+        cdev_write(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, bg.b_bitmap));
+        bg.num_free_inodes++;
+        ext2fs_write_bg(fs, bgnum, &bg);
+        /* rewrite superblock */
+        return fs->igp*bgnum + ret;
+    }
+
+    return 0;
+}
+
 static int
 ext2_chmod(struct vnode *node, mode_t mode)
 {
@@ -436,10 +600,11 @@ ext2_mount(struct vnode *parent, struct cdev *cdev, struct vnode **root)
     fs->bsize = 1024 << superblock.log_bsize;
     fs->cdev = cdev;
     fs->inode_size = superblock.inode_size;
-    fs->igp =  superblock.ipg;
+    fs->igp = superblock.ipg;
+    fs->bpg = superblock.bpg;
     fs->block_cache = calloc(1, fs->bsize);
     fs->bg_start = BLOCK_ADDR(fs->bsize, 1024/fs->bsize+1);
-
+    fs->bg_count = (superblock.bcount / superblock.bpg) - superblock.first_dblock;
     ext2fs_init_block_buf(fs, &fs->block_ptr_buf);
     ext2fs_init_block_buf(fs, &fs->single_indirect_buf);
     ext2fs_init_block_buf(fs, &fs->double_indirect_buf);
