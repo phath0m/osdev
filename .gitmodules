@@ -1,0 +1,3 @@
+[submodule "usr.bin/gallium"]
+	path = usr.bin/gallium
+	url = https://github.com/phath0m/gallium
