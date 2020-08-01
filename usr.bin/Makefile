@@ -20,6 +20,8 @@ SUBDIRS += uname
 SUBDIRS += w
 SUBDIRS += which
 
+SUBDIRS += gallium/gallium
+
 all: $(SUBDIRS)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir);)
 install: $(SUBDIRS)
