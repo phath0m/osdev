@@ -356,9 +356,10 @@ tmpfs_unlink(struct vnode *parent, const char *dirname)
     }
 
     dict_remove(&parent_node->children, dirname);
-
     dict_clear(&result->children);
+
     membuf_destroy(result->content);
+
     free(result);
 
     return 0;

@@ -83,6 +83,9 @@ vblk_write_sector(struct device *dev, uint64_t sector, void *data)
 
     virtq_send(dev, 0, buffers, 3);
 
+    volatile uint8_t *status_p = &status;
+     while (*status_p == 0xFF);
+
     if (status != 0) {
         printf("virtio_blk: write_sector() error: sector=%d status=%d\n\r", sector, status);
         return -1;
@@ -164,17 +167,15 @@ vblk_write(struct cdev *cdev, const char *buf, size_t nbyte, uint64_t pos)
     int start_offset = pos & 0x1FF;
     
     for (int i = 0; i < blocks_required; i++) {
-        int bytes_this_block = MIN(512, nbyte - bytes_written);
-        
+        int bytes_this_block = MIN(512-start_offset, nbyte - bytes_written);
+
         vblk_read_sector(dev, start_sector + i, block);
-        memcpy(&block[start_offset], &buf[i<<9], bytes_this_block);
+        memcpy(&block[start_offset], &buf[bytes_written], bytes_this_block);
         vblk_write_sector(dev, start_sector + i, block);
 
         start_offset = 0;
         bytes_written += bytes_this_block;
     }
-
-    memcpy(block, buf, nbyte);
 
     return nbyte;
 }

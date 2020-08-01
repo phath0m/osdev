@@ -138,7 +138,7 @@ bool
 dict_remove(struct dict *dict, const char *key)
 {
     uint32_t hash = dict_hash(key);
-
+/*
     struct dict_entry *entry = dict->entries[hash];
 
     bool succ = false;
@@ -176,6 +176,40 @@ dict_remove(struct dict *dict, const char *key)
     }
     
     return succ;
+    */
+
+    struct dict_entry *entry = dict->entries[hash];
+    struct list *listp = &entry->values;
+
+    if (LIST_SIZE(listp) == 0) {
+        return false;
+    }
+
+    struct key_value_pair *match = NULL;
+    struct key_value_pair *kvp;
+
+    list_iter_t iter;
+    list_get_iter(listp, &iter);
+
+    while (iter_move_next(&iter, (void**)&kvp)) {
+        if (strncmp(kvp->key, key, sizeof(kvp->key)) == 0) {
+            match = kvp;
+            break;
+        }
+    }
+
+    iter_close(&iter);
+
+    if (match) {
+        list_remove(listp, match);
+        list_remove(&dict->keys, match->key);
+
+        free(match);
+
+        return true;
+    }
+
+    return false;
 }
 
 void

@@ -37,6 +37,7 @@ spinlock_lock(spinlock_t volatile *lock)
 
     if (deadlock) {
         printf("kernel: we will deadlock\n\r");
+        stacktrace(5); 
         asm volatile("sti");
     }
 

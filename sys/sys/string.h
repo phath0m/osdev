@@ -10,6 +10,7 @@ int         atoi(const char *, int);
 char    *   itoa(int, char *, int);
 char    *   itoa_u(unsigned int, char *, int);
 
+int         memcmp(const void *, const void *, size_t);
 void    *   memcpy(void *, const void *, size_t);
 void    *   memset(void *, int, size_t);
 

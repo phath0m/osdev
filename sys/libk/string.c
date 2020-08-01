@@ -79,6 +79,23 @@ itoa_u(unsigned int value, char *str, int base)
     return str;
 }
 
+int
+memcmp(const void *buf1, const void *buf2, size_t nbyte)
+{
+    const char *str1 = buf1;
+    const char *str2 = buf2;
+
+    for (int i = 0; i < nbyte; i++) {
+        char c1 = str1[i];
+        char c2 = str2[i];
+
+        if (c1 != c2) {
+            return c1 - c2;
+        }
+    }
+
+    return 0;
+}
 
 void *
 memcpy(void *dest, const void *src, size_t nbyte)
