@@ -25,12 +25,16 @@ extern "C" {
 #define MS_NOEXEC   0x08
 
 #ifdef __KERNEL__
+
+#include <sys/types.h>
 #include <sys/vnode.h>
 
-typedef int (*fs_mount_t)(struct vnode *, struct cdev *, struct vnode **);
+typedef int     (*fs_mount_t)(struct vnode *, struct cdev *, struct vnode **);
+typedef bool    (*fs_probe_t)(struct cdev *, int, const uint8_t *);
 
 struct fs_ops {
     fs_mount_t          mount;
+    fs_probe_t          probe;
 };
 
 struct filesystem {
@@ -46,7 +50,9 @@ struct mount {
 
 int     fs_mount(struct vnode *, struct cdev *, const char *, const char *, int);
 int     fs_open(struct cdev *, struct vnode **, const char *, int);
+bool    fs_probe(struct cdev *, const char *, int, const uint8_t *);
 void    fs_register(char *, struct fs_ops *);
+
 void    devfs_init();
 void    tmpfs_init();
 void    ext2_init();

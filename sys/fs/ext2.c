@@ -29,7 +29,7 @@
 // delete me
 #include <sys/systm.h>
 
-
+/* I noticed that EXT2 directory entry lengths are aligned by 4, from Linux anyway so... I do that too */
 #define EXT2_WORD_ALIGN(n) (((n) + 4) & 0xFFFFFFFC)
 
 #define MIN(X, Y) ((X < Y) ? X : Y)
@@ -43,22 +43,23 @@
 /* extract inode index within inode table*/
 #define INOIDX(igp, i) (((i) - 1) % (igp))
 
-static int ext2_lookup(struct vnode *parent, struct vnode **result, const char *name);
-static int ext2_mount(struct vnode *parent, struct cdev *dev, struct vnode **root);
-static int ext2_chmod(struct vnode *vn, mode_t mode);
-static int ext2_chown(struct vnode *vn, uid_t owner, gid_t group);
-static int ext2_creat(struct vnode *parent, struct vnode **child, const char *name, mode_t mode);
-static int ext2_read(struct vnode *vn, void *buf, size_t nbyte, uint64_t pos);
-static int ext2_readdirent(struct vnode *vn, struct dirent *dirent, uint64_t entry);
-static int ext2_rmdir(struct vnode *parent, const char *dirname); 
-static int ext2_mkdir(struct vnode *parent, const char *name, mode_t mode);
-static int ext2_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev);
-static int ext2_seek(struct vnode *vn, off_t *pos, off_t off, int whence);
-static int ext2_stat(struct vnode *vne, struct stat *stat);
-static int ext2_truncate(struct vnode *vn, off_t length);
-static int ext2_unlink(struct vnode *parent, const char *dirname);
-static int ext2_utime(struct vnode *vn, struct timeval tv[2]);
-static int ext2_write(struct vnode *vn, const void *buf, size_t nbyte, uint64_t pos);
+static int  ext2_lookup(struct vnode *, struct vnode **, const char *);
+static int  ext2_mount(struct vnode *, struct cdev *, struct vnode **);
+static int  ext2_chmod(struct vnode *, mode_t);
+static int  ext2_chown(struct vnode *, uid_t, gid_t);
+static int  ext2_creat(struct vnode *, struct vnode **, const char *, mode_t);
+static int  ext2_read(struct vnode *, void *, size_t, uint64_t);
+static int  ext2_readdirent(struct vnode *, struct dirent *, uint64_t);
+static int  ext2_rmdir(struct vnode *, const char *); 
+static int  ext2_mkdir(struct vnode *, const char *, mode_t);
+static int  ext2_mknod(struct vnode *, const char *, mode_t, dev_t);
+static bool ext2_probe(struct cdev *, int, const uint8_t *);
+static int  ext2_seek(struct vnode *, off_t *, off_t off, int);
+static int  ext2_stat(struct vnode *, struct stat *);
+static int  ext2_truncate(struct vnode *, off_t);
+static int  ext2_unlink(struct vnode *, const char *);
+static int  ext2_utime(struct vnode *, struct timeval[2]);
+static int  ext2_write(struct vnode *, const void *, size_t, uint64_t);
 
 struct vops ext2_file_ops = {
     .chmod      = ext2_chmod,
@@ -79,7 +80,8 @@ struct vops ext2_file_ops = {
 };
 
 struct fs_ops ext2_ops = {
-    .mount = ext2_mount,
+    .mount  = ext2_mount,
+    .probe  =   ext2_probe
 };
 
 struct ext2_superblock {
@@ -290,16 +292,17 @@ ext2fs_read_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
 static int
 ext2fs_write_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
 {
+    struct ext2_bg_desc desc;
+    uint64_t inode_addr;
     uint64_t bg = INOTOBG(fs->igp, ino);
     uint64_t idx = INOIDX(fs->igp, ino);
     uint64_t offset = idx*fs->inode_size;
-    struct ext2_bg_desc desc;
 
     if (ext2fs_read_bg(fs, bg, &desc) != 0) {
         return -1;
     }
 
-    uint64_t inode_addr = BLOCK_ADDR(fs->bsize, desc.i_tables) + offset;
+    inode_addr = BLOCK_ADDR(fs->bsize, desc.i_tables) + offset;
 
     if (cdev_write(fs->cdev, (char*)buf, sizeof(struct ext2_inode), inode_addr) != sizeof(struct ext2_inode)) {
         return -1;
@@ -383,17 +386,18 @@ ext2fs_write_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_
 static int
 ext2fs_fill_dirent(struct ext2fs *fs, int ino, int dir, struct dirent *buf)
 {
-    uint8_t *block = fs->block_cache;
     struct ext2_inode inode;
+    int blocks_required;
+
+    uint8_t *block = fs->block_cache;
 
     if (ext2fs_read_inode(fs, ino, &inode) != 0) {
         return -1;
     }
 
-    int i = 0;
-    int blocks_required = inode.size / fs->bsize;
+    blocks_required = inode.size / fs->bsize;
 
-    for (int b = 0; b < blocks_required; b++) {
+    for (int b = 0, i = 0; b < blocks_required; b++) {
         uint64_t offset = 0;
         ext2fs_read_dblock(fs, &inode, b, block);
 
@@ -433,15 +437,18 @@ ext2fs_fill_dirent(struct ext2fs *fs, int ino, int dir, struct dirent *buf)
 }
 
 static int
-ext2fs_fill_vnode(struct ext2fs *fs, int ino, struct vnode *vn)
+ext2fs_fill_vnode(struct ext2fs *fs, int inum, struct vnode *vn)
 {
-    struct ext2_inode inode_buf;
-    ext2fs_read_inode(fs, ino, &inode_buf);
+    struct ext2_inode inode;
+    
+    if (ext2fs_read_inode(fs, inum, &inode) != 0) {
+        return -1;
+    }
 
-    vn->uid = inode_buf.uid;
-    vn->gid = inode_buf.gid;
-    vn->mode = inode_buf.mode;
-    vn->inode = ino;
+    vn->uid = inode.uid;
+    vn->gid = inode.gid;
+    vn->mode = inode.mode;
+    vn->inode = inum;
     vn->state = fs;
 
     return 0;
@@ -452,6 +459,7 @@ ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
 {
     struct ext2_bg_desc bg;
     int64_t bgnum = -1;
+    int32_t ret = -1;
 
     for (uint64_t i = 0; i < fs->bg_count; i++) {
         int64_t bg_low = preferred_bg - i;
@@ -484,8 +492,6 @@ ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
     if (cdev_read(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, bg.b_bitmap)) != fs->bsize) {
         return (uint32_t)-1;
     }
-
-    int32_t ret = -1;
 
     for (int i = 0; i < fs->bsize && ret == -1; i++) {
         uint8_t byte = fs->block_cache[i];
@@ -550,6 +556,7 @@ ext2fs_block_free(struct ext2fs *fs, int blockno)
     return 0;
 }
 
+/* attempts to find the closest free inode to the given block group number */
 static uint32_t
 ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
 {
@@ -617,7 +624,7 @@ ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
     return -1;
 }
 
-
+/* frees an inode */
 uint32_t
 ext2fs_inode_free(struct ext2fs *fs, int inum)
 {
@@ -647,6 +654,7 @@ ext2fs_inode_free(struct ext2fs *fs, int inum)
     return 0;
 }
 
+/* expands the the contents of an inode, allocating the sufficient number of blocks to reach newsize */
 static int
 ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t newsize)
 {
@@ -657,7 +665,7 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
         uint32_t new_block = ext2fs_block_alloc(fs, 0);
 
         if (block < 12) {
-            inode->blocks[block] = new_block;/* alloc */
+            inode->blocks[block] = new_block;
             continue;
         }
 
@@ -706,6 +714,7 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
     return 0;
 }
 
+/* truncates the contents of an inode to newsize*/
 static int
 ext2fs_shrink_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t newsize)
 {
@@ -769,6 +778,7 @@ ext2fs_shrink_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t
     return 0;
 }
 
+/* creates a node within the filesystem */
 static int
 ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inump, struct ext2_inode *child_inode)
 {
@@ -867,6 +877,7 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
     return 0;
 }
 
+/* removes a directory entry from a directory without freeing the underlying inode */
 static int
 ext2fs_remove_dirent(struct vnode *parent, const char *name)
 {
@@ -914,6 +925,12 @@ ext2fs_remove_dirent(struct vnode *parent, const char *name)
 
     return 0;
 }
+
+/* 
+ * END EXT2 HELPER FUNCTIONS
+ * ----------------------------------------------------------------------------
+ * BEGIN FILESYSTEM VNODE METHODS
+ */
 
 static int
 ext2_chmod(struct vnode *vn, mode_t mode)
@@ -1026,6 +1043,23 @@ ext2_mount(struct vnode *parent, struct cdev *cdev, struct vnode **root)
     return 0;
 }
 
+static bool
+ext2_probe(struct cdev *cdev, int uuid_len, const uint8_t *uuid)
+{
+    struct ext2_superblock superblock;
+    cdev_read(cdev, (char*)&superblock, sizeof(superblock), 1024);
+
+    if (superblock.magic != 0xef53) {
+        return false;
+    }
+
+    if (uuid_len == 0) {
+        return true;
+    }
+
+    return uuid_len == 16 && memcmp(superblock.uuid, uuid, 16) == 0;
+}
+
 static int
 ext2_read(struct vnode *vn, void *buf, size_t nbyte, uint64_t pos)
 {
@@ -1126,6 +1160,18 @@ ext2_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev)
 
     int res = ext2fs_mknod(parent, name, mode, &inum, &child_inode);
 
+    if (res != 0) {
+        goto cleanup;
+    }
+
+    child_inode.blocks[0] = major(dev);
+    child_inode.blocks[1] = minor(dev);
+
+    if (!ext2fs_write_inode(parent->state, inum, &child_inode)) {
+        res = -(EIO);
+    }
+
+cleanup:
     ext2fs_unlock(parent->state);
 
     return res;

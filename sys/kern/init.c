@@ -16,6 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <ds/dict.h>
+#include <sys/cdev.h>
+#include <sys/devno.h>
 #include <sys/file.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
@@ -26,8 +28,142 @@
 #include <sys/vm.h>
 #include <sys/vnode.h>
 
-// DELETE!!!
-#include <sys/device.h>
+
+/*
+ * parse the kernel command-line. Very simple and primative function, nothing
+ * fancy supported here.... 
+ */
+void
+parse_cmdline(struct dict *dictp, const char *cmdline)
+{
+    static char cmdline_bak[512];
+    static char *options[512];
+
+    int option_count = 0;
+    bool option_end = true;
+    size_t cmdline_len = strlen(cmdline);
+
+    memset(dictp, 0, sizeof(struct dict));
+
+    if (cmdline_len >= 512) {
+        /* it shouldn't be longer than this*/
+        printf("kernel command line too big!\n\r");
+        return;
+    }
+
+    strncpy(cmdline_bak, cmdline, 512);
+
+    for (int i = 0; i < cmdline_len; i++) {
+        if (cmdline_bak[i] == ' ' || cmdline_bak[i] == ',') {
+            cmdline_bak[i] = '\0';
+            option_end = true;
+        } else if (option_end) {
+            options[option_count++] = &cmdline_bak[i];
+            option_end = false;
+        }
+    }
+
+    for (int i = 0; i < option_count; i++) {
+        char *opt_name = options[i];
+        char *opt_val = strrchr(options[i], '=');
+        
+        if (!opt_val) continue;
+
+        *opt_val = '\0';
+        opt_val++;
+        dict_set(dictp, opt_name, opt_val);
+    }
+}
+
+bool
+parse_uuid(const char *uuid, int buf_len, uint8_t *buf)
+{
+    int i = 0, j = 0;
+    size_t uuid_len = strlen(uuid);
+
+    if (uuid_len < buf_len*2) return false;
+
+    while (i < uuid_len && j < buf_len) {
+        if (uuid[i] == '-') {
+            i++;
+            continue;
+        }
+
+        char octet_str[] = {
+            uuid[i],
+            uuid[i+1],
+            0
+        };
+
+        /* should I check for error here? Yes. Will I? No. */
+        buf[j++] = atoi(octet_str, 16);
+        i += 2;
+    }
+
+
+    if (j == buf_len) return true;
+
+    return false;
+}
+
+/* open up a tmpfs instance and extract the ramdisk to it */
+static struct vnode *
+initrd_open()
+{
+    /* now mount the ramdisk */
+    struct vnode *root;
+
+    if (fs_open(NULL, &root, "tmpfs", 0) != 0) {
+        panic("could not mount tmpfs!");
+    }
+
+    extern void *start_initramfs;
+    extern void tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive);
+
+    root->mode = 0755;
+
+    current_proc->root = root;
+    current_proc->cwd = root;
+
+    tar_extract_archive(root, NULL, start_initramfs);
+
+    return root;
+}
+
+struct vnode *
+rootfs_open(const uint8_t *uuid)
+{
+    extern struct list device_list;
+
+    list_iter_t iter;
+    struct cdev *dev;
+    struct vnode *root;
+    bool found = false;
+
+    list_get_iter(&device_list, &iter);
+
+    while (iter_move_next(&iter, (void**)&dev)) {
+        if (dev->majorno == DEV_MAJOR_RAW_DISK && fs_probe(dev, "ext2", 16, uuid)) {
+            found = true;
+            break;
+        }
+    }
+
+    iter_close(&iter);
+
+    if (!found) {
+        return NULL;
+    }
+
+    if (fs_open(dev, &root, "ext2", 0) != 0) {
+        panic("could not mount rootfs!");
+    }
+
+    current_proc->root = root;
+    current_proc->cwd = root;
+
+    return root;
+}
 
 /* stage three of kernel initialization; exec /sbin/doit */
 static int
@@ -52,10 +188,16 @@ exec_init(const char *args)
 }
 
 /* stage two of the kernel initialization process; mount ramdisk */
-int
+static int
 init_thread(void *argp)
 {
     extern struct thread *sched_curr_thread;
+
+    struct dict opts;
+    char *runlevel;
+
+    char *rootfs_uuid_str;
+    uint8_t rootfs_uuid[16];
 
     /* setup the first process */    
     struct proc *init = proc_new();
@@ -68,6 +210,8 @@ init_thread(void *argp)
     sched_curr_thread->proc = init;
     current_proc = init;
 
+    parse_cmdline(&opts, argp);
+
     /* this is ugly and not how I want to do this (Initializing these filesystems
      * here). I'd prefer a more modular approach. We'll fix this some day
      */
@@ -76,26 +220,35 @@ init_thread(void *argp)
     ext2_init();
 
     /* now mount the ramdisk */
-    struct vnode *root;
+    struct vnode *root = NULL;
 
-    if (fs_open(NULL, &root, "tmpfs", 0) != 0) {
-        panic("could not mount tmpfs!");
+    if (dict_get(&opts, "rootfs", (void**)&rootfs_uuid_str)) {
+        printf("rootfs: %s\n\r", rootfs_uuid_str);
+        if (!parse_uuid(rootfs_uuid_str, 16, rootfs_uuid)) {
+            panic("invalid rootfs UUID specified");
+        }
+
+        root = rootfs_open(rootfs_uuid);
     }
 
-    extern void *start_initramfs;
-    extern void tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive);
+    if (!root) root = initrd_open();
 
     root->mode = 0755;
-    init->cwd = root;
-    init->root = root;
-
-    tar_extract_archive(root, NULL, start_initramfs);
 
     if (fs_mount(root, NULL, "devfs", "/dev", 0) != 0) {
         panic("could not mount devfs!");
     }
 
-    exec_init((const char*)argp);
+    
+    if (fs_mount(root, NULL, "tmpfs", "/var/run", 0) != 0) {
+        panic("could not mount tmpfs!");
+    }
+
+    if (!dict_get(&opts, "runlevel", (void**)&runlevel)) {
+        runlevel = "1";
+    }
+
+    exec_init(runlevel);
 
     return 0;
 }
@@ -123,5 +276,4 @@ kmain(const char *args)
     for (;;) {
         thread_yield();
     }
-
 }

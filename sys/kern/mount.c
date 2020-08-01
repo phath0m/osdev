@@ -104,3 +104,16 @@ fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *p
 
     return -1;
 }
+
+bool
+fs_probe(struct cdev *dev, const char *fsname, int uuid_length, const uint8_t *uuid)
+{
+    struct filesystem *fs = getfsbyname(fsname);
+
+    if (!fs) {
+        return false;
+
+    }
+
+    return fs->ops->probe(dev, uuid_length, uuid);
+}

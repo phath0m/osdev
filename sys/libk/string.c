@@ -31,7 +31,15 @@ atoi(const char *str, int base)
     for (int i = len - 1; i >= 0; i--) {
         char c = str[i];
 
-        int digit = c - '0';
+        int digit;
+
+        if (c >= 'a' && c <='f') {
+            digit = c - 'a' + 10;
+        } else if (c >= 'A' && c <= 'F') {
+            digit = c - 'A' + 10;
+        } else {
+            digit = c - '0';
+        }
 
         result = (digit * place_value) + result;
 
