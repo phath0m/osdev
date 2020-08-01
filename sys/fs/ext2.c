@@ -554,7 +554,7 @@ static uint32_t
 ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
 {
     struct ext2_bg_desc bg;
-	int64_t bgnum = -1;
+    int64_t bgnum = -1;
 
     for (int64_t i = 0; i < (int64_t)fs->bg_count; i++) {
         int64_t bg_low = preferred_bg - i;
@@ -656,49 +656,49 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
     for (int block = current_blocks; block < blocks_needed; block++) {
         uint32_t new_block = ext2fs_block_alloc(fs, 0);
 
-		if (block < 12) {
+        if (block < 12) {
             inode->blocks[block] = new_block;/* alloc */
             continue;
-		}
+        }
 
-		uint64_t ptrs_per_block = (fs->bsize / 4);
+        uint64_t ptrs_per_block = (fs->bsize / 4);
 
-		if (block < ((ptrs_per_block + 12))) {
+        if (block < ((ptrs_per_block + 12))) {
 
             if (!inode->blocks[12]) {
                 inode->blocks[12] = ext2fs_block_alloc(fs, 0);
             }
 
-			if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
+            if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
                 /* FAIL!*/
-				return -1;
-			}
-			uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
+                return -1;
+            }
+            uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
 
             indirect_blocks[block - 12] = new_block;
-		} else {
-			uint32_t table_idx = (block - (ptrs_per_block + 12)) / ptrs_per_block;
-			uint32_t ptr_idx = (block - (ptrs_per_block + 12)) % ptrs_per_block;
+        } else {
+            uint32_t table_idx = (block - (ptrs_per_block + 12)) / ptrs_per_block;
+            uint32_t ptr_idx = (block - (ptrs_per_block + 12)) % ptrs_per_block;
 
             if (!inode->blocks[13]) {
                 inode->blocks[13] = ext2fs_block_alloc(fs, 0);
             }
 
-			if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
+            if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
                 /* fail */
-				return -1;
-			}
+                return -1;
+            }
 
-			uint32_t *indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+            uint32_t *indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
 
-			if (ext2fs_read_block(fs, indirect_table[table_idx], &fs->block_ptr_buf) != 0) {
-				return -1;
-			}
+            if (ext2fs_read_block(fs, indirect_table[table_idx], &fs->block_ptr_buf) != 0) {
+                return -1;
+            }
 
-			uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
+            uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
             
             block_ptrs[ptr_idx] = new_block;
-		}
+        }
     }
 
     inode->size = newsize;
@@ -860,7 +860,7 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
     child_inode->atime = time(NULL);
     child_inode->ctime = time(NULL);
 
-	ext2fs_write_inode(fs, inum, child_inode);
+    ext2fs_write_inode(fs, inum, child_inode);
 
     *inump = inum;
 
@@ -870,7 +870,7 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
 static int
 ext2fs_remove_dirent(struct vnode *parent, const char *name)
 {
-	struct ext2fs *fs = parent->state;
+    struct ext2fs *fs = parent->state;
     struct ext2_inode parent_inode;
 
     if (ext2fs_read_inode(fs, parent->inode, &parent_inode) != 0) {
@@ -1212,7 +1212,7 @@ ext2_unlink(struct vnode *parent, const char *name)
 
     int inum = -1;
     int res = 0;
-	struct ext2fs *fs = parent->state;
+    struct ext2fs *fs = parent->state;
     struct dirent dirent;
 
     ext2fs_lock(parent->state);
