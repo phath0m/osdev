@@ -76,6 +76,7 @@
 #define SYS_SYSCTL          0x4A
 #define SYS_ADJTIME         0x4B
 #define SYS_MOUNT           0x4C
+#define SYS_LSEEK64         0x4D
 
 struct mmap_args {
     uintptr_t   addr;

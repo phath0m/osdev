@@ -162,3 +162,27 @@ virtio_attach(struct device *dev)
 
     return 0;
 }
+
+uint8_t
+virtio_read8(struct device *dev, int offset)
+{
+    struct virtio_dev *vdev = dev->state;
+
+    return io_read8(vdev->iobase+offset);
+}
+
+uint16_t
+virtio_read16(struct device *dev, int offset)
+{
+    struct virtio_dev *vdev = dev->state;
+
+    return io_read16(vdev->iobase+offset);
+}
+
+uint32_t
+virtio_read32(struct device *dev, int offset)
+{
+    struct virtio_dev *vdev = dev->state;
+
+    return io_read32(vdev->iobase+offset);
+}

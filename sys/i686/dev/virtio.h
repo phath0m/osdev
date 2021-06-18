@@ -83,10 +83,12 @@ struct virtq_buffer {
     int     flags;
 };
 
-int     virtio_attach(struct device *dev);
-int     virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int nbuffers);
-
-int     virtq_recv(struct device *dev);
+int         virtio_attach(struct device *dev);
+int         virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int nbuffers);
+int         virtq_recv(struct device *dev);
+uint8_t     virtio_read8(struct device *, int);
+uint16_t    virtio_read16(struct device *, int);
+uint32_t    virtio_read32(struct device *, int);
 
 #endif /* __KERNEL__*/
 #ifdef __cplusplus

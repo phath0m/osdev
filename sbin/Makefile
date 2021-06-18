@@ -5,6 +5,7 @@ MAKE = make
 
 SUBDIRS += doit
 SUBDIRS += mount
+SUBDIRS += newfs
 SUBDIRS += newtty
 
 all: $(SUBDIRS)

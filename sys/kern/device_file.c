@@ -26,15 +26,17 @@
 #include <sys/file.h>
 #include <sys/malloc.h>
 #include <sys/systm.h>
+#include <sys/types.h>
 #include <sys/vnode.h>
 
-static int dev_file_destroy(struct file *fp);
-static int dev_file_getdev(struct file *fp, struct cdev **result);
-static int dev_file_ioctl(struct file *fp, uint64_t request, void *arg);
-static int dev_file_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset);
-static int dev_file_read(struct file *fp, void *buf, size_t nbyte);
-static int dev_file_stat(struct file *fp, struct stat *stat);
-static int dev_file_write(struct file *fp, const void *buf, size_t nbyte);
+static int dev_file_destroy(struct file *);
+static int dev_file_getdev(struct file *, struct cdev **);
+static int dev_file_ioctl(struct file *, uint64_t, void *);
+static int dev_file_mmap(struct file *, uintptr_t, size_t, int, off_t);
+static int dev_file_read(struct file *, void *, size_t);
+static int dev_file_seek(struct file *, off_t *, off_t, int);
+static int dev_file_stat(struct file *, struct stat *);
+static int dev_file_write(struct file *, const void *, size_t);
 
 struct fops dev_file_ops = {
     .destroy    = dev_file_destroy,
@@ -42,6 +44,7 @@ struct fops dev_file_ops = {
     .ioctl      = dev_file_ioctl,
     .mmap       = dev_file_mmap,
     .read       = dev_file_read,
+    .seek       = dev_file_seek,
     .stat       = dev_file_stat,
     .write      = dev_file_write
 };
@@ -105,7 +108,31 @@ dev_file_read(struct file *fp, void *buf, size_t nbyte)
 {
     struct cdev_file *file = (struct cdev_file*)fp->state;
 
-    return cdev_read(file->device, buf, nbyte, 0);
+    return cdev_read(file->device, buf, nbyte, fp->position);
+}
+
+
+static int
+dev_file_seek(struct file *file, off_t *cur_pos, off_t off, int whence)
+{
+    off_t new_pos;
+
+    switch (whence) {
+        case SEEK_CUR:
+            new_pos = *cur_pos + off;
+            break;
+        case SEEK_SET:
+            new_pos = off;
+            break;
+    }
+
+    if (new_pos < 0) {
+        return -(ESPIPE);
+    }
+
+    *cur_pos = new_pos;
+
+    return new_pos;
 }
 
 static int
@@ -127,5 +154,5 @@ dev_file_write(struct file *fp, const void *buf, size_t nbyte)
 {
     struct cdev_file *file = (struct cdev_file*)fp->state;
 
-    return cdev_write(file->device, buf, nbyte, 0);
+    return cdev_write(file->device, buf, nbyte, fp->position);
 }

@@ -494,11 +494,9 @@ ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
     }
 
     for (int i = 0; i < fs->bsize && ret == -1; i++) {
-        uint8_t byte = fs->block_cache[i];
-
         for (int b = 0; b < 8; b++) {
-            if (((1<<b) & byte) == 0) {
-                fs->block_cache[i] = (byte | (1<<b));
+            if (((1<<b) & fs->block_cache[i]) == 0) {
+                fs->block_cache[i] |= (1<<b);
                 ret = 8 * i + b;
                 break;
             }
@@ -509,7 +507,7 @@ ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
     if (ret != -1) {
         cdev_write(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, bg.b_bitmap));
 
-        bg.num_free_blocks++;
+        bg.num_free_blocks--;
         ext2fs_write_bg(fs, bgnum, &bg);
 
         fs->superblock.fbcount--;
@@ -598,11 +596,9 @@ ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
     int32_t ret = -1;
 
     for (int i = 0; i < fs->bsize && ret == -1; i++) {
-        uint8_t byte = fs->block_cache[i];
-
         for (int b = 0; b < 8; b++) {
-            if (((1<<b) & byte) == 0) {
-                fs->block_cache[i] |= 1<<b;
+            if (((1<<b) & fs->block_cache[i]) == 0) {
+                fs->block_cache[i] |= (1<<b);
                 ret = 8 * i + b;
                 break;
             }
@@ -612,7 +608,7 @@ ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
 
     if (ret != -1) {
         cdev_write(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, bg.i_bitmap));
-        bg.num_free_inodes++;
+        bg.num_free_inodes--;
         ext2fs_write_bg(fs, bgnum, &bg);
         
         fs->superblock.ficount--;
@@ -710,7 +706,10 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
     }
 
     inode->size = newsize;
+    inode->nblock = (inode->size + fs->bsize) / fs->bsize;
+
     ext2fs_write_inode(fs, ino, inode);
+
     return 0;
 }
 
@@ -784,6 +783,7 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
 {
     struct ext2fs *fs = parent->state;
     struct ext2_inode parent_inode;
+    struct ext2_bg_desc bg;
 
     if (ext2fs_read_inode(fs, parent->inode, &parent_inode) != 0) {
         return -(EIO);
@@ -791,8 +791,8 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
 
     ssize_t name_len = strlen(name);
     ssize_t dirent_size = EXT2_WORD_ALIGN(sizeof(struct ext2_dirent) + name_len + 1);
-
-    uint32_t inum = ext2fs_inode_alloc(fs,  INOTOBG(fs->igp, parent->inode));
+    uint32_t bgnum = INOTOBG(fs->igp, parent->inode);
+    uint32_t inum = ext2fs_inode_alloc(fs, bgnum);
     uint8_t *block_buf = fs->block_cache;
 
     int block_num;
@@ -869,8 +869,15 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
     child_inode->mtime = time(NULL);
     child_inode->atime = time(NULL);
     child_inode->ctime = time(NULL);
+	child_inode->nlink = 1;
 
     ext2fs_write_inode(fs, inum, child_inode);
+
+    if ((mode & S_IFDIR)) {
+        ext2fs_read_bg(fs, bgnum, &bg);
+        bg.num_dirs++;
+        ext2fs_write_bg(fs, bgnum, &bg);
+    }
 
     *inump = inum;
 
@@ -1121,6 +1128,7 @@ ext2_mkdir(struct vnode *parent, const char *name, mode_t mode)
     struct ext2fs *fs = parent->state;
     uint8_t *block_buf = fs->block_cache; 
     uint32_t inum;
+    struct ext2_inode parent_inode;
     struct ext2_inode child_inode;
     int res = ext2fs_mknod(parent, name, mode | S_IFDIR, &inum, &child_inode);
 
@@ -1140,11 +1148,17 @@ ext2_mkdir(struct vnode *parent, const char *name, mode_t mode)
         parent_dir->type = 2;
         parent_dir->inode = parent->inode;
         parent_dir->name_len =  2;
-        parent_dir->size = fs->bsize - 24;
+        parent_dir->size = fs->bsize - 12;
         parent_dir->name[0] = '.';
         parent_dir->name[1] = '.';
 
         ext2fs_write_dblock(fs, &child_inode, 0, block_buf);
+        
+        ext2fs_read_inode(parent->state, parent->inode, &parent_inode);
+        parent_inode.nlink++;
+        child_inode.nlink++;
+        ext2fs_write_inode(parent->state, parent->inode, &parent_inode);
+        ext2fs_write_inode(parent->state, inum, &child_inode);
     }
 
     return res;
@@ -1310,7 +1324,7 @@ ext2_write(struct vnode *vn, const void *buf, size_t nbyte, uint64_t pos)
     struct ext2fs *fs = vn->state;
     uint8_t *block = fs->block_cache;
     struct ext2_inode inode;
-    size_t start = pos;
+    size_t start = (size_t)pos;
     size_t end = start + nbyte;
 
     if (ext2fs_read_inode(fs, vn->inode, &inode) != 0) {
@@ -1335,7 +1349,10 @@ ext2_write(struct vnode *vn, const void *buf, size_t nbyte, uint64_t pos)
     for (uint64_t i = 0; bytes_read < nbyte; i++) {
         uint32_t bytes_this_block = MIN(fs->bsize-start_offset, nbyte - bytes_read);
 
-        ext2fs_read_dblock(fs, &inode, start_block + i, block);
+        if (bytes_this_block < fs->bsize) {
+            ext2fs_read_dblock(fs, &inode, start_block + i, block);
+        }
+
         memcpy(&block[start_offset], &im_not_crazy[bytes_read], bytes_this_block);
         ext2fs_write_dblock(fs, &inode, start_block + i, block);
 
@@ -1346,15 +1363,15 @@ ext2_write(struct vnode *vn, const void *buf, size_t nbyte, uint64_t pos)
     inode.mtime = time(NULL);
     inode.atime = inode.mtime;
 
-    if (ext2fs_write_inode(vn->state, vn->inode, &inode) != 0) {
+    /*if (ext2fs_write_inode(vn->state, vn->inode, &inode) != 0) {
         res = -(EIO);
-    } else {
+    } else {*/
         res = bytes_read;
-    }
+    //}
 
 cleanup:
-    ext2fs_unlock(vn->state);
-
+    //ext2fs_unlock(vn->state);
+    printf("Write res=%d pos=%d\n\r", (int)res, (int)pos);
     return res;
 }
 

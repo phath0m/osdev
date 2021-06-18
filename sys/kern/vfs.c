@@ -214,7 +214,7 @@ vfop_write(struct file *fp, const void *buf, size_t nbyte)
     struct vnode *vn = fp->state;
 
     if (vn) {
-        vop_write(vn, buf, nbyte, FILE_POSITION(fp));
+        return vop_write(vn, buf, nbyte, FILE_POSITION(fp));
     }
 
     return -(ENOTSUP);

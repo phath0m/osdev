@@ -354,6 +354,27 @@ sys_lseek(struct thread *th, syscall_args_t argv)
 }
 
 static int
+sys_lseek64(struct thread *th, syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
+    DEFINE_SYSCALL_PARAM(uint64_t, offset_low, 1, argv);
+    DEFINE_SYSCALL_PARAM(uint64_t, offset_high, 2, argv);
+    DEFINE_SYSCALL_PARAM(int, whence, 3, argv);
+
+    uint64_t offset = (offset_low | (offset_high << 32));
+
+    TRACE_SYSCALL("lseek64", "%d, %d, %d, %d", fd, offset_low, offset_high whence);
+
+    struct file *file = procdesc_getfile(fd);
+
+    if (file) {
+        return fop_seek(file, offset, whence);
+    }
+
+    return -(EBADF);
+}
+
+static int
 sys_mkdir(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(const char *, path, 0, argv);
@@ -566,4 +587,5 @@ vfs_syscalls_init()
     register_syscall(SYS_MKNOD, 3, sys_mknod);
     register_syscall(SYS_UTIMES, 2, sys_utimes);
     register_syscall(SYS_MOUNT, 4, sys_mount);
+    register_syscall(SYS_LSEEK64, 4, sys_lseek64);
 }

@@ -264,10 +264,10 @@ fop_write(struct file *fp, const char *buf, size_t nbyte)
     struct fops *ops = fp->ops;
 
     if (ops->write) {
-        int written = ops->write(fp, buf, nbyte);
+        ssize_t written = ops->write(fp, buf, nbyte);
 
         if (written > 0) {
-            fp->position += written;
+            fp->position += (off_t)written;
         }
 
         return written;

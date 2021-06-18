@@ -544,6 +544,21 @@ lseek(int file, int ptr, int dir)
     return ret;
 }
 
+uint64_t
+lseek64(int file, uint64_t ptr, int dir)
+{
+    uint32_t offset_low = (ptr & 0xFFFFFFFF);
+    uint32_t offset_high = (ptr >> 32) & 0xFFFFFFFF;
+    int ret = _SYSCALL4(int, SYS_LSEEK64, file, offset_low, offset_high, dir);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return (uint64_t)ret;
+}
+
 int
 lstat(const char *file, struct stat *st)
 {

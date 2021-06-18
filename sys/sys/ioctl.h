@@ -38,8 +38,10 @@ extern "C" {
 #define FBIOBUFRQ         0x0200
 #define FBIOGETINFO       0x0201
 
-/* generic file descriptor ioctl's */
+/* storage device ioctls */
+#define BLKGETSIZE        0x0300
 
+/* generic file descriptor ioctl's */
 #define FIONREAD          0x80
 
 struct curpos {

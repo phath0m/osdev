@@ -22,6 +22,7 @@
 #include <sys/device.h>
 #include <sys/devno.h>
 #include <sys/errno.h>
+#include <sys/ioctl.h>
 #include <sys/interrupt.h>
 #include <sys/malloc.h>
 #include <sys/string.h>
@@ -35,11 +36,11 @@
 #define VIRTIO_BLK_T_OUT          1 
 #define VIRTIO_BLK_T_FLUSH        4 
 
-static int vblk_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
-static int vblk_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
-static int vblk_probe(struct driver *driver, struct device *dev);
-static int vblk_attach(struct driver *driver, struct device *dev);
-static int vblk_deattach(struct driver *driver, struct device *dev);
+static int vblk_read(struct cdev *, char *, size_t, uint64_t);
+static int vblk_write(struct cdev *, const char *, size_t, uint64_t);
+static int vblk_probe(struct driver *, struct device *);
+static int vblk_attach(struct driver *, struct device *);
+static int vblk_deattach(struct driver *, struct device *);
 
 struct virtio_blk_req {
     uint32_t    type;
@@ -134,6 +135,22 @@ vblk_read_sector(struct device *dev, uint64_t sector, void *data)
 }
 
 static int
+vblk_ioctl(struct cdev *cdev, uint64_t request, uintptr_t argp)
+{
+    struct device *dev = cdev->state;
+
+    uint64_t total_size = (uint64_t)virtio_read32(dev, 0x14)*512;
+
+    switch (request) {
+        case BLKGETSIZE:
+            *((uint64_t*)argp) = total_size; 
+            break;
+    }
+
+    return 0;
+}
+
+static int
 vblk_read(struct cdev *cdev, char *buf, size_t nbyte, uint64_t pos)
 {
     static uint8_t block[512];
@@ -141,7 +158,7 @@ vblk_read(struct cdev *cdev, char *buf, size_t nbyte, uint64_t pos)
 
     uint32_t bytes_read = 0;
     uint64_t start_sector = pos >> 9;
-    uint32_t start_offset = (uint32_t)pos & 0x1FF;
+    uint32_t start_offset = (uint32_t)(pos & 0x1FF);
 
     for (uint32_t i = 0; bytes_read < nbyte; i++) {
         uint32_t bytes_this_block = MIN(512-start_offset, nbyte - bytes_read);
@@ -152,6 +169,7 @@ vblk_read(struct cdev *cdev, char *buf, size_t nbyte, uint64_t pos)
         start_offset = 0;
         bytes_read += bytes_this_block;
     }
+
     return bytes_read;
 }
 
@@ -197,7 +215,7 @@ vblk_attach(struct driver *driver, struct device *dev)
     struct cdev_ops cdev_ops = {
         .close  = NULL,
         .init   = NULL,
-        .ioctl  = NULL,
+        .ioctl  = vblk_ioctl,
         .isatty = NULL,
         .mmap   = NULL,
         .open   = NULL,

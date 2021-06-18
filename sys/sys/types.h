@@ -50,6 +50,6 @@ typedef unsigned long int time_t;
 typedef int intptr_t;
 typedef unsigned int uintptr_t;
 
-typedef signed long int off_t;
+typedef signed long long int off_t;
 
 #endif

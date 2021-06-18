@@ -180,12 +180,24 @@ devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 static int
 devfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 {
-    if (whence == SEEK_SET) {
-        *cur_pos = off;
-        return *cur_pos;
+    off_t new_pos;
+
+    switch (whence) {
+        case SEEK_CUR:
+            new_pos = *cur_pos + off;
+            break;
+        case SEEK_SET:
+            new_pos = off;
+            break;
     }
 
-    return -(ESPIPE);
+    if (new_pos < 0) {
+        return -(ESPIPE);
+    }
+
+    *cur_pos = new_pos;
+
+    return new_pos;
 }
 
 static int
