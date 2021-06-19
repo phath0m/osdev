@@ -34,15 +34,15 @@
 
 #define PTY_LINEBUF_SIZE    4096
 
-static int ptm_close(struct file *fp);
-static int ptm_getdev(struct file *fp, struct cdev **result);
-static int ptm_read(struct file *fp, void *buf, size_t nbyte);
-static int ptm_stat(struct file *fp, struct stat *stat);
-static int ptm_write(struct file *fp, const void *buf, size_t nbyte);
-static int pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
-static int pts_isatty(struct cdev *dev);
-static int pts_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
-static int pts_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int ptm_close(struct file *);
+static int ptm_getdev(struct file *, struct cdev **);
+static int ptm_read(struct file *, void *, size_t);
+static int ptm_stat(struct file *, struct stat *);
+static int ptm_write(struct file *, const void *, size_t);
+static int pts_ioctl(struct cdev *, uint64_t, uintptr_t);
+static int pts_isatty(struct cdev *);
+static int pts_read(struct cdev *, char *, size_t, uint64_t);
+static int pts_write(struct cdev *, const char *, size_t, uint64_t);
 
 struct fops ptm_ops = {
     .close      = ptm_close,
@@ -68,13 +68,15 @@ static int pty_counter = 0;
 static struct cdev *
 mkpty_slave(struct pty *pty)
 {
-    struct cdev *pts_dev = calloc(1, sizeof(struct cdev) + 14);
-    char *name = (char*)&pts_dev[1];
+    char *name;
+    struct cdev *pts_dev;
+
+    pts_dev = calloc(1, sizeof(struct cdev) + 14);
+    name = (char*)&pts_dev[1];
 
     sprintf(name, "pt%d", pty_counter++);
 
     pts_dev->name = name;
-
     pts_dev->mode = 0600;
     pts_dev->uid = current_proc->creds.uid;
     pts_dev->majorno = DEV_MAJOR_PTS;
@@ -93,7 +95,10 @@ mkpty_slave(struct pty *pty)
 struct file *
 mkpty()
 {
-    struct pty *pty = calloc(1, sizeof(struct pty));
+    struct file *res;
+    struct pty *pty;
+
+    pty = calloc(1, sizeof(struct pty));
     
     pty->winsize.ws_row = 50;
     pty->winsize.ws_col = 100;
@@ -105,10 +110,9 @@ mkpty()
 
     pty->slave = mkpty_slave(pty);
 
-    struct file *res = file_new(&ptm_ops, NULL);
+    res = file_new(&ptm_ops, NULL);
 
     res->state = pty;
-
     res->flags = O_RDWR;
 
     return res;
@@ -125,10 +129,15 @@ pty_flush_buf(struct pty *pty)
 static int
 pty_inprocess(struct pty *pty, const char *buf, size_t nbyte)
 {
-    const char *last_chunk = buf;
-    int last_chunk_pos = 0;
+    int i;
+    int last_chunk_pos;
 
-    for (int i = 0; i < nbyte; i++) {
+    const char *last_chunk;
+
+    last_chunk = buf;
+    last_chunk_pos = 0;
+
+    for (i = 0; i < nbyte; i++) {
         if (buf[i] == '\r' && (pty->termios.c_iflag & ONLCR)) {
             if (i != last_chunk_pos) fop_write(pty->input_pipe[1], last_chunk, i - last_chunk_pos);
             fop_write(pty->input_pipe[1], "\r\n", 2);
@@ -152,10 +161,14 @@ pty_inprocess(struct pty *pty, const char *buf, size_t nbyte)
 static void
 pty_outprocess(struct pty *pty, const char *buf, size_t nbyte)
 {
-    const char *last_chunk = buf;
-    int last_chunk_pos = 0;
+    int i;
+    int last_chunk_pos;
+    const char *last_chunk;
 
-    for (int i = 0; i < nbyte; i++) {
+    last_chunk = buf;
+    last_chunk_pos = 0;
+
+    for (i = 0; i < nbyte; i++) {
         if (buf[i] == '\n') {
             if (i != last_chunk_pos) fop_write(pty->output_pipe[1], last_chunk, i - last_chunk_pos);
             fop_write(pty->output_pipe[1], "\r\n", 2);
@@ -178,7 +191,9 @@ ptm_close(struct file *fp)
 static int
 ptm_getdev(struct file *fp, struct cdev **result)
 {
-    struct pty *pty = (struct pty*)fp->state;
+    struct pty *pty;
+
+    pty = (struct pty*)fp->state;
 
     *result = pty->slave;
 
@@ -196,7 +211,9 @@ ptm_destroy(struct vnode *node)
 static int
 ptm_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct pty *pty = (struct pty*)fp->state;
+    struct pty *pty;
+
+    pty = (struct pty*)fp->state;
 
     return fop_read(pty->output_pipe[0], buf, nbyte);
 }
@@ -205,14 +222,19 @@ static int
 ptm_stat(struct file *fp, struct stat *stat)
 {
     memset(stat, 0, sizeof(struct stat));
+
     return 0;
 }
 
 static int
 ptm_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct pty *pty = (struct pty*)fp->state;
-    uint8_t *buf8 = (uint8_t*)buf;
+    int i;
+    uint8_t *buf8;
+    struct pty *pty;
+
+    pty = (struct pty*)fp->state;
+    buf8 = (uint8_t*)buf;
 
     if (pty->termios.c_lflag & ECHO) {
         if (pty->termios.c_oflag & OPOST) {
@@ -226,7 +248,7 @@ ptm_write(struct file *fp, const void *buf, size_t nbyte)
         return pty_inprocess(pty, buf, nbyte);
     }
 
-    for (int i = 0; i < nbyte; i++) {
+    for (i = 0; i < nbyte; i++) {
         if (buf8[i] == '\b' && pty->line_buf_pos > 0) {
             pty->line_buf[pty->line_buf_pos - 1] = 0;
             pty->line_buf_pos--;
@@ -245,7 +267,13 @@ ptm_write(struct file *fp, const void *buf, size_t nbyte)
 static int
 pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
-    struct pty *pty = (struct pty*)dev->state; 
+    pid_t pgid;
+    struct pgrp *pgrp;
+    struct pty *pty;
+    struct session *session;
+
+    pty = (struct pty*)dev->state; 
+
     switch (request) {
     case TCGETS:
         memcpy((void*)argp, &pty->termios, sizeof(struct termios));
@@ -267,7 +295,7 @@ pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
         memcpy((void*)argp, &pty->winsize, sizeof(struct winsize));
         break; 
     case TIOCSCTTY: {
-        struct session *session = PROC_GET_SESSION(current_proc);
+        session = PROC_GET_SESSION(current_proc);
     
         if (!session->ctty) {
             session->ctty = dev;
@@ -277,8 +305,8 @@ pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
         return -1;
     }
     case TIOCSPGRP: {
-        pid_t pgid = *((pid_t*)argp);
-        struct pgrp *pgrp = pgrp_find(pgid);
+        pgid = *((pid_t*)argp);
+        pgrp = pgrp_find(pgid);
 
         if (pgrp) {
             pty->foreground = pgid;
@@ -303,13 +331,15 @@ pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 static int
 pts_isatty(struct cdev *dev)
 {
-        return 1;
+    return 1;
 }
 
 static int
 pts_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
-    struct pty *pty = (struct pty*)dev->state;
+    struct pty *pty;
+
+    pty = (struct pty*)dev->state;
 
     return fop_read(pty->input_pipe[0], buf, nbyte);
 }
@@ -317,7 +347,9 @@ pts_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 static int
 pts_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
-    struct pty *pty = (struct pty*)dev->state;
+    struct pty *pty;
+
+    pty = (struct pty*)dev->state;
 
     if (!(pty->termios.c_oflag & OPOST)) {
         return fop_write(pty->output_pipe[1], buf, nbyte);

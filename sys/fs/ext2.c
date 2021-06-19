@@ -248,7 +248,9 @@ ext2fs_read_block(struct ext2fs *fs, uint64_t block_addr, struct ext2_block_buf 
 static int
 ext2fs_read_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
 {
-    uint64_t bg_addr = fs->bg_start + index*sizeof(struct ext2_bg_desc);
+    uint64_t bg_addr;
+
+    bg_addr = fs->bg_start + index*sizeof(struct ext2_bg_desc);
 
     if (cdev_read(fs->cdev, (char*)desc, sizeof(struct ext2_bg_desc), bg_addr) != sizeof(struct ext2_bg_desc)) {
         return -1;
@@ -260,7 +262,9 @@ ext2fs_read_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
 static int
 ext2fs_write_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
 {
-    uint64_t bg_addr = fs->bg_start + index*sizeof(struct ext2_bg_desc);
+    uint64_t bg_addr;
+
+    bg_addr = fs->bg_start + index*sizeof(struct ext2_bg_desc);
 
     if (cdev_write(fs->cdev, (char*)desc, sizeof(struct ext2_bg_desc), bg_addr) != sizeof(struct ext2_bg_desc)) {
         return -1;
@@ -272,31 +276,43 @@ ext2fs_write_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
 static int
 ext2fs_read_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
 {
-    uint64_t bg = INOTOBG(fs->igp, ino);
-    uint64_t idx = INOIDX(fs->igp, ino);
-    uint64_t offset = idx*fs->inode_size;
+    uint64_t bg;
+    uint64_t idx;
+    uint64_t inode_addr;
+    uint64_t offset;
+
     struct ext2_bg_desc desc;
+
+    bg = INOTOBG(fs->igp, ino);
+    idx = INOIDX(fs->igp, ino);
+    offset = idx*fs->inode_size;
 
     if (ext2fs_read_bg(fs, bg, &desc) != 0) {
         return -1;
     }
 
-    uint64_t inode_addr = BLOCK_ADDR(fs->bsize, desc.i_tables) + offset;
+    inode_addr = BLOCK_ADDR(fs->bsize, desc.i_tables) + offset;
     
     if (cdev_read(fs->cdev, (char*)buf, sizeof(struct ext2_inode), inode_addr) != sizeof(struct ext2_inode)) {
         return -1;
     }
+
     return 0;
 }
 
 static int
 ext2fs_write_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
 {
-    struct ext2_bg_desc desc;
+    uint64_t bg;
+    uint64_t idx;
     uint64_t inode_addr;
-    uint64_t bg = INOTOBG(fs->igp, ino);
-    uint64_t idx = INOIDX(fs->igp, ino);
-    uint64_t offset = idx*fs->inode_size;
+    uint64_t offset;
+
+    struct ext2_bg_desc desc;
+
+    bg = INOTOBG(fs->igp, ino);
+    idx = INOIDX(fs->igp, ino);
+    offset = idx*fs->inode_size;
 
     if (ext2fs_read_bg(fs, bg, &desc) != 0) {
         return -1;
@@ -314,33 +330,46 @@ ext2fs_write_inode(struct ext2fs *fs, uint64_t ino, struct ext2_inode *buf)
 static int
 ext2fs_read_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_addr, void *buf)
 {
+    uint32_t ptr_idx;
+    uint32_t table_idx;
+    uint64_t block_num;
+    uint64_t ptrs_per_block;
+
+    uint32_t *block_ptrs;
+    uint32_t *indirect_table;
+
     if (block_addr < 12) {
         return cdev_read(fs->cdev, (char*)buf, fs->bsize, BLOCK_ADDR(fs->bsize, inode->blocks[block_addr]));
     }
     
-    uint64_t ptrs_per_block = (fs->bsize / 4);
+    ptrs_per_block = (fs->bsize / 4);
 
     if (block_addr < ((ptrs_per_block + 12)) && inode->blocks[12]) {
         if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
             return -1;
         }
-        uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
-        uint32_t ptr_idx = block_addr - 12;
-        uint64_t block_num = BLOCK_ADDR(fs->bsize, indirect_blocks[ptr_idx]);
+
+        indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+        ptr_idx = block_addr - 12;
+        block_num = BLOCK_ADDR(fs->bsize, indirect_table[ptr_idx]);
+
         return cdev_read(fs->cdev, (char*)buf, fs->bsize, block_num);
     } else {
-        uint32_t table_idx = (block_addr - (ptrs_per_block + 12)) / ptrs_per_block;
-        uint32_t ptr_idx = (block_addr - (ptrs_per_block + 12)) % ptrs_per_block;
+        table_idx = (block_addr - (ptrs_per_block + 12)) / ptrs_per_block;
+        ptr_idx = (block_addr - (ptrs_per_block + 12)) % ptrs_per_block;
+
         if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
             return -1;
         }
         
-        uint32_t *indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+        indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+
         if (ext2fs_read_block(fs, indirect_table[table_idx], &fs->block_ptr_buf) != 0) {
             return -1;
         }
 
-        uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
+        block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
+
         return cdev_read(fs->cdev, (char*)buf, fs->bsize, BLOCK_ADDR(fs->bsize, block_ptrs[ptr_idx]));
     }
 
@@ -350,33 +379,46 @@ ext2fs_read_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_a
 static int
 ext2fs_write_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_addr, void *buf)
 {
+    uint32_t ptr_idx;
+    uint32_t table_idx;
+    uint64_t block_num;
+    uint64_t ptrs_per_block;
+
+    uint32_t *block_ptrs;
+    uint32_t *indirect_table;
+
+
     if (block_addr < 12) {
         return cdev_write(fs->cdev, (char*)buf, fs->bsize, BLOCK_ADDR(fs->bsize, inode->blocks[block_addr]));
     }
 
-    uint64_t ptrs_per_block = (fs->bsize / 4);
+    ptrs_per_block = (fs->bsize / 4);
 
     if (block_addr < ((ptrs_per_block + 12)) && inode->blocks[12]) {
         if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
             return -1;
         }
-        uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
-        uint32_t ptr_idx = block_addr - 12;
-        uint64_t block_num = BLOCK_ADDR(fs->bsize, indirect_blocks[ptr_idx]);
+
+        indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+        ptr_idx = block_addr - 12;
+        block_num = BLOCK_ADDR(fs->bsize, indirect_table[ptr_idx]);
+
         return cdev_write(fs->cdev, (char*)buf, fs->bsize, block_num);
     } else {
-        uint32_t table_idx = (block_addr - (ptrs_per_block + 12)) / ptrs_per_block;
-        uint32_t ptr_idx = (block_addr - (ptrs_per_block + 12)) % ptrs_per_block;
+
+        table_idx = (block_addr - (ptrs_per_block + 12)) / ptrs_per_block;
+        ptr_idx = (block_addr - (ptrs_per_block + 12)) % ptrs_per_block;
+
         if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
             return -1;
         }
 
-        uint32_t *indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+        indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
         if (ext2fs_read_block(fs, indirect_table[table_idx], &fs->block_ptr_buf) != 0) {
             return -1;
         }
 
-        uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
+        block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
         return cdev_write(fs->cdev, (char*)buf, fs->bsize, BLOCK_ADDR(fs->bsize, block_ptrs[ptr_idx]));
     }
 
@@ -386,10 +428,15 @@ ext2fs_write_dblock(struct ext2fs *fs, struct ext2_inode *inode, uint64_t block_
 static int
 ext2fs_fill_dirent(struct ext2fs *fs, int ino, int dir, struct dirent *buf)
 {
-    struct ext2_inode inode;
+    int b;
+    int i;
     int blocks_required;
+    uint64_t offset;
 
     uint8_t *block = fs->block_cache;
+
+    struct ext2_inode inode;
+    struct ext2_dirent *dirent;
 
     if (ext2fs_read_inode(fs, ino, &inode) != 0) {
         return -1;
@@ -397,12 +444,12 @@ ext2fs_fill_dirent(struct ext2fs *fs, int ino, int dir, struct dirent *buf)
 
     blocks_required = inode.size / fs->bsize;
 
-    for (int b = 0, i = 0; b < blocks_required; b++) {
-        uint64_t offset = 0;
+    for (b = 0, i = 0; b < blocks_required; b++) {
+        offset = 0;
         ext2fs_read_dblock(fs, &inode, b, block);
 
         while (offset + b*fs->bsize < fs->bsize) {
-            struct ext2_dirent *dirent = (struct ext2_dirent*)&block[offset];
+            dirent = (struct ext2_dirent*)&block[offset];
             
             if (dirent->inode) {
                 if (i == dir) {
@@ -457,13 +504,24 @@ ext2fs_fill_vnode(struct ext2fs *fs, int inum, struct vnode *vn)
 static uint32_t
 ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
 {
-    struct ext2_bg_desc bg;
-    int64_t bgnum = -1;
-    int32_t ret = -1;
+    int b;
+    int j;
 
-    for (uint64_t i = 0; i < fs->bg_count; i++) {
-        int64_t bg_low = preferred_bg - i;
-        int64_t bg_high = preferred_bg + i;
+    int64_t bg_low;
+    int64_t bg_high;
+    int64_t bgnum;
+    int32_t block_addr;
+    int32_t ret;
+    uint64_t i;
+
+    struct ext2_bg_desc bg;
+
+    bgnum = -1;
+    ret = -1;
+
+    for (i = 0; i < fs->bg_count; i++) {
+        bg_low = preferred_bg - i;
+        bg_high = preferred_bg + i;
 
         if (bg_low >= 0) {
             ext2fs_read_bg(fs, bg_low, &bg);
@@ -493,11 +551,11 @@ ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
         return (uint32_t)-1;
     }
 
-    for (int i = 0; i < fs->bsize && ret == -1; i++) {
-        for (int b = 0; b < 8; b++) {
-            if (((1<<b) & fs->block_cache[i]) == 0) {
-                fs->block_cache[i] |= (1<<b);
-                ret = 8 * i + b;
+    for (j = 0; j < fs->bsize && ret == -1; j++) {
+        for (b = 0; b < 8; b++) {
+            if (((1<<b) & fs->block_cache[j]) == 0) {
+                fs->block_cache[j] |= (1<<b);
+                ret = 8 * j + b;
                 break;
             }
 
@@ -513,7 +571,7 @@ ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
         fs->superblock.fbcount--;
         ext2fs_rewrite_superblock(fs);
 
-        uint32_t block_addr = fs->superblock.first_dblock + bgnum*fs->bpg + ret;
+        block_addr = fs->superblock.first_dblock + bgnum*fs->bpg + ret;
 
         memset(fs->block_cache, 0, fs->bsize);
         cdev_write(fs->cdev, (char*)fs->block_cache, fs->bsize, BLOCK_ADDR(fs->bsize, block_addr));
@@ -527,21 +585,26 @@ ext2fs_block_alloc(struct ext2fs *fs, int preferred_bg)
 static uint32_t
 ext2fs_block_free(struct ext2fs *fs, int blockno)
 {
-    blockno -= fs->superblock.first_dblock;
+    int bit;
+    int index;
+    int64_t bgnum;
+    int64_t bitmap_addr;
 
     struct ext2_bg_desc bg;
-    int64_t bgnum = blockno / fs->bpg;
+
+    blockno -= fs->superblock.first_dblock;
+    bgnum = blockno / fs->bpg;
     
     ext2fs_read_bg(fs, bgnum, &bg);
 
-    int64_t bitmap_addr = BLOCK_ADDR(fs->bsize, bg.b_bitmap);
+    bitmap_addr = BLOCK_ADDR(fs->bsize, bg.b_bitmap);
 
     if (cdev_read(fs->cdev, (char*)fs->block_cache, fs->bsize, bitmap_addr) != fs->bsize) {
         return (uint32_t)-1;
     }
 
-    int index = (blockno % fs->bpg) / 8;
-    int bit = (blockno % fs->bpg) % 8;
+    index = (blockno % fs->bpg) / 8;
+    bit = (blockno % fs->bpg) % 8;
 
     KASSERT((fs->block_cache[index] & (1<<bit)) != 0, "block being freed should be allocated");
 
@@ -558,12 +621,21 @@ ext2fs_block_free(struct ext2fs *fs, int blockno)
 static uint32_t
 ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
 {
-    struct ext2_bg_desc bg;
-    int64_t bgnum = -1;
+    int j;
+    int b;
+    int32_t ret;
+    int64_t bg_high;
+    int64_t bg_low;
+    int64_t bgnum;
+    int64_t i;
 
-    for (int64_t i = 0; i < (int64_t)fs->bg_count; i++) {
-        int64_t bg_low = preferred_bg - i;
-        int64_t bg_high = preferred_bg + i;
+    struct ext2_bg_desc bg;
+    
+    bgnum = -1;
+
+    for (i = 0; i < (int64_t)fs->bg_count; i++) {
+        bg_low = preferred_bg - i;
+        bg_high = preferred_bg + i;
 
         if (bg_low >= 0) {
             ext2fs_read_bg(fs, bg_low, &bg);
@@ -593,13 +665,13 @@ ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
         return (uint32_t)-1;
     }
 
-    int32_t ret = -1;
+    ret = -1;
 
-    for (int i = 0; i < fs->bsize && ret == -1; i++) {
-        for (int b = 0; b < 8; b++) {
-            if (((1<<b) & fs->block_cache[i]) == 0) {
-                fs->block_cache[i] |= (1<<b);
-                ret = 8 * i + b;
+    for (j = 0; j < fs->bsize && ret == -1; j++) {
+        for (b = 0; b < 8; b++) {
+            if (((1<<b) & fs->block_cache[j]) == 0) {
+                fs->block_cache[j] |= (1<<b);
+                ret = 8 * j + b;
                 break;
             }
 
@@ -624,20 +696,24 @@ ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
 uint32_t
 ext2fs_inode_free(struct ext2fs *fs, int inum)
 {
+    int bit;
+    int index;
+    int64_t bgnum;
+    int64_t bitmap_addr;
     struct ext2_bg_desc bg;
 
-    int64_t bgnum = INOTOBG(fs->igp, inum);
+    bgnum = INOTOBG(fs->igp, inum);
 
     ext2fs_read_bg(fs, bgnum, &bg);
 
-    int64_t bitmap_addr = BLOCK_ADDR(fs->bsize, bg.i_bitmap);
+    bitmap_addr = BLOCK_ADDR(fs->bsize, bg.i_bitmap);
 
     if (cdev_read(fs->cdev, (char*)fs->block_cache, fs->bsize, bitmap_addr) != fs->bsize) {
         return (uint32_t)-1;
     }
 
-    int index = ((inum-1) % fs->igp) / 8;
-    int bit = ((inum-1) % fs->igp) % 8;
+    index = ((inum-1) % fs->igp) / 8;
+    bit = ((inum-1) % fs->igp) % 8;
 
     KASSERT((fs->block_cache[index] & (1<<bit)) != 0, "inode being freed should be allocated");
 
@@ -654,18 +730,29 @@ ext2fs_inode_free(struct ext2fs *fs, int inum)
 static int
 ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t newsize)
 {
-    int current_blocks = (inode->size + fs->bsize - 1) / fs->bsize;
-    int blocks_needed = (inode->size + newsize + fs->bsize - 1) / fs->bsize;
+    int block;
+    int blocks_needed;
+    int current_blocks;
+    int new_block;
+    uint32_t table_idx;
+    uint32_t ptr_idx;
+    uint64_t ptrs_per_block;
 
-    for (int block = current_blocks; block < blocks_needed; block++) {
-        uint32_t new_block = ext2fs_block_alloc(fs, 0);
+    uint32_t *block_ptrs;
+    uint32_t *indirect_blocks;
+
+    current_blocks = (inode->size + fs->bsize - 1) / fs->bsize;
+    blocks_needed = (inode->size + newsize + fs->bsize - 1) / fs->bsize;
+
+    for (block = current_blocks; block < blocks_needed; block++) {
+        new_block = ext2fs_block_alloc(fs, 0);
 
         if (block < 12) {
             inode->blocks[block] = new_block;
             continue;
         }
 
-        uint64_t ptrs_per_block = (fs->bsize / 4);
+        ptrs_per_block = (fs->bsize / 4);
 
         if (block < ((ptrs_per_block + 12))) {
 
@@ -677,12 +764,12 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
                 /* FAIL!*/
                 return -1;
             }
-            uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
 
+            indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
             indirect_blocks[block - 12] = new_block;
         } else {
-            uint32_t table_idx = (block - (ptrs_per_block + 12)) / ptrs_per_block;
-            uint32_t ptr_idx = (block - (ptrs_per_block + 12)) % ptrs_per_block;
+            table_idx = (block - (ptrs_per_block + 12)) / ptrs_per_block;
+            ptr_idx = (block - (ptrs_per_block + 12)) % ptrs_per_block;
 
             if (!inode->blocks[13]) {
                 inode->blocks[13] = ext2fs_block_alloc(fs, 0);
@@ -693,14 +780,13 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
                 return -1;
             }
 
-            uint32_t *indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+            indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
 
-            if (ext2fs_read_block(fs, indirect_table[table_idx], &fs->block_ptr_buf) != 0) {
+            if (ext2fs_read_block(fs, indirect_blocks[table_idx], &fs->block_ptr_buf) != 0) {
                 return -1;
             }
 
-            uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
-            
+            block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
             block_ptrs[ptr_idx] = new_block;
         }
     }
@@ -717,16 +803,27 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
 static int
 ext2fs_shrink_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t newsize)
 {
-    int current_blocks = (inode->size + fs->bsize - 1) / fs->bsize;
-    int blocks_needed = (inode->size + newsize + fs->bsize - 1) / fs->bsize;
+    int block;
+    int blocks_needed;
+    int current_blocks;
 
-    for (int block = current_blocks; blocks_needed < block; block--) {
+    uint32_t ptr_idx;
+    uint32_t table_idx;
+    uint64_t ptrs_per_block;
+    
+    uint32_t *block_ptrs;
+    uint32_t *indirect_blocks;
+
+    current_blocks = (inode->size + fs->bsize - 1) / fs->bsize;
+    blocks_needed = (inode->size + newsize + fs->bsize - 1) / fs->bsize;
+
+    for (block = current_blocks; blocks_needed < block; block--) {
         if (block < 12) {
             ext2fs_block_free(fs, inode->blocks[block]);
             continue;
         }
 
-        uint64_t ptrs_per_block = (fs->bsize / 4);
+        ptrs_per_block = (fs->bsize / 4);
 
         if (block < ((ptrs_per_block + 12))) {
             if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
@@ -734,7 +831,7 @@ ext2fs_shrink_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t
                 return -1;
             }
 
-            uint32_t *indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
+            indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
 
             ext2fs_block_free(fs, indirect_blocks[block - 12]);
 
@@ -743,26 +840,26 @@ ext2fs_shrink_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t
             }
 
         } else {
-            uint32_t table_idx = (block - (ptrs_per_block + 12)) / ptrs_per_block;
-            uint32_t ptr_idx = (block - (ptrs_per_block + 12)) % ptrs_per_block;
+            table_idx = (block - (ptrs_per_block + 12)) / ptrs_per_block;
+            ptr_idx = (block - (ptrs_per_block + 12)) % ptrs_per_block;
 
             if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
                 /* fail */
                 return -1;
             }
 
-            uint32_t *indirect_table = (uint32_t*)fs->single_indirect_buf.buf;
+            indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
 
-            if (ext2fs_read_block(fs, indirect_table[table_idx], &fs->block_ptr_buf) != 0) {
+            if (ext2fs_read_block(fs, indirect_blocks[table_idx], &fs->block_ptr_buf) != 0) {
                 return -1;
             }
 
-            uint32_t *block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
+            block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
 
             ext2fs_block_free(fs, block_ptrs[ptr_idx]);
 
             if (ptr_idx == 0) {
-                ext2fs_block_free(fs, indirect_table[table_idx]);
+                ext2fs_block_free(fs, indirect_blocks[table_idx]);
             }
 
             if (table_idx == 0 && ptr_idx == 0) {
@@ -781,25 +878,40 @@ ext2fs_shrink_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t
 static int
 ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inump, struct ext2_inode *child_inode)
 {
-    struct ext2fs *fs = parent->state;
-    struct ext2_inode parent_inode;
+    bool space_found;
+    int block_num;
+    int blocks_required;
+    size_t dirent_size;
+    size_t name_len;
+    ssize_t min_size;
+    ssize_t slackspace;
+    uint32_t bgnum;
+    uint32_t inum;
+    uint64_t offset;
+
+    uint8_t *block_buf;
+
     struct ext2_bg_desc bg;
+    struct ext2_inode parent_inode;
+
+    struct ext2_dirent *dirent;
+    struct ext2fs *fs;
+
+    fs = parent->state;
 
     if (ext2fs_read_inode(fs, parent->inode, &parent_inode) != 0) {
         return -(EIO);
     }
 
-    ssize_t name_len = strlen(name);
-    ssize_t dirent_size = EXT2_WORD_ALIGN(sizeof(struct ext2_dirent) + name_len + 1);
-    uint32_t bgnum = INOTOBG(fs->igp, parent->inode);
-    uint32_t inum = ext2fs_inode_alloc(fs, bgnum);
-    uint8_t *block_buf = fs->block_cache;
+    name_len = strlen(name);
+    dirent_size = EXT2_WORD_ALIGN(sizeof(struct ext2_dirent) + name_len + 1);
+    bgnum = INOTOBG(fs->igp, parent->inode);
+    inum = ext2fs_inode_alloc(fs, bgnum);
+    block_buf = fs->block_cache;
 
-    int block_num;
-    int blocks_required = parent_inode.size / fs->bsize;
-
-    uint64_t offset = 0;
-    bool space_found = false;
+    blocks_required = parent_inode.size / fs->bsize;
+    offset = 0;
+    space_found = false;
 
     for (block_num = 0; block_num < blocks_required; block_num++) {
         ext2fs_read_dblock(fs, &parent_inode, block_num, block_buf);
@@ -807,9 +919,9 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
         offset = 0;
 
         while (offset < fs->bsize) {
-            struct ext2_dirent *dirent = (struct ext2_dirent*)&block_buf[offset];
-            ssize_t min_size = EXT2_WORD_ALIGN(dirent->name_len + sizeof(struct ext2_dirent));
-            ssize_t slackspace = dirent->size - min_size;
+            dirent = (struct ext2_dirent*)&block_buf[offset];
+            min_size = EXT2_WORD_ALIGN(dirent->name_len + sizeof(struct ext2_dirent));
+            slackspace = dirent->size - min_size;
 
             if (strncmp(dirent->name, name, dirent->name_len) == 0) {
                 return -(EEXIST);
@@ -835,7 +947,7 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
         ext2fs_grow_inode(fs, parent->inode, &parent_inode, parent_inode.size + fs->bsize);
     }
 
-    struct ext2_dirent *dirent = (struct ext2_dirent*)&block_buf[offset];
+    dirent = (struct ext2_dirent*)&block_buf[offset];
     dirent->name_len = name_len;
     dirent->size = fs->bsize - offset;
     dirent->inode = inum;
@@ -888,29 +1000,44 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
 static int
 ext2fs_remove_dirent(struct vnode *parent, const char *name)
 {
-    struct ext2fs *fs = parent->state;
+
+    int block_num;
+    int blocks_required;
+
+    size_t name_len;
+    size_t shift_amount;
+    
+    uint32_t offset;
+    uint32_t shift_offset;
+
+    uint8_t *block_buf;
+
     struct ext2_inode parent_inode;
+
+    struct ext2_dirent *dirent;
+    struct ext2_dirent *last_dirent;
+    struct ext2fs *fs;
+
+    fs = parent->state;
 
     if (ext2fs_read_inode(fs, parent->inode, &parent_inode) != 0) {
         return -(EIO);
     }
 
-    size_t name_len = strlen(name);
-    uint8_t *block_buf = fs->block_cache;
-
-    int block_num;
-    int blocks_required = parent_inode.size / fs->bsize;
+    name_len = strlen(name);
+    block_buf = fs->block_cache;
+    blocks_required = parent_inode.size / fs->bsize;
 
     for (block_num = 0; block_num < blocks_required; block_num++) {
         ext2fs_read_dblock(fs, &parent_inode, block_num, block_buf);
 
-        struct ext2_dirent *last_dirent = NULL;
-        size_t shift_amount = 0;
-        uint32_t shift_offset = 0;
-        uint32_t offset = 0;
+        last_dirent = NULL;
+        shift_amount = 0;
+        shift_offset = 0;
+        offset = 0;
 
         while (offset < fs->bsize) {
-            struct ext2_dirent *dirent = (struct ext2_dirent*)&block_buf[offset];
+            dirent = (struct ext2_dirent*)&block_buf[offset];
 
             if (dirent->name_len == name_len && memcmp(dirent->name, name, name_len) == 0) {
                 shift_amount = dirent->size;
@@ -982,12 +1109,13 @@ ext2_chown(struct vnode *vn, uid_t owner, gid_t group)
 static int
 ext2_creat(struct vnode *parent, struct vnode **child, const char *name, mode_t mode)
 {
+    int res;
     uint32_t inum;
     struct ext2_inode child_inode;
    
     ext2fs_lock(parent->state);
 
-    int res = ext2fs_mknod(parent, name, mode | S_IFREG, &inum, &child_inode);
+    res = ext2fs_mknod(parent, name, mode | S_IFREG, &inum, &child_inode);
     
     if (res == 0) {
         res = ext2_lookup(parent, child, name);
@@ -1001,12 +1129,15 @@ ext2_creat(struct vnode *parent, struct vnode **child, const char *name, mode_t 
 static int
 ext2_lookup(struct vnode *parent, struct vnode **result, const char *name)
 {
-    struct ext2fs *fs = parent->state;
     struct dirent dirent;
+    struct ext2fs *fs;
+    struct vnode *vn;
+
+    fs = parent->state;
 
     for (int i = 0; ext2fs_fill_dirent(fs, parent->inode, i, &dirent) == 0; i++) {
         if (strcmp(name, dirent.name) == 0) {
-            struct vnode *vn = vn_new(parent, fs->cdev, &ext2_file_ops);
+            vn = vn_new(parent, fs->cdev, &ext2_file_ops);
             ext2fs_fill_vnode(fs, dirent.inode, vn);
             *result = vn;
             return 0;
@@ -1020,13 +1151,17 @@ static int
 ext2_mount(struct vnode *parent, struct cdev *cdev, struct vnode **root)
 {
     struct ext2_superblock superblock;
+
+    struct ext2fs *fs;
+    struct vnode *vn;
+
     cdev_read(cdev, (char*)&superblock, sizeof(superblock), 1024);
 
     if (superblock.magic != 0xef53) {
         return -(EINVAL);
     }
 
-    struct ext2fs *fs = calloc(1, sizeof(struct ext2fs));
+    fs = calloc(1, sizeof(struct ext2fs));
     
     memcpy(&fs->superblock, &superblock, sizeof(superblock));
 
@@ -1043,7 +1178,7 @@ ext2_mount(struct vnode *parent, struct cdev *cdev, struct vnode **root)
     ext2fs_init_block_buf(fs, &fs->single_indirect_buf);
     ext2fs_init_block_buf(fs, &fs->double_indirect_buf);
 
-    struct vnode *vn = vn_new(parent, cdev, &ext2_file_ops);
+    vn = vn_new(parent, cdev, &ext2_file_ops);
     ext2fs_fill_vnode(fs, 2, vn);
     *root = vn;
 

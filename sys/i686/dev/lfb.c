@@ -72,10 +72,10 @@ static int default_color_palette[] = {
   0x102015
 };
 
-static int lfb_attach(struct driver *driver, struct device *device);
-static int lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
-static int lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset);
-static int lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos);
+static int lfb_attach(struct driver *, struct device *);
+static int lfb_ioctl(struct cdev *, uint64_t, uintptr_t);
+static int lfb_mmap(struct cdev *, uintptr_t, size_t, int, off_t);
+static int lfb_write(struct cdev *, const char *, size_t, uint64_t);
 
 struct driver lfb_driver = {
     .attach     =   lfb_attach,
@@ -104,9 +104,12 @@ fast_memcpy_d(void *dst, const void *src, size_t nbyte)
 void *
 fast_memset(void *ptr, uint32_t value, size_t nbyte)
 {   
-    uint32_t *buf = (uint32_t*)ptr;
+    int i;
+    uint32_t *buf;
+
+    buf = (uint32_t*)ptr;
     
-    for (int i = 0; i < nbyte / 4; i++) {
+    for (i = 0; i < nbyte / 4; i++) {
         buf[i] = value;
     }
     
@@ -116,21 +119,33 @@ fast_memset(void *ptr, uint32_t value, size_t nbyte)
 static void
 fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
 {
-    int x = state->position % state->textscreen_width * FONT_WIDTH;
-    int y = state->position / state->textscreen_width * FONT_HEIGHT;
+    int x;
+    int y;
+    int j;
+    int i;
+    int pos;
+
+    uint32_t row[FONT_WIDTH];
+
+    uint32_t *fb;
+    uint32_t *fg;
+    uint8_t *c;
+
+    x = state->position % state->textscreen_width * FONT_WIDTH;
+    y = state->position / state->textscreen_width * FONT_HEIGHT;
 
     if (val > 128) {
         val = 4;
     }
-    uint32_t *fb = (uint32_t*)state->framebuffer;
-    uint32_t *fg = (uint32_t*)state->foreground;
-    uint8_t *c = number_font[val];
 
-    uint32_t row[FONT_WIDTH];
+    fb = (uint32_t*)state->framebuffer;
+    fg = (uint32_t*)state->foreground;
+    c = number_font[val];
 
-    for (int j = 0 ; j < FONT_HEIGHT; j++) {
-        int pos = (y + j) * state->width + x;
-        for (int i = 0; i < FONT_WIDTH; i++) {
+    for (j = 0 ; j < FONT_HEIGHT; j++) {
+        pos = (y + j) * state->width + x;
+
+        for (i = 0; i < FONT_WIDTH; i++) {
             if (c[j] & (1 << (8-i))) {
                 row[i] = fg_col;
             } else {       
@@ -146,17 +161,26 @@ fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
 static void
 fb_draw_cursor(struct lfb_state *state, int position, bool clear)
 {
-    uint32_t *fb = (uint32_t*)state->framebuffer;
-    uint32_t *fg = (uint32_t*)state->foreground;
+    int x;
+    int y;
+    int j;
+    int i;
+    int pos;
 
-    int x = position % state->textscreen_width * FONT_WIDTH;
-    int y = position / state->textscreen_width * FONT_HEIGHT;
+    uint32_t *fb;
+    uint32_t *fg;
 
     uint32_t row[FONT_WIDTH];
 
-    for (int j = FONT_HEIGHT - 2 ; j < FONT_HEIGHT; j++) {
-        int pos = (y + j) * state->width + x;
-        for (int i = 0; i < FONT_WIDTH; i++) {
+    fb = (uint32_t*)state->framebuffer;
+    fg = (uint32_t*)state->foreground;
+
+    x = position % state->textscreen_width * FONT_WIDTH;
+    y = position / state->textscreen_width * FONT_HEIGHT;
+
+    for (j = FONT_HEIGHT - 2 ; j < FONT_HEIGHT; j++) {
+        pos = (y + j) * state->width + x;
+        for (i = 0; i < FONT_WIDTH; i++) {
             if (!clear) {
                 row[i] = state->foreground_color;
             } else {
@@ -170,9 +194,11 @@ fb_draw_cursor(struct lfb_state *state, int position, bool clear)
 static void 
 fb_scroll(struct lfb_state *state)
 {
-    uint32_t *fg = (uint32_t*)state->foreground;
+    int row_height;
+    uint32_t *fg;
 
-    int row_height = state->pitch * FONT_HEIGHT;
+    fg = (uint32_t*)state->foreground;
+    row_height = state->pitch * FONT_HEIGHT;
 
     fast_memcpy_d(fg, (void*)fg + row_height, state->buffer_size - row_height);
     fast_memset((void*)fg + state->buffer_size - row_height, state->background_color, row_height);
@@ -184,7 +210,9 @@ fb_scroll(struct lfb_state *state)
 static void
 lfb_tick(struct timer *timer, void *argp)
 {
-    struct lfb_state *state = (struct lfb_state*)argp;
+    struct lfb_state *state;
+
+    state = (struct lfb_state*)argp;
 
     if (!state->enable_cursor || state->position >= state->textscreen_size) {
         timer_renew(timer, 1000);
@@ -254,7 +282,9 @@ lfb_attach(struct driver *driver, struct device *dev)
 static int
 lfb_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
-    struct lfb_state *state = (struct lfb_state*)dev->state;
+    struct lfb_state *state;
+
+    state = (struct lfb_state*)dev->state;
 
     spinlock_lock(&state->lock);
 
@@ -314,7 +344,10 @@ lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
     /* defined in sys/i686/kern/preinit.c */
     extern multiboot_info_t *multiboot_header;
 
-    struct lfb_state *state = (struct lfb_state*)dev->state;
+    void *buf;
+    struct lfb_state *state;
+
+    state = (struct lfb_state*)dev->state;
 
     if (addr != 0) {
         return -(EINVAL);
@@ -328,7 +361,7 @@ lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
 
     extern struct vm_space *sched_curr_address_space;
 
-    void *buf = vm_map_physical(sched_curr_address_space, NULL, info->physbase, state->buffer_size, prot);
+    buf = vm_map_physical(sched_curr_address_space, NULL, info->physbase, state->buffer_size, prot);
 
     return (intptr_t)buf;
 }
@@ -336,11 +369,14 @@ lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
 static int
 lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
-    struct lfb_state *state = (struct lfb_state*)dev->state;
+    int i;
+    struct lfb_state *state;
+
+    state = (struct lfb_state*)dev->state;
 
     spinlock_lock(&state->lock);
 
-    for (int i = 0; i < nbyte; i++) {
+    for (i = 0; i < nbyte; i++) {
         if (state->position >= (state->textscreen_width * state->textscreen_height)) {
             fb_scroll(state);
         }

@@ -25,10 +25,14 @@
 void
 membuf_expand(struct membuf *mb, size_t newsize)
 {
-    int requested_blocks = (newsize / MEMBUF_BLOCK_SIZE) + 1; 
+    int i;
+    int requested_blocks;
+    void *newbuf;
 
-    for (int i = 0; i < requested_blocks; i++) {
-        void *newbuf = calloc(1, MEMBUF_BLOCK_SIZE);
+    requested_blocks = (newsize / MEMBUF_BLOCK_SIZE) + 1; 
+
+    for (i = 0; i < requested_blocks; i++) {
+        newbuf = calloc(1, MEMBUF_BLOCK_SIZE);
 
         list_append(&mb->blocks, newbuf);
     }
@@ -39,15 +43,18 @@ membuf_expand(struct membuf *mb, size_t newsize)
 static void *
 get_block_buf(struct membuf *mb, off_t pos)
 {
-    void *buf;
-    int i = 0;
-    void *ret = NULL;
-
-    int block_index = pos / MEMBUF_BLOCK_SIZE;
-
+    int i;
+    int block_index;
     list_iter_t iter;
+    void *buf;
+    void *ret;
+
+    block_index = pos / MEMBUF_BLOCK_SIZE;
 
     list_get_iter(&mb->blocks, &iter);
+
+    i = 0;
+    ret = NULL;
 
     while (iter_move_next(&iter, &buf)) {
         if (i == block_index) {
@@ -79,7 +86,9 @@ membuf_destroy(struct membuf *mb)
 struct membuf *
 membuf_new()
 {
-    struct membuf *new_mb = calloc(1, sizeof(struct membuf));
+    struct membuf *new_mb;
+
+    new_mb = calloc(1, sizeof(struct membuf));
 
     return new_mb;
 }
@@ -87,9 +96,17 @@ membuf_new()
 size_t
 membuf_read(struct membuf *mb, void *buf, size_t nbyte, off_t pos)
 {
+    int i;
+    int byte_count;
+    int relative_offset;
+    int required_blocks;
+    off_t cur_pos;
+    size_t bytes_read;
+    void *block;
+
     spinlock_lock(&mb->lock);
     
-    off_t cur_pos = pos;
+    cur_pos = pos;
 
     if (pos + nbyte > MEMBUF_SIZE(mb)) {
         nbyte = MEMBUF_SIZE(mb) - pos;
@@ -99,16 +116,16 @@ membuf_read(struct membuf *mb, void *buf, size_t nbyte, off_t pos)
         return 0;
     }
 
-    int required_blocks = (nbyte / MEMBUF_BLOCK_SIZE) + 1;
-    size_t bytes_read = 0;
+    required_blocks = (nbyte / MEMBUF_BLOCK_SIZE) + 1;
+    bytes_read = 0;
 
-    for (int i = 0; i < required_blocks; i++) {
-        int relative_offset = cur_pos % MEMBUF_BLOCK_SIZE;
-        int byte_count = nbyte - (i * MEMBUF_BLOCK_SIZE);
+    for (i = 0; i < required_blocks; i++) {
+        relative_offset = cur_pos % MEMBUF_BLOCK_SIZE;
+        byte_count = nbyte - (i * MEMBUF_BLOCK_SIZE);
 
         if (byte_count > (MEMBUF_BLOCK_SIZE - relative_offset)) byte_count = MEMBUF_BLOCK_SIZE - relative_offset;
 
-        void *block = get_block_buf(mb, cur_pos);
+        block = get_block_buf(mb, cur_pos);
 
         memcpy(buf + (i * MEMBUF_BLOCK_SIZE), block + relative_offset, byte_count);
         bytes_read += byte_count;
@@ -123,24 +140,34 @@ membuf_read(struct membuf *mb, void *buf, size_t nbyte, off_t pos)
 void
 membuf_write(struct membuf *mb, const void *buf, size_t nbyte, off_t pos)
 {
+    int i;
+    int byte_count;
+    int relative_offset;
+    int required_blocks;
+    off_t cur_pos;
+    size_t written;
+    size_t requested_size;
+
+    void *block;
+
     spinlock_lock(&mb->lock);
 
-    off_t cur_pos = pos;
-    size_t requested_size = pos + nbyte;
+    cur_pos = pos;
+    requested_size = pos + nbyte;
 
     if (requested_size > MEMBUF_ACTUAL_SIZE(mb)) {
         membuf_expand(mb, requested_size);
     }
     
-    int required_blocks = (nbyte / MEMBUF_BLOCK_SIZE) + 1;
-    size_t written = 0;
+    required_blocks = (nbyte / MEMBUF_BLOCK_SIZE) + 1;
+    written = 0;
 
-    for (int i = 0; i < required_blocks; i++) {
-        int relative_offset = cur_pos % MEMBUF_BLOCK_SIZE;
-        int byte_count = nbyte - (i * MEMBUF_BLOCK_SIZE);
+    for (i = 0; i < required_blocks; i++) {
+        relative_offset = cur_pos % MEMBUF_BLOCK_SIZE;
+        byte_count = nbyte - (i * MEMBUF_BLOCK_SIZE);
         if (byte_count > (MEMBUF_BLOCK_SIZE - relative_offset)) byte_count = MEMBUF_BLOCK_SIZE - relative_offset;
 
-        void *block = get_block_buf(mb, cur_pos);
+        block = get_block_buf(mb, cur_pos);
 
         KASSERT(block != NULL, "get_block_buf should not equal NULL");
 

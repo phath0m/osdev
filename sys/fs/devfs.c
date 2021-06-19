@@ -29,17 +29,17 @@
 // delete me
 #include <sys/systm.h>
 
-static int devfs_destroy(struct vnode *node);
-static int devfs_ioctl(struct vnode *node, uint64_t mode, void *arg);
+static int devfs_destroy(struct vnode *);
+static int devfs_ioctl(struct vnode *, uint64_t, void *);
 
-static int devn_lookup(struct vnode *parent, struct vnode **result, const char *name);
-static int devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset);
-static int devfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root);
-static int devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
-static int devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry);
-static int devfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence);
-static int devfs_stat(struct vnode *node, struct stat *stat);
-static int devfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos);
+static int devn_lookup(struct vnode *, struct vnode **, const char *);
+static int devfs_mmap(struct vnode *, uintptr_t, size_t, int, off_t);
+static int devfs_mount(struct vnode *, struct cdev *, struct vnode **);
+static int devfs_read(struct vnode *, void *, size_t, uint64_t);
+static int devfs_readdirent(struct vnode *, struct dirent *, uint64_t);
+static int devfs_seek(struct vnode *, off_t *, off_t, int);
+static int devfs_stat(struct vnode *, struct stat *);
+static int devfs_write(struct vnode *, const void *, size_t, uint64_t);
 
 struct vops devfs_file_ops = {
     .destroy    = devfs_destroy,
@@ -71,7 +71,9 @@ devfs_destroy(struct vnode *node)
 static int
 devfs_ioctl(struct vnode *node, uint64_t mode, void *arg)
 {
-    struct cdev *dev = (struct cdev*)node->state;
+    struct cdev *dev;
+
+    dev = (struct cdev*)node->state;
     
     if (dev) {
         return cdev_ioctl(dev, mode, (uintptr_t)arg);
@@ -83,16 +85,19 @@ devfs_ioctl(struct vnode *node, uint64_t mode, void *arg)
 static int
 devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 {
+    int res;
     list_iter_t iter;
-    list_get_iter(&device_list, &iter);
 
     struct cdev *dev;
-    
-    int res = -1;
+    struct vnode *node;
+
+    res = -1;
+
+    list_get_iter(&device_list, &iter);
 
     while (iter_move_next(&iter, (void**)&dev)) {
         if (strcmp(name, dev->name) == 0) {
-            struct vnode *node = vn_new(parent, parent->device, &devfs_file_ops);
+            node = vn_new(parent, parent->device, &devfs_file_ops);
             node->device = dev;
             node->inode = (ino_t)dev;
             node->gid = 0;
@@ -115,7 +120,9 @@ devn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 int
 devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offset)
 {
-    struct cdev *dev = (struct cdev*)node->state;
+    struct cdev *dev;
+
+    dev = (struct cdev*)node->state;
 
     if (dev && node->inode != 0) {
         panic("mmap");
@@ -128,7 +135,9 @@ devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offs
 static int
 devfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
 {
-    struct vnode *node = vn_new(parent, dev, &devfs_file_ops);
+    struct vnode *node;
+
+    node = vn_new(parent, dev, &devfs_file_ops);
 
     node->inode = 0;
     node->gid = 0;
@@ -144,7 +153,9 @@ static int
 devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
 
-    struct cdev *dev = (struct cdev*)node->state;
+    struct cdev *dev;
+
+    dev = (struct cdev*)node->state;
 
     if (dev && node->inode != 0) {
         return cdev_read(dev, buf, nbyte, pos);
@@ -156,14 +167,16 @@ devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 static int
 devfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 {
+    int i;
+    int res;
     list_iter_t iter;
-    list_get_iter(&device_list, &iter);
-
     struct cdev *dev;
 
-    int res = -1;
+    res = -1;
 
-    for (int i = 0; iter_move_next(&iter, (void**)&dev); i++) {
+    list_get_iter(&device_list, &iter);
+
+    for (i = 0; iter_move_next(&iter, (void**)&dev); i++) {
         if (i == entry) {
             strncpy(dirent->name, dev->name, PATH_MAX);
             dirent->type = DT_CHR;
@@ -203,6 +216,8 @@ devfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 static int
 devfs_stat(struct vnode *node, struct stat *stat)
 {
+    struct cdev *dev;
+
     memset(stat, 0, sizeof(struct stat));
 
     if (node->inode == 0) {
@@ -211,7 +226,7 @@ devfs_stat(struct vnode *node, struct stat *stat)
         return 0;
     }
 
-    struct cdev *dev = (struct cdev*)node->state;
+    dev = (struct cdev*)node->state;
 
     if (!dev) {
         return -1;    
@@ -220,13 +235,16 @@ devfs_stat(struct vnode *node, struct stat *stat)
     stat->st_mode = dev->mode | S_IFCHR;
     stat->st_uid = dev->uid;
     stat->st_dev = makedev(dev->majorno, dev->minorno);
+
     return 0;
 }
 
 static int
 devfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
 {
-    struct cdev *dev = (struct cdev*)node->state;
+    struct cdev *dev;
+
+    dev = (struct cdev*)node->state;
 
     if (!dev) {
         return -1;

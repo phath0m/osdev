@@ -104,7 +104,9 @@ pseudo_open(struct cdev *dev)
 static void
 rc4_swap(char *a, char *b)
 {
-    int tmp = *a;
+    int tmp;
+
+    tmp = *a;
     *a = *b;
     *b = tmp;
 }
@@ -112,21 +114,30 @@ rc4_swap(char *a, char *b)
 static int
 random_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
+    int i;
+    int j;
+    int n;
+    int nrounds;
+    uint32_t seed;
+
+    char *key;
+
     /*
      * FYI this isn't supposed to be cryptographically secure... don't judge me, plz
      */
-    uint32_t seed = time(NULL);
-    int nrounds = sched_ticks % 11;
+    seed = time(NULL);
+    nrounds = sched_ticks % 11;
     
-    for (int i = 0; i < nrounds; i++) {
+    for (i = 0; i < nrounds; i++) {
         seed = ((seed << 1) | (seed >> 7));
         seed ^= (uint32_t)(sched_ticks & 0xFFFFFFFF);
     }
 
-    int i = 0;
-    int j = 0;
-    int n = 0;
-    char *key = (char*)&seed;
+    i = 0;
+    j = 0;
+    n = 0;
+    
+    key = (char*)&seed;
 
     for (n = 0; n < 256; n++) {
         buf[i] = i;
@@ -138,7 +149,7 @@ random_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
         rc4_swap(&buf[i], &buf[j]);
     }
 
-    for (int n = 0; n < nbyte; n++) {
+    for (n = 0; n < nbyte; n++) {
         i = (i + 1) % 256;
         j = (j + buf[i]) % 256;
 
@@ -154,7 +165,9 @@ random_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 static int
 zero_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
-    for (int i = 0; i < nbyte; i++) {
+    int i;
+
+    for (i = 0; i < nbyte; i++) {
         buf[i] = 0;
     }
 

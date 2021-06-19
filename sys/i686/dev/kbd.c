@@ -26,9 +26,9 @@
 #include <sys/proc.h>
 #include <sys/types.h>
 
-static int keyboard_attach(struct driver *driver, struct device *dev);
-static int keyboard_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp);
-static int keyboard_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos);
+static int keyboard_attach(struct driver *, struct device *);
+static int keyboard_ioctl(struct cdev *, uint64_t, uintptr_t);
+static int keyboard_read(struct cdev *, char *, size_t, uint64_t);
 
 struct driver kbd_driver = {
     .attach     =   keyboard_attach,
@@ -41,9 +41,12 @@ static struct fifo *keyboard_buf;
 static int
 keyboard_irq_handler(struct device *dev, int inum)
 {
+    uint8_t scancode;
+
     while ((io_read8(0x64) & 2));
 
-    uint8_t scancode = io_read8(0x60);
+    scancode = io_read8(0x60);
+
     fifo_write(keyboard_buf, &scancode, 1);
 
     return 0;
@@ -52,6 +55,8 @@ keyboard_irq_handler(struct device *dev, int inum)
 static int
 keyboard_attach(struct driver *driver, struct device *dev)
 {
+    struct cdev *cdev;
+
     keyboard_buf = fifo_new(4096);
     irq_register(dev, 1, keyboard_irq_handler);
 
@@ -66,7 +71,7 @@ keyboard_attach(struct driver *driver, struct device *dev)
         .write  = NULL
     };
 
-    struct cdev *cdev = cdev_new("kbd", 0666, DEV_MAJOR_KBD, 0, &kbd_ops, NULL);
+    cdev = cdev_new("kbd", 0666, DEV_MAJOR_KBD, 0, &kbd_ops, NULL);
     
     if (cdev && cdev_register(cdev) == 0) {
         return 0;

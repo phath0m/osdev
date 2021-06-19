@@ -42,8 +42,11 @@ dict_hash(const char *key)
 void
 dict_clear(struct dict *dict)
 {
-    for (int i = 0; i < DICT_HASH_SIZE; i++) {
-        struct dict_entry *entry = dict->entries[i];
+    int i;
+    struct dict_entry *entry;
+
+    for (i = 0; i < DICT_HASH_SIZE; i++) {
+        entry = dict->entries[i];
 
         if (entry) {
             list_destroy(&entry->values, true);
@@ -62,17 +65,20 @@ dict_count(struct dict *dict)
 void
 dict_clear_f(struct dict *dict, dict_free_t free_func)
 {
-    for (int i = 0; i < DICT_HASH_SIZE; i++) {
-        struct dict_entry *entry = dict->entries[i];
+    int i;
+    list_iter_t iter;
+
+    struct dict_entry *entry;
+    struct key_value_pair *kvp;
+    
+    for (i = 0; i < DICT_HASH_SIZE; i++) {
+        entry = dict->entries[i];
 
         if (!entry) {
             continue;
         }
         
-        list_iter_t iter;
         list_get_iter(&entry->values, &iter);
-
-        struct key_value_pair *kvp;
 
         while (iter_move_next(&iter, (void**)&kvp)) {
             free_func(kvp->value);           
@@ -88,21 +94,23 @@ dict_clear_f(struct dict *dict, dict_free_t free_func)
 bool
 dict_get(struct dict *dict, const char *key, void **result)
 {
-    uint32_t hash = dict_hash(key);
+    bool succ;
+    list_iter_t iter;
+    uint32_t hash;
 
-    struct dict_entry *entry = dict->entries[hash];
+    struct dict_entry *entry;
+    struct key_value_pair *kvp;
+
+    hash = dict_hash(key);
+    entry = dict->entries[hash];
 
     if (!entry) {
         return false;
     }
 
-    bool succ = false;
-
-    struct key_value_pair *kvp;
+    succ = false;
 
     if (entry && LIST_SIZE(&entry->values) > 1) {
-        list_iter_t iter;
-
         list_get_iter(&entry->values, &iter);
 
         while (iter_move_next(&iter, (void**)&kvp)) {
@@ -137,7 +145,15 @@ dict_get_keys(struct dict *dict, list_iter_t *iter)
 bool
 dict_remove(struct dict *dict, const char *key)
 {
-    uint32_t hash = dict_hash(key);
+    list_iter_t iter;
+    uint32_t hash;
+
+    struct dict_entry *entry;
+    struct list *listp;
+    struct key_value_pair *match;
+    struct key_value_pair *kvp;
+
+    hash = dict_hash(key);
 /*
     struct dict_entry *entry = dict->entries[hash];
 
@@ -178,17 +194,15 @@ dict_remove(struct dict *dict, const char *key)
     return succ;
     */
 
-    struct dict_entry *entry = dict->entries[hash];
-    struct list *listp = &entry->values;
+    entry = dict->entries[hash];
+    listp = &entry->values;
 
     if (LIST_SIZE(listp) == 0) {
         return false;
     }
 
-    struct key_value_pair *match = NULL;
-    struct key_value_pair *kvp;
+    match = NULL;
 
-    list_iter_t iter;
     list_get_iter(listp, &iter);
 
     while (iter_move_next(&iter, (void**)&kvp)) {
@@ -215,16 +229,19 @@ dict_remove(struct dict *dict, const char *key)
 void
 dict_set(struct dict *dict, const char *key, void *value)
 {
-    uint32_t hash = dict_hash(key);
+    uint32_t hash;
+    struct dict_entry *entry;
+    struct key_value_pair *kvp;
 
-    struct dict_entry *entry = dict->entries[hash];
+    hash = dict_hash(key);
+    entry = dict->entries[hash];
 
     if (!entry) {
-        entry = (struct dict_entry*)calloc(0, sizeof(struct dict_entry));
+        entry = (struct dict_entry*)calloc(1, sizeof(struct dict_entry));
         dict->entries[hash] = entry;
     }
 
-    struct key_value_pair *kvp = (struct key_value_pair*)malloc(sizeof(struct key_value_pair));
+    kvp = (struct key_value_pair*)calloc(1, sizeof(struct key_value_pair));
     
     strncpy(kvp->key, key, 128);
 

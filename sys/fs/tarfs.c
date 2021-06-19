@@ -38,13 +38,13 @@
 struct ramfs_node;
 struct tar_header;
 
-static int ramfs_lookup(struct vnode *parent, struct vnode **result, const char *name);
-static int ramfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root);
+static int ramfs_lookup(struct vnode *, struct vnode **, const char *);
+static int ramfs_mount(struct vnode *, struct cdev *, struct vnode **);
 static struct ramfs_node *ramfs_node_new();
-static int ramfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos);
-static int ramfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry);
-static int ramfs_seek(struct vnode *node, off_t *pos, off_t off, int whence);
-static int ramfs_stat(struct vnode *node, struct stat *stat);
+static int ramfs_read(struct vnode *, void *, size_t, uint64_t);
+static int ramfs_readdirent(struct vnode *, struct dirent *, uint64_t);
+static int ramfs_seek(struct vnode *, off_t *, off_t, int);
+static int ramfs_stat(struct vnode *, struct stat *);
 
 struct vops ramfs_file_ops = {
     .lookup     = ramfs_lookup,
@@ -101,11 +101,15 @@ discard_trailing_slash(char *path)
 static struct ramfs_node *
 ramfs_get_node(struct ramfs_node *root, const char *path)
 {
-    struct ramfs_node *parent = root;
-    struct ramfs_node *child = NULL;
+    struct ramfs_node *parent;
+    struct ramfs_node *child;
 
     char dir[PATH_MAX];
-    char *nextdir = NULL;
+    char *nextdir;
+
+    nextdir = NULL;
+    parent = root;
+    child = NULL;
 
     if (*path == 0 || !strcmp(path, "/")) {
         return root;
@@ -138,22 +142,31 @@ ramfs_get_node(struct ramfs_node *root, const char *path)
 struct ramfs_node *
 parse_tar_archive(const void *archive)
 {
-    struct ramfs_node *root = ramfs_node_new();
+    int i;
+    int size;
+    char name[100];
 
-    for (int i = 0; ;i++) {
-        struct tar_header *header = (struct tar_header*)archive;
+    const char *basename;
+
+    struct tar_header *header;
+    struct ramfs_node *root;
+    struct ramfs_node *node;
+    struct ramfs_node *parent;
+
+    root = ramfs_node_new();
+
+    for (i = 0; ;i++) {
+        header = (struct tar_header*)archive;
 
         if (!*header->name) {
             break;
         }
 
-        char name[100];
-
         strcpy(name, header->name + 1);
 
         discard_trailing_slash(name);
 
-        struct ramfs_node *node = ramfs_node_new();
+        node = ramfs_node_new();
         
         node->header = header;
         node->data = (void*)(archive + 512);
@@ -162,7 +175,7 @@ parse_tar_archive(const void *archive)
         node->uid = atoi(header->uid, 8);
         node->mtime = atoi(header->mtime, 8);
 
-        int size = atoi(header->size, 8);
+        size = atoi(header->size, 8);
 
         node->size = size;
 
@@ -173,11 +186,11 @@ parse_tar_archive(const void *archive)
         }
 
         if (i > 0) {
-            const char *basename = strchr(name, '/') + 1;
+            basename = strchr(name, '/') + 1;
         
             *strchr(name, '/') = '\0';
 
-            struct ramfs_node *parent = (struct ramfs_node*)ramfs_get_node(root, name);
+            parent = (struct ramfs_node*)ramfs_get_node(root, name);
 
             dict_set(&parent->children, basename, node); 
             
@@ -198,20 +211,20 @@ parse_tar_archive(const void *archive)
 static struct ramfs_node *
 ramfs_node_new()
 {
-    struct ramfs_node *node = (struct ramfs_node*)calloc(0, sizeof(struct ramfs_node));
-
-    return node;
+    return (struct ramfs_node*)calloc(1, sizeof(struct ramfs_node));
 }
 
 static int
 ramfs_lookup(struct vnode *parent, struct vnode **result, const char *name)
 {
-    struct ramfs_node *dir = (struct ramfs_node*)parent->state;
-
+    struct ramfs_node *dir;
     struct ramfs_node *child;
+    struct vnode *node;
+    
+    dir = (struct ramfs_node*)parent->state;
 
     if (dict_get(&dir->children, name, (void**)&child)) {
-        struct vnode *node = vn_new(parent, NULL, &ramfs_file_ops);
+        node = vn_new(parent, NULL, &ramfs_file_ops);
         
         node->size = child->size;
         node->state = child;
@@ -229,7 +242,9 @@ ramfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
 {
     extern void *start_initramfs;
 
-    struct vnode *node = vn_new(parent, dev, &ramfs_file_ops);
+    struct vnode *node;
+
+    node = vn_new(parent, dev, &ramfs_file_ops);
 
     node->state = parse_tar_archive(start_initramfs);
     
@@ -241,10 +256,14 @@ ramfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
 static int
 ramfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
-    struct ramfs_node *file = (struct ramfs_node*)node->state;
-    
-    uint64_t start = pos;
-    uint64_t end = start + nbyte;
+    uint64_t end;
+    uint64_t start;
+
+    struct ramfs_node *file;
+
+    file = (struct ramfs_node*)node->state;
+    start = pos;
+    end = start + nbyte;
 
     if (file->type != DT_REG) {
         return -(EISDIR);
@@ -264,21 +283,24 @@ ramfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-ramfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
+ramfs_readdirent(struct vnode *vn, struct dirent *dirent, uint64_t entry)
 {
-    struct ramfs_node *dir = (struct ramfs_node*)node->state;
-
+    int i;
+    int res;
     list_iter_t iter;
+
+    char *name;
+    struct ramfs_node *dir;
+    struct ramfs_node *node;
+
+    dir = (struct ramfs_node*)vn->state;
 
     dict_get_keys(&dir->children, &iter);
 
-    char *name = NULL;
+    res = -1;
+    name = NULL;
 
-    int res = -1;
-
-    for (int i = 0; iter_move_next(&iter, (void**)&name); i++) {
-        struct ramfs_node *node = NULL;
-
+    for (i = 0; iter_move_next(&iter, (void**)&name); i++) {
         if (i == entry && name && dict_get(&dir->children, name, (void**)&node)) {
             strncpy(dirent->name, name, PATH_MAX);
             dirent->type = node->type;
@@ -295,9 +317,11 @@ ramfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 static int
 ramfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 {
-    struct ramfs_node *file = (struct ramfs_node*)node->state;
-
     off_t new_pos;
+
+    struct ramfs_node *file;
+
+    file = (struct ramfs_node*)node->state;
 
     switch (whence) {
         case SEEK_CUR:
@@ -327,7 +351,9 @@ ramfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 static int
 ramfs_stat(struct vnode *node, struct stat *stat)
 {
-    struct ramfs_node *file = (struct ramfs_node*)node->state;
+    struct ramfs_node *file;
+
+    file = (struct ramfs_node*)node->state;
 
     stat->st_dev = (dev_t)0;
     stat->st_gid = file->gid;
@@ -336,6 +362,7 @@ ramfs_stat(struct vnode *node, struct stat *stat)
     stat->st_uid = file->uid;
     stat->st_ino = (ino_t)file;
     stat->st_mtime = file->mtime;
+
     return 0;
 }
 

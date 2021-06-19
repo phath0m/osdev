@@ -28,7 +28,10 @@ int list_elem_count = 0;
 void
 list_append(struct list *listp, void *ptr)
 {
-    struct list_elem *elem = (struct list_elem*)calloc(0, sizeof(struct list_elem));
+    struct list_elem *elem;
+    struct list_elem *tail;
+
+    elem = (struct list_elem*)calloc(1, sizeof(struct list_elem));
 
     spinlock_lock(&listp->lock);
 
@@ -36,7 +39,7 @@ list_append(struct list *listp, void *ptr)
     elem->next_elem = NULL;
     elem->prev_elem = NULL;
 
-    struct list_elem *tail = listp->tail;
+    tail = listp->tail;
 
     if (tail) {
         tail->next_elem = elem;
@@ -57,16 +60,19 @@ list_append(struct list *listp, void *ptr)
 void
 list_destroy(struct list *listp, bool free_children)
 {
+    struct list_elem *cur;
+    struct list_elem *next;
+    
     spinlock_lock(&listp->lock);
 
-    struct list_elem *cur = listp->head;
+    cur = listp->head;
 
     while (cur) {
         if (free_children) {
             free(cur->data);
         }
 
-        struct list_elem *next = cur->next_elem;
+        next = cur->next_elem;
         free(cur);
         cur = next;
         list_elem_count--;
@@ -92,11 +98,14 @@ list_get_iter(struct list *listp, list_iter_t *iterp)
 void *
 list_peek_back(struct list *listp)
 {
-    void *ret = NULL;
+    void *ret;
+    struct list_elem *tail;
+
+    ret = NULL;
 
     spinlock_lock(&listp->lock);
 
-    struct list_elem *tail = listp->tail;
+    tail = listp->tail;
 
     if (tail) {
         ret = tail->data;
@@ -110,11 +119,13 @@ list_peek_back(struct list *listp)
 bool
 list_remove_front(struct list *listp, void **item)
 {
-    bool res = false;
+    bool res;
+    struct list_elem *head;
 
     spinlock_lock(&listp->lock);
 
-    struct list_elem *head = listp->head;
+    res = false;
+    head = listp->head;
 
     if (head) {
         listp->head = head->next_elem;
@@ -145,15 +156,21 @@ list_remove_front(struct list *listp, void **item)
 bool
 list_remove(struct list *listp, void *item)
 {
-    bool res = false;
+    bool res;
 
+    struct list_elem *iter;
+    struct list_elem *prev;
+    struct list_elem *next;
+    
     spinlock_lock(&listp->lock);
     
-    struct list_elem *iter = listp->head;
-    struct list_elem *prev = NULL;
+    iter = listp->head;
+    prev = NULL;
+
+    res = false;
 
     while (iter) {
-        struct list_elem *next = iter->next_elem;
+        next = iter->next_elem;
 
         if (iter->data == item) {
             if (prev) {
@@ -187,11 +204,13 @@ list_remove(struct list *listp, void *item)
 bool
 list_remove_back(struct list *listp, void **item)
 {
-    bool res = false;
+    bool res;
+    struct list_elem *tail;
 
     spinlock_lock(&listp->lock);
 
-    struct list_elem *tail = listp->tail;
+    res = false;
+    tail = listp->tail;
 
     if (tail) {
         listp->tail = tail->prev_elem;
@@ -223,7 +242,9 @@ list_remove_back(struct list *listp, void **item)
 void
 iter_close(list_iter_t *iterp)
 {
-    struct list *listp = iterp->listp;
+    struct list *listp;
+
+    listp = iterp->listp;
 
     spinlock_unlock(&listp->lock);
 }
@@ -231,6 +252,8 @@ iter_close(list_iter_t *iterp)
 bool
 iter_move_next(list_iter_t *iterp, void **item)
 {
+    struct list_elem *next;
+    
     if (!iterp->current_item) {
         return false;
     }
@@ -245,7 +268,7 @@ iter_move_next(list_iter_t *iterp, void **item)
         return true;
     }
 
-    struct list_elem *next = iterp->current_item->next_elem;
+    next = iterp->current_item->next_elem;
 
     if (!next) {
         return false;

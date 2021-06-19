@@ -62,11 +62,12 @@ struct driver *machine_driver_all[] = {
 void
 machine_dev_init()
 {
+    int i;
+    struct driver *driver;
+
     pci_init();
 
-    int i = 0;
-
-    struct driver *driver;
+    i = 0;
 
     while ((driver = machine_driver_all[i++])) {
         driver_register(driver);
