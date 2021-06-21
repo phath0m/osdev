@@ -27,7 +27,7 @@
 #include <sys/systm.h>
 #include <sys/vm.h>
 #include <sys/vnode.h>
-
+#include <sys/world.h>
 
 /*
  * parse the kernel command-line. Very simple and primative function, nothing
@@ -36,12 +36,20 @@
 void
 parse_cmdline(struct dict *dictp, const char *cmdline)
 {
+    bool option_end;
+    int i;
+    int option_count;
+    size_t cmdline_len;
+
+    char *opt_name;
+    char *opt_val;
+
     static char cmdline_bak[512];
     static char *options[512];
 
-    int option_count = 0;
-    bool option_end = true;
-    size_t cmdline_len = strlen(cmdline);
+    option_count = 0;
+    option_end = true;
+    cmdline_len = strlen(cmdline);
 
     memset(dictp, 0, sizeof(struct dict));
 
@@ -53,7 +61,7 @@ parse_cmdline(struct dict *dictp, const char *cmdline)
 
     strncpy(cmdline_bak, cmdline, 512);
 
-    for (int i = 0; i < cmdline_len; i++) {
+    for (i = 0; i < cmdline_len; i++) {
         if (cmdline_bak[i] == ' ' || cmdline_bak[i] == ',') {
             cmdline_bak[i] = '\0';
             option_end = true;
@@ -63,9 +71,9 @@ parse_cmdline(struct dict *dictp, const char *cmdline)
         }
     }
 
-    for (int i = 0; i < option_count; i++) {
-        char *opt_name = options[i];
-        char *opt_val = strrchr(options[i], '=');
+    for (i = 0; i < option_count; i++) {
+        opt_name = options[i];
+        opt_val = strrchr(options[i], '=');
         
         if (!opt_val) continue;
 
@@ -78,8 +86,15 @@ parse_cmdline(struct dict *dictp, const char *cmdline)
 bool
 parse_uuid(const char *uuid, int buf_len, uint8_t *buf)
 {
-    int i = 0, j = 0;
-    size_t uuid_len = strlen(uuid);
+    int i;
+    int j;
+    size_t uuid_len;
+
+    char octet_str[3];
+
+    i = 0;
+    j = 0;
+    uuid_len = strlen(uuid);
 
     if (uuid_len < buf_len*2) return false;
 
@@ -89,11 +104,9 @@ parse_uuid(const char *uuid, int buf_len, uint8_t *buf)
             continue;
         }
 
-        char octet_str[] = {
-            uuid[i],
-            uuid[i+1],
-            0
-        };
+        octet_str[0] = uuid[i];
+        octet_str[1] = uuid[i+1];
+        octet_str[2] = 0;
 
         /* should I check for error here? Yes. Will I? No. */
         buf[j++] = atoi(octet_str, 16);
@@ -110,24 +123,23 @@ parse_uuid(const char *uuid, int buf_len, uint8_t *buf)
 static struct vnode *
 initrd_open()
 {
-    /* now mount the ramdisk */
-    struct vnode *root;
+    extern void *start_initramfs;
+    extern void tar_extract_archive(struct vnode *, struct vnode *, const void *);
 
-    if (fs_open(NULL, &root, "tmpfs", 0) != 0) {
+    struct vnode *vn;
+
+    if (fs_open(NULL, &vn, "tmpfs", 0) != 0) {
         panic("could not mount tmpfs!");
     }
 
-    extern void *start_initramfs;
-    extern void tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive);
+    vn->mode = 0755;
 
-    root->mode = 0755;
+    current_proc->root = vn;
+    current_proc->cwd = vn;
 
-    current_proc->root = root;
-    current_proc->cwd = root;
+    tar_extract_archive(vn, NULL, start_initramfs);
 
-    tar_extract_archive(root, NULL, start_initramfs);
-
-    return root;
+    return vn;
 }
 
 struct vnode *
@@ -193,20 +205,29 @@ init_thread(void *argp)
 {
     extern struct thread *sched_curr_thread;
 
-    struct dict opts;
     char *runlevel;
-
     char *rootfs_uuid_str;
+
     uint8_t rootfs_uuid[16];
 
+    struct dict opts;
+
+    struct proc *init;
+    struct session *init_session;
+    struct pgrp *init_group;
+    struct vnode *root;
+    struct world *init_world;
+
     /* setup the first process */    
-    struct proc *init = proc_new();
-    struct session *init_session = session_new(init);
-    struct pgrp *init_group = pgrp_new(init, init_session);
-    
+    init = proc_new();
+    init_session = session_new(init);
+    init_group = pgrp_new(init, init_session);
+    init_world = world_new(init, WF_NONE);
+
     init->thread = sched_curr_thread;
     init->group = init_group;
-    
+    init->world = init_world;
+
     sched_curr_thread->proc = init;
     current_proc = init;
 
@@ -220,7 +241,7 @@ init_thread(void *argp)
     ext2_init();
 
     /* now mount the ramdisk */
-    struct vnode *root = NULL;
+    root = NULL;
 
     if (dict_get(&opts, "rootfs", (void**)&rootfs_uuid_str)) {
         printf("rootfs: %s\n\r", rootfs_uuid_str);

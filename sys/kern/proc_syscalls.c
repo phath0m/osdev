@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <sys/vnode.h>
 #include <sys/vm.h>
+#include <sys/world.h>
 
 static inline int
 can_execute_file(const char *path)
@@ -65,6 +66,10 @@ can_execute_file(const char *path)
 static int
 sys_chdir(struct thread *th, syscall_args_t args)
 {
+    int res;
+    struct file *file;
+    struct vnode *newdir;
+
     DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
 
     if (vm_access(th->address_space, path, 1, VM_READ)) {
@@ -73,19 +78,14 @@ sys_chdir(struct thread *th, syscall_args_t args)
 
     TRACE_SYSCALL("chdir", "%s", path);
 
-    struct file *file;
-
-    int res = vfs_open_r(current_proc, &file, path, O_RDONLY);
+    res = vfs_open_r(current_proc, &file, path, O_RDONLY);
 
     if (res == 0) {
         if (current_proc->cwd) {
             VN_DEC_REF(current_proc->cwd);
         }
 
-        struct vnode *newdir;
-        
-        if (fop_getvn(file, &newdir) == 0)
-            current_proc->cwd = newdir;
+        if (fop_getvn(file, &newdir) == 0) current_proc->cwd = newdir;
 
         fop_close(file);
     }
@@ -96,6 +96,10 @@ sys_chdir(struct thread *th, syscall_args_t args)
 static int
 sys_chroot(struct thread *th, syscall_args_t args)
 {
+    int res;
+
+    struct vnode *root;
+
     DEFINE_SYSCALL_PARAM(const char *, path, 0, args);
 
     if (vm_access(th->address_space, path, 1, VM_READ)) {
@@ -104,9 +108,7 @@ sys_chroot(struct thread *th, syscall_args_t args)
 
     TRACE_SYSCALL("chroot", "%s", path);
 
-    struct vnode *root;
-    
-    int res = vn_open(current_proc->root, current_proc->cwd, &root, path);
+    res = vn_open(current_proc->root, current_proc->cwd, &root, path);
 
     if (res == 0) {
         current_proc->root = root;
@@ -136,38 +138,40 @@ sys_clone(struct thread *th, syscall_args_t argv)
 static int
 sys_execve(struct thread *th, syscall_args_t args)
 {
+    int exec_err;
+    int i;
+    int status;
+    struct file *fd;
+
+    char interpreter[512];
+    char *new_argv[256];
+
     DEFINE_SYSCALL_PARAM(const char *, file, 0, args);
     DEFINE_SYSCALL_PARAM(const char **, argv, 1, args);
     DEFINE_SYSCALL_PARAM(const char **, envp, 2, args);
 
     TRACE_SYSCALL("execve", "%s, %p, %p", file, argv, envp);
 
-    struct file *fd;
-
-    int exec_err = can_execute_file(file);
+    exec_err = can_execute_file(file);
 
     if (exec_err != 0) {
         return exec_err;
     }
 
-    int status = vfs_open(current_proc, &fd, file, O_RDONLY);
+    status = vfs_open(current_proc, &fd, file, O_RDONLY);
 
     if (status == 0) {
-        char interpreter[512];
-
         if (fop_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
             fop_read(fd, interpreter, 512);
         
-            for (int i = 0; i < 512; i++) {
+            for (i = 0; i < 512; i++) {
                 if (interpreter[i] == '\n') {
                     interpreter[i] = 0;
                     break;
                 }
             }
 
-            char *new_argv[256];
-
-            for (int i = 0; i < 255 && argv[i]; i++) {
+            for (i = 0; i < 255 && argv[i]; i++) {
                 new_argv[i + 2] = (char*)argv[i];
             }
 
@@ -194,11 +198,11 @@ sys_execve(struct thread *th, syscall_args_t args)
 static int
 sys_exit(struct thread *th, syscall_args_t args)
 {
+    extern struct thread *sched_curr_thread;
+
     DEFINE_SYSCALL_PARAM(int, status, 0, args);
 
     TRACE_SYSCALL("exit", "%d", status);
-
-    extern struct thread *sched_curr_thread;
 
     list_remove(&current_proc->threads, sched_curr_thread);
 
@@ -337,12 +341,14 @@ sys_fork(struct thread *th, syscall_args_t argv)
 static int
 sys_kill(struct thread *th, syscall_args_t argv)
 {
+    struct proc *proc;
+
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(int, sig, 1, argv);
         
     TRACE_SYSCALL("kill", "%d, %d", pid, sig);
 
-    struct proc *proc = proc_find(pid);
+    proc = proc_find(pid);
 
     if (!proc) {
         return -(ESRCH);
@@ -387,6 +393,9 @@ sys_setegid(struct thread *th, syscall_args_t argv)
 static int
 sys_setpgid(struct thread *th, syscall_args_t argv)
 {
+    struct pgrp *old_group;
+    struct pgrp *new_group;
+
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(pid_t, pgid, 1, argv);
 
@@ -396,8 +405,8 @@ sys_setpgid(struct thread *th, syscall_args_t argv)
         return -1;
     }
 
-    struct pgrp *old_group = current_proc->group;
-    struct pgrp *new_group = pgrp_new(current_proc, old_group->session);
+    old_group = current_proc->group;
+    new_group = pgrp_new(current_proc, old_group->session);
 
     proc_leave_group(current_proc, old_group);
 
@@ -409,16 +418,20 @@ sys_setpgid(struct thread *th, syscall_args_t argv)
 static int
 sys_setsid(struct thread *th, syscall_args_t argv)
 {
+    struct session *new_session;
+    struct pgrp *new_group;
+    struct pgrp *old_group;
+
     TRACE_SYSCALL("setsid", "(void)");
     
-    struct pgrp *old_group = current_proc->group;
+    old_group = current_proc->group;
 
     if (old_group->pgid == current_proc->pid) {
         return -(EPERM);
     }
 
-    struct session *new_session = session_new(current_proc);
-    struct pgrp *new_group = pgrp_new(current_proc, new_session);
+    new_session = session_new(current_proc);
+    new_group = pgrp_new(current_proc, new_session);
 
     proc_leave_group(current_proc, old_group);
 
@@ -461,14 +474,17 @@ sys_seteuid(struct thread *th, syscall_args_t argv)
 static int
 sys_sbrk(struct thread *th, syscall_args_t argv)
 {
+    uintptr_t old_brk;
+    struct proc *proc;
+    struct vm_space *space;
+
     DEFINE_SYSCALL_PARAM(ssize_t, increment, 0, argv);
 
     TRACE_SYSCALL("sbrk", "%d", increment);
 
-    struct proc *proc = th->proc;
-
-    uintptr_t old_brk = proc->brk;
-    struct vm_space *space = th->address_space;
+    proc = th->proc;
+    old_brk = proc->brk;
+    space = th->address_space;
 
     if ((old_brk + increment) >= 0x20000000) {
         printf("kernel: pid %d out of memory\n\r", proc->pid);
@@ -501,9 +517,10 @@ sys_sigaction(struct thread *th, syscall_args_t argv)
 static int
 sys_sigrestore(struct thread *th, syscall_args_t argv)
 {
-    struct thread *curr_thread = current_proc->thread;
-
+    struct thread *curr_thread;
     struct sigcontext *ctx;
+
+    curr_thread = current_proc->thread;
 
     list_remove_front(&curr_thread->signal_stack, (void**)&ctx);
 
@@ -515,12 +532,15 @@ sys_sigrestore(struct thread *th, syscall_args_t argv)
 static int
 sys_sleep(struct thread *th, syscall_args_t argv)
 {
+    int wakeup_time;
+    uint32_t required_ticks;
+
     DEFINE_SYSCALL_PARAM(int, milliseconds, 0, argv);
 
     TRACE_SYSCALL("msleep", "%d", milliseconds);
 
-    uint32_t required_ticks = milliseconds;
-    int wakeup_time = sched_ticks + required_ticks;
+    required_ticks = milliseconds;
+    wakeup_time = sched_ticks + required_ticks;
 
     bus_interrupts_on();
 
@@ -534,6 +554,7 @@ sys_sleep(struct thread *th, syscall_args_t argv)
 static int
 sys_wait(struct thread *th, syscall_args_t argv)
 {
+    struct proc *child;
     DEFINE_SYSCALL_PARAM(int *, status, 0, argv);
 
     if (status && vm_access(th->address_space, status, sizeof(int), VM_READ)) {
@@ -542,10 +563,9 @@ sys_wait(struct thread *th, syscall_args_t argv)
 
     TRACE_SYSCALL("wait", "%p", status);
 
-    struct proc *child = LIST_LAST(&current_proc->children);
+    child = LIST_LAST(&current_proc->children);
 
     if (child) {
-
         if (!child->exited) {
             bus_interrupts_on();
             wq_wait(&child->waiters);
@@ -560,6 +580,10 @@ sys_wait(struct thread *th, syscall_args_t argv)
 static int
 sys_waitpid(struct thread *th, syscall_args_t argv)
 {
+    list_iter_t iter;
+    struct proc *proc;
+    struct proc *needle;
+
     DEFINE_SYSCALL_PARAM(pid_t, pid, 0, argv);
     DEFINE_SYSCALL_PARAM(int *, status, 1, argv);
 
@@ -569,11 +593,9 @@ sys_waitpid(struct thread *th, syscall_args_t argv)
 
     TRACE_SYSCALL("waitpid", "%d, %p", pid, status);
 
-    list_iter_t iter;
     list_get_iter(&current_proc->children, &iter);
 
-    struct proc *proc;
-    struct proc *needle = NULL;
+    needle = NULL;
 
     while (iter_move_next(&iter, (void**)&proc)) {
         if (proc->pid == pid) {
@@ -600,6 +622,17 @@ sys_waitpid(struct thread *th, syscall_args_t argv)
 }
 
 static int
+sys_worldctl(struct thread *th, syscall_args_t argv)
+{
+    DEFINE_SYSCALL_PARAM(int, opcode, 0, argv);
+    DEFINE_SYSCALL_PARAM(int, arg, 1, argv);
+
+    TRACE_SYSCALL("worldctl", "%d, %d", opcode, arg);
+
+    return kern_worldctl(current_proc, opcode, arg);
+}
+
+static int
 sys_dup(struct thread *th, syscall_args_t argv)
 {
     DEFINE_SYSCALL_PARAM(int, oldfd, 0, argv);
@@ -623,11 +656,13 @@ sys_dup2(struct thread *th, syscall_args_t argv)
 static int
 sys_umask(struct thread *th, syscall_args_t argv)
 {
+    mode_t oldmask;
+
     DEFINE_SYSCALL_PARAM(mode_t, mask, 0, argv);
 
     TRACE_SYSCALL("umask", "%d", mask);
 
-    mode_t oldmask = current_proc->umask;
+    oldmask = current_proc->umask;
 
     current_proc->umask = ~mask;
 
@@ -649,9 +684,9 @@ sys_pause(struct thread *th, syscall_args_t argv)
 static int
 sys_thread_sleep(struct thread *th, syscall_args_t argv)
 {
-    TRACE_SYSCALL("thread_sleep", "void");
-
     extern struct thread *sched_curr_thread;
+
+    TRACE_SYSCALL("thread_sleep", "void");
 
     thread_schedule(SSLEEP, sched_curr_thread);
 
@@ -665,16 +700,17 @@ sys_thread_sleep(struct thread *th, syscall_args_t argv)
 static int
 sys_thread_wake(struct thread *th, syscall_args_t argv)
 {
+    int ret;
+    list_iter_t iter;
+    struct thread *thread;
+
     DEFINE_SYSCALL_PARAM(pid_t, tid, 0, argv);
 
     TRACE_SYSCALL("thread_wake", "void");
 
-    list_iter_t iter;
-
     list_get_iter(&current_proc->threads, &iter);
 
-    int ret = -(ESRCH);
-    struct thread *thread;
+    ret = -(ESRCH);
 
     while (iter_move_next(&iter, (void**)&thread)) {
         if (thread->tid == tid) {
@@ -728,4 +764,5 @@ proc_syscalls_init()
     register_syscall(SYS_THREAD_WAKE, 1, sys_thread_wake);
     register_syscall(SYS_GETTID, 0, sys_gettid);
     register_syscall(SYS_FCNTL, 3, sys_fcntl);
+    register_syscall(SYS_WORLDCTL, 2, sys_worldctl);
 }

@@ -23,10 +23,13 @@
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/world.h>
 
 static void
 fill_proc_info(struct kinfo_proc *proc_info, struct proc *proc)
 {
+    char *tty;
+
     proc_info->pid = proc->pid;
     proc_info->uid = proc->creds.uid;
     proc_info->gid = proc->creds.gid;
@@ -39,7 +42,7 @@ fill_proc_info(struct kinfo_proc *proc_info, struct proc *proc)
     
     proc_info->stime = proc->start_time + time_delta.tv_sec;
 
-    char *tty = proc_getctty(proc);
+    tty = proc_getctty(proc);
 
     strncpy(proc_info->cmd, proc->name, 255);
 
@@ -55,6 +58,12 @@ sysctl_proc_all(void *buf, size_t *len)
 {
     extern struct list process_list;
 
+    int i;
+    int maxprocs;
+    list_iter_t iter;
+    struct kinfo_proc *procs;
+    struct proc *proc;
+
     if (!buf && len) {
         *len = (LIST_SIZE(&process_list)+16)*sizeof(struct kinfo_proc);
         return 0;
@@ -64,17 +73,17 @@ sysctl_proc_all(void *buf, size_t *len)
         return -1;
     }
 
-    int maxprocs = *len / sizeof(struct kinfo_proc);
+    maxprocs = *len / sizeof(struct kinfo_proc);
 
-    list_iter_t iter;
     list_get_iter(&process_list, &iter);
 
-    struct kinfo_proc *procs = buf;    
-    struct proc *proc;
-    int i = 0;
+    procs = buf;    
+    i = 0;
 
     while (iter_move_next(&iter, (void**)&proc) && i < maxprocs) {
-        fill_proc_info(&procs[i++], proc);
+        if (WORLD_CAN_SEE_PROC(current_proc->world, proc)) {
+            fill_proc_info(&procs[i++], proc);
+        }
     } 
 
     *len = (i*sizeof(struct kinfo_proc));

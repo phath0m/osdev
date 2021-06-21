@@ -31,6 +31,7 @@
 #include <sys/time.h>
 #include <sys/vnode.h>
 #include <sys/vm.h>
+#include <sys/world.h>
 
 static int next_pid;
 
@@ -51,10 +52,12 @@ pgrp_find(pid_t pgid)
 {
     list_iter_t iter;
 
+    struct pgrp *pgrp;
+    struct pgrp *ret;
+
     list_get_iter(&pgrp_list, &iter);
 
-    struct pgrp *pgrp = NULL;
-    struct pgrp *ret = NULL;
+    ret = NULL;
     
     while (iter_move_next(&iter, (void**)&pgrp)) {
         if (pgrp && pgrp->pgid == pgid) {
@@ -82,7 +85,9 @@ pgrp_leave_session(struct pgrp *group, struct session *session)
 struct pgrp *
 pgrp_new(struct proc *leader, struct session *session)
 {
-    struct pgrp *group = calloc(1, sizeof(struct pgrp));
+    struct pgrp *group;
+
+    group = calloc(1, sizeof(struct pgrp));
 
     group->leader = leader;
     group->pgid = leader->pid;
@@ -91,21 +96,29 @@ pgrp_new(struct proc *leader, struct session *session)
     list_append(&group->members, leader);
     list_append(&session->groups, group);
     list_append(&pgrp_list, group);
+
     return group;
 }
 
 void
 proc_destroy(struct proc *proc)
 {
+    int i;
+    list_iter_t iter;
+    struct file *fp;
+    struct proc *orphan;
+    struct thread *thread;
+
     KASSERT(proc != LIST_FIRST(&process_list), "init died");
     KASSERT(proc->parent != NULL, "cannot have NULL parent");
 
     proc_leave_group(proc, proc->group);
+    proc_leave_world(proc, proc->world);
 
-    struct thread *thread = proc->thread;
+    thread = proc->thread;
 
-    for (int i = 0; i < 4096; i++) {
-        struct file *fp = proc->files[i];
+    for (i = 0; i < 4096; i++) {
+        fp = proc->files[i];
 
         if (fp) {
             fop_close(fp);
@@ -116,10 +129,7 @@ proc_destroy(struct proc *proc)
 
     list_remove(&process_list, proc);
 
-    list_iter_t iter;
     list_get_iter(&proc->children, &iter);
-
-    struct proc *orphan;
 
     while (iter_move_next(&iter, (void**)&orphan)) {
         orphan->parent = LIST_FIRST(&process_list);
@@ -146,10 +156,11 @@ struct proc *
 proc_find(int pid)
 {
     list_iter_t iter;
-    list_get_iter(&process_list, &iter);
 
     struct proc *proc;
     struct proc *ret;
+
+    list_get_iter(&process_list, &iter);
 
     while (iter_move_next(&iter, (void**)&proc)) {
         if (proc && proc->pid == pid) {
@@ -165,21 +176,21 @@ proc_find(int pid)
 static int
 getcwd_r(struct vnode *child, struct vnode *parent, char **components, int depth)
 {
+    int ret;
+    list_iter_t iter;
+
+    char *key;
+    struct vnode *node;
+
     if (child == NULL) {
         return depth;
     }
 
-    int ret = 0;
-
-    list_iter_t iter;
+    ret = 0;
 
     dict_get_keys(&child->children, &iter);
 
-    char *key;
-    
     while (iter_move_next(&iter, (void**)&key)) {
-        struct vnode *node;
- 
         dict_get(&child->children, key, (void**)&node);  
 
         if (node != parent) {
@@ -205,13 +216,16 @@ getcwd_r(struct vnode *child, struct vnode *parent, char **components, int depth
 void
 proc_getcwd(struct proc *proc, char *buf, int bufsize)
 {
+    int i;
+    int ncomponents;
+    size_t component_size;
     char *components[256];
 
-    int ncomponents = getcwd_r(proc->cwd->parent, proc->cwd, components, 0);
+    ncomponents = getcwd_r(proc->cwd->parent, proc->cwd, components, 0);
 
-    for (int i = ncomponents - 1; i >= 0; i--) {
+    for (i = ncomponents - 1; i >= 0; i--) {
         *(buf++) = '/';
-        size_t component_size = strlen(components[i]);
+        component_size = strlen(components[i]);
         strcpy(buf, components[i]);
         buf += component_size;
     }
@@ -234,10 +248,22 @@ proc_leave_group(struct proc *proc, struct pgrp *group)
     }   
 }
 
+void
+proc_leave_world(struct proc *proc, struct world *world)
+{
+    list_remove(&world->members, proc);
+
+    if (LIST_SIZE(&world->members) == 0) {
+        free(world);
+    }   
+}
+
 char *
 proc_getctty(struct proc *proc)
 {
-    struct session *session = PROC_GET_SESSION(proc);
+    struct session *session;
+
+    session = PROC_GET_SESSION(proc);
     
     if (session->ctty) {
         return session->ctty->name;
@@ -255,7 +281,9 @@ proc_get_new_pid()
 struct proc *
 proc_new()
 {
-    struct proc *proc = pool_get(&proc_pool);
+    struct proc *proc;
+
+    proc = pool_get(&proc_pool);
 
     proc->start_time = time_second;
     proc->pid = proc_get_new_pid();
@@ -270,7 +298,9 @@ proc_new()
 struct session *
 session_new(struct proc *leader)
 {
-    struct session *session = calloc(1, sizeof(struct session));
+    struct session *session;
+
+    session = calloc(1, sizeof(struct session));
 
     session->sid = leader->pid;
     session->leader = leader;
@@ -281,7 +311,9 @@ session_new(struct proc *leader)
 void
 thread_destroy(struct thread *thread)
 {
-    struct proc *proc = thread->proc;
+    struct proc *proc;
+
+    proc = thread->proc;
 
     list_destroy(&thread->joined_queues, true);
 
@@ -303,7 +335,9 @@ thread_destroy(struct thread *thread)
 struct thread *
 thread_new(struct vm_space *space)
 {
-    struct thread *thread = pool_get(&thread_pool);
+    struct thread *thread;
+
+    thread = pool_get(&thread_pool);
 
     if (space) {
         thread->address_space = space;
@@ -313,3 +347,6 @@ thread_new(struct vm_space *space)
 
     return thread;
 }
+
+
+

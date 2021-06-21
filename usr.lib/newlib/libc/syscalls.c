@@ -1062,6 +1062,19 @@ waitpid(pid_t pid, int *status)
 }
 
 int
+worldctl(int opcode, int arg)
+{
+    int ret = _SYSCALL2(int, SYS_WORLDCTL, opcode, arg);
+
+    if (ret < 0) {
+        errno = -ret;
+        return -1;
+    }
+
+    return ret;
+}
+
+int
 write(int file, char *ptr, int len)
 {
     int ret = _SYSCALL3(int, SYS_WRITE, file, ptr, len);

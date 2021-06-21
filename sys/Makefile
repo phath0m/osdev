@@ -50,6 +50,7 @@ KERNEL_OBJECTS += kern/vfs_syscalls.o
 KERNEL_OBJECTS += kern/vm.o
 KERNEL_OBJECTS += kern/vnode.o
 KERNEL_OBJECTS += kern/wait_queue.o
+KERNEL_OBJECTS += kern/world.o
 
 KERNEL_OBJECTS += net/klink.o
 KERNEL_OBJECTS += net/un.o

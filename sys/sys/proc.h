@@ -91,6 +91,7 @@ struct proc {
     struct vm_space *   address_space;      /* address space this process is running in*/
     struct wait_queue   waiters;
     struct pgrp *       group;              /* process group this process is a member of*/
+    struct world *      world;              /* world this process is a member of */
     struct sighandler * sighandlers[64];
     mode_t              umask;
     char                name[256];
@@ -152,6 +153,7 @@ pid_t           proc_get_new_pid();
 void            proc_destroy(struct proc *);
 int             proc_kill(struct proc *, int);
 void            proc_leave_group(struct proc *, struct pgrp *);
+void            proc_leave_world(struct proc *, struct world *);
 struct proc *   proc_find(int);
 struct proc *   proc_new();
 int             proc_signal(struct proc *, int, struct signal_args *);

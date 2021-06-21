@@ -98,6 +98,7 @@
 #define SYS_ADJTIME         0x4B
 #define SYS_MOUNT           0x4C
 #define SYS_LSEEK64         0x4D
+#define SYS_WORLDCTL        0x4E
 
 #define DEFINE_SYSCALL_PARAM(type, name, num, argp) type name = ((type)argp->args[num])
 #define DECLARE_SYSCALL_PARAM(type, num, argp) (type)(argp->args[num])
