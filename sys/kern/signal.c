@@ -38,13 +38,15 @@ kill_thread(struct thread *thread)
 int
 proc_actually_kill(struct proc *proc, int status)
 {
+    list_iter_t iter;
+
+    struct thread *thread;
+
     proc->status = status;
     proc->exited = true;
 
-    list_iter_t iter;
     list_get_iter(&proc->threads, &iter);
 
-    struct thread *thread;
     while (iter_move_next(&iter, (void**)&thread)) {
         kill_thread(thread);
     }
@@ -73,14 +75,17 @@ default_kill(struct proc *proc, int signal)
 int
 proc_kill(struct proc *proc, int sig)
 {
-    struct sighandler *handler = proc->sighandlers[sig];
+    struct sigcontext *ctx;
+    struct sighandler *handler;
+    
+    handler = proc->sighandlers[sig];
     
     if (!handler) {
         default_kill(proc, sig);
         return 0;
     }
 
-    struct sigcontext *ctx = calloc(1, sizeof(struct sigcontext));
+    ctx = calloc(1, sizeof(struct sigcontext));
 
     ctx->handler_func = handler->handler;
     ctx->arg = handler->arg;
@@ -105,7 +110,9 @@ proc_kill(struct proc *proc, int sig)
 int
 proc_signal(struct proc *proc, int sig, struct signal_args *sargs)
 {
-    struct sighandler *handler = proc->sighandlers[sig];
+    struct sighandler *handler;
+    
+    handler = proc->sighandlers[sig];
 
     if (!handler) {
         handler = calloc(1, sizeof(struct sighandler));

@@ -52,8 +52,11 @@ align_addr(size_t size, uint32_t align)
 static struct malloc_block *
 find_free_block(size_t size)
 {
-    struct malloc_block *iter = last_freed;
-    struct malloc_block *prev = NULL;
+    struct malloc_block *iter;
+    struct malloc_block *prev;
+
+    iter = last_freed;
+    prev = NULL;
 
     while (iter) {
         if (iter->magic != HEAP_MAGIC) {
@@ -71,7 +74,7 @@ find_free_block(size_t size)
         }
 
         prev = iter;
-        iter = (struct malloc_block*)iter->prev;
+        iter = iter->prev;
     }
 
     return NULL;
@@ -80,7 +83,9 @@ find_free_block(size_t size)
 void *
 calloc(int num, size_t size)
 {
-    void *ptr = malloc(size);
+    void *ptr;
+    
+    ptr = malloc(size);
 
     memset(ptr, num, size);
 
@@ -90,11 +95,13 @@ calloc(int num, size_t size)
 void *
 malloc(size_t size)
 {
-    //spinlock_lock(&malloc_lock);
+    size_t aligned_size;
+    struct malloc_block *free_block;
+
     critical_enter();
 
-    size_t aligned_size = (size + MALLOC_ALIGNMENT) & ALIGN_MASK;
-    struct malloc_block *free_block = find_free_block(aligned_size);
+    aligned_size = (size + MALLOC_ALIGNMENT) & ALIGN_MASK;
+    free_block = find_free_block(aligned_size);
 
     if (!free_block) {
         free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
@@ -108,7 +115,6 @@ malloc(size_t size)
 
     kernel_heap_allocated_blocks++;
 
-    //spinlock_unlock(&malloc_lock);
     critical_exit();
 
     memset(free_block->ptr, 0, size);
@@ -119,12 +125,16 @@ malloc(size_t size)
 void
 free(void *ptr)
 {
-    //spinlock_lock(&malloc_lock);
+    bool block_freed;
+
+    struct malloc_block *iter;
+    struct malloc_block *prev;
+
     critical_enter();
 
-    struct malloc_block *iter = last_allocated;
-    struct malloc_block *prev = NULL;
-    bool block_freed = false;
+    iter = last_allocated;
+    prev = NULL;
+    block_freed = false;
 
     while (iter) {
 
@@ -144,7 +154,7 @@ free(void *ptr)
         }
 
         prev = iter;
-        iter = (struct malloc_block*)iter->prev;
+        iter = iter->prev;
     }
     
     //spinlock_unlock(&malloc_lock);
@@ -155,7 +165,6 @@ free(void *ptr)
         panic("double free (0x%p)", ptr);
     }
 }
-
 
 int
 brk(void *ptr)
@@ -168,15 +177,15 @@ brk(void *ptr)
     kernel_heap_end = kernel_break + 0x1FC00000;
     kernel_heap_start = kernel_break;
     
-    //spinlock_unlock(&malloc_lock);
-
     return 0; 
 }
 
 void *
 sbrk(size_t increment)
 {
-    intptr_t prev_brk = kernel_break;
+    intptr_t prev_brk;
+    
+    prev_brk = kernel_break;
 
     kernel_break += increment;
     kernel_break += MALLOC_ALIGNMENT*2;
@@ -194,12 +203,17 @@ sbrk(size_t increment)
 void *
 sbrk_a(size_t increment, uintptr_t align)
 {
-    uintptr_t align_mask = align - 1;
+    int chunks_allocated;
+    uintptr_t align_mask;
+    uintptr_t prev_brk;
 
-    int chunks_allocated = 0;
+    struct malloc_block *free_block;
+
+    align_mask = align - 1;
+    chunks_allocated = 0;
 
     while ((kernel_break & align_mask) != 0) {
-        struct malloc_block *free_block = (struct malloc_block*)sbrk(sizeof(struct malloc_block));
+        free_block = sbrk(sizeof(struct malloc_block));
         free_block->magic = HEAP_MAGIC;
         free_block->ptr = sbrk(128);
         free_block->size = 128;
@@ -213,7 +227,7 @@ sbrk_a(size_t increment, uintptr_t align)
         }
     }
 
-    uintptr_t prev_brk = kernel_break;
+    prev_brk = kernel_break;
 
     if (increment & align_mask) {
         increment += align;

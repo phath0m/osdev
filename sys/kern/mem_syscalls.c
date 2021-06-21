@@ -39,11 +39,13 @@ struct mmap_args {
 static int
 sys_mmap(struct thread *th, syscall_args_t argv)
 {
+    struct file *file;
+
     DEFINE_SYSCALL_PARAM(struct mmap_args*, args, 0, argv);
 
     TRACE_SYSCALL("mmap", "0x%p, %d, 0x%p, 0x%p, %d, %d", args->addr, args->length, args->prot, args->flags, args->fd, args->offset);
 
-    struct file *file = procdesc_getfile(args->fd);
+    file = procdesc_getfile(args->fd);
 
     if (!file) {
         return -(EBADF);
@@ -55,12 +57,12 @@ sys_mmap(struct thread *th, syscall_args_t argv)
 static int
 sys_munmap(struct thread *th, syscall_args_t argv)
 {
+    extern struct vm_space *sched_curr_address_space;
+
     DEFINE_SYSCALL_PARAM(void *, addr, 0, argv);
     DEFINE_SYSCALL_PARAM(size_t, length, 1, argv);
 
     TRACE_SYSCALL("munmap", "0x%p, %d", addr, length);
-
-    extern struct vm_space *sched_curr_address_space;
 
     vm_unmap(sched_curr_address_space, addr, length);
 
@@ -70,21 +72,23 @@ sys_munmap(struct thread *th, syscall_args_t argv)
 static int
 sys_shm_open(struct thread *th, syscall_args_t argv)
 {
+    int fd;
+    int res;
+    struct file *fp;
+
     DEFINE_SYSCALL_PARAM(const char *, name, 0, argv);
     DEFINE_SYSCALL_PARAM(int, oflag, 1, argv);
     DEFINE_SYSCALL_PARAM(mode_t, mode, 2, argv);
 
     TRACE_SYSCALL("shm_open", "\"%s\", %d, %d", name, oflag, mode);
 
-    struct file *fp;
-
-    int res = shm_open(current_proc, &fp, name, oflag, mode);
+    res = shm_open(current_proc, &fp, name, oflag, mode);
 
     if (res != 0) {
         return res;
     }
 
-    int fd = procdesc_newfd(fp);
+    fd = procdesc_newfd(fp);
 
     return fd;
 }

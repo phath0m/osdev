@@ -48,7 +48,9 @@ static struct list protocol_list;
 static int
 sock_file_close(struct file *fp)
 {
-    struct socket *sock = (struct socket*)fp->state;
+    struct socket *sock;
+    
+    sock = fp->state;
 
     return sock_close(sock);
 }
@@ -56,7 +58,9 @@ sock_file_close(struct file *fp)
 static int
 sock_file_destroy(struct file *fp)
 {
-    struct socket *sock = (struct socket*)fp->state;
+    struct socket *sock;
+    
+    sock = fp->state;
 
     sock_destroy(sock);
 
@@ -66,7 +70,9 @@ sock_file_destroy(struct file *fp)
 static int
 sock_file_duplicate(struct file *fp)
 {
-    struct socket *sock = (struct socket*)fp->state;
+    struct socket *sock;
+    
+    sock = fp->state;
 
     return sock_duplicate(sock); 
 }
@@ -74,7 +80,9 @@ sock_file_duplicate(struct file *fp)
 static int
 sock_file_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct socket *sock = (struct socket*)fp->state;
+    struct socket *sock;
+    
+    sock = fp->state;
 
     return sock_recv(sock, buf, nbyte);
 }
@@ -82,7 +90,9 @@ sock_file_read(struct file *fp, void *buf, size_t nbyte)
 static int
 sock_file_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct socket *sock = (struct socket*)fp->state;
+    struct socket *sock;
+    
+    sock = fp->state;
 
     return sock_send(sock, buf, nbyte);
 }
@@ -100,10 +110,12 @@ get_protocol_from_domain(int domain)
 {
     list_iter_t iter;
 
+    struct protocol *prot;
+    struct protocol *match;
+
     list_get_iter(&protocol_list, &iter);
 
-    struct protocol *prot;
-    struct protocol *match = NULL;
+    match = NULL;
 
     while (iter_move_next(&iter, (void**)&prot)) {
         if (prot->address_family == domain) {
@@ -126,11 +138,13 @@ register_protocol(struct protocol *protocol)
 int
 sock_accept(struct socket *sock, struct socket **result, void *address, size_t *address_len)
 {
+    struct protocol *prot;
+
     if (!sock) {
         return -(EINVAL);
     }
 
-    struct protocol *prot = sock->protocol;
+    prot = sock->protocol;
 
     if (!prot->ops || !prot->ops->accept) {
         return -(ENOTSUP);
@@ -142,11 +156,13 @@ sock_accept(struct socket *sock, struct socket **result, void *address, size_t *
 int
 sock_bind(struct socket *sock, void *address, size_t address_len)
 {
+    struct protocol *prot;
+
     if (!sock) {
         return -(EINVAL);
     }
 
-    struct protocol *prot = sock->protocol;
+    prot = sock->protocol;
 
     if (!prot->ops || !prot->ops->bind) {
         return -(ENOTSUP);
@@ -158,9 +174,10 @@ sock_bind(struct socket *sock, void *address, size_t address_len)
 int
 sock_close(struct socket *sock)
 {
-    struct protocol *prot = sock->protocol;
-
     int ret;
+    struct protocol *prot;
+    
+    prot = sock->protocol;
 
     if (!prot->ops || !prot->ops->close) {
         ret = 0;
@@ -174,11 +191,13 @@ sock_close(struct socket *sock)
 int
 sock_connect(struct socket *sock, void *address, size_t address_size)
 {
+    struct protocol *prot;
+
     if (!sock) {
         return -(EINVAL);
     }
 
-    struct protocol *prot = sock->protocol;
+    prot = sock->protocol;
 
     if (!prot->ops || !prot->ops->connect) {
         return -(ENOTSUP);
@@ -190,9 +209,10 @@ sock_connect(struct socket *sock, void *address, size_t address_size)
 int
 sock_destroy(struct socket *sock)
 {
-    struct protocol *prot = sock->protocol;
-
     int ret;
+    struct protocol *prot;
+    
+    prot = sock->protocol;
 
     if (!prot->ops || !prot->ops->close) {
         ret = 0;
@@ -208,9 +228,10 @@ sock_destroy(struct socket *sock)
 int
 sock_duplicate(struct socket *sock)
 {   
-    struct protocol *prot = sock->protocol;
-    
     int ret;
+    struct protocol *prot;
+    
+    prot  = sock->protocol;
     
     if (!prot->ops || !prot->ops->duplicate) {
         ret = 0;
@@ -224,16 +245,20 @@ sock_duplicate(struct socket *sock)
 int
 sock_new(struct socket **result, int domain, int type, int protocol)
 {
-    struct protocol *prot = get_protocol_from_domain(domain);
+    struct protocol *prot;
+    struct socket *sock;
+
+    prot = get_protocol_from_domain(domain);
 
     if (!prot) {
         return -(EINVAL);
     }
 
-    struct socket *sock = (struct socket*)calloc(1, sizeof(struct socket));
+    sock = calloc(1, sizeof(struct socket));
 
     sock->protocol = prot;
     sock->type = type;
+
     *result = sock;
 
     if (prot->ops && prot->ops->init) {
@@ -246,11 +271,13 @@ sock_new(struct socket **result, int domain, int type, int protocol)
 size_t
 sock_recv(struct socket *sock, void *buf, size_t nbyte)
 {
+    struct protocol *prot;
+
     if (!sock) {
         return -(EINVAL);
     }
 
-    struct protocol *prot = sock->protocol;
+    prot = sock->protocol;
 
     if (!prot->ops || !prot->ops->recv) {
         return -(ENOTSUP);
@@ -262,11 +289,13 @@ sock_recv(struct socket *sock, void *buf, size_t nbyte)
 size_t
 sock_send(struct socket *sock, const void *buf, size_t nbyte)
 {
+    struct protocol *prot;
+
     if (!sock) {
         return -(EINVAL);
     }
 
-    struct protocol *prot = sock->protocol;
+    prot = sock->protocol;
 
     if (!prot->ops || !prot->ops->send) {
         return -(ENOTSUP);
@@ -278,10 +307,13 @@ sock_send(struct socket *sock, const void *buf, size_t nbyte)
 struct file *
 sock_to_file(struct socket *sock)
 {
-    struct file *ret = file_new(&sock_file_ops, NULL);
+    struct file *ret;
+    
+    ret = file_new(&sock_file_ops, NULL);
 
     ret->state = sock;
     ret->flags = O_RDWR;
+
     sock->refs++;
 
     return ret;
@@ -290,7 +322,9 @@ sock_to_file(struct socket *sock)
 struct socket *
 file_to_sock(struct file *file)
 {
-    struct socket *sock = (struct socket*)file->state;
+    struct socket *sock;
+    
+    sock = file->state;
 
     return sock;
 }
@@ -298,8 +332,10 @@ file_to_sock(struct file *file)
 void
 sock_init()
 {
-    int i = 0;
+    int i;
     struct protocol *prot;
+
+    i = 0;
 
     while ((prot = socket_builtin_protocols[i++])) {
         register_protocol(prot);

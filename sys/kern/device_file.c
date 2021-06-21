@@ -57,7 +57,9 @@ struct cdev_file {
 struct file *
 cdev_to_file(struct vnode *host, dev_t devno)
 {
-    struct cdev_file *file = calloc(1, sizeof(struct cdev_file));
+    struct cdev_file *file;
+    
+    file = calloc(1, sizeof(struct cdev_file));
 
     file->host = host;
     file->device = cdev_from_devno(devno);
@@ -68,7 +70,9 @@ cdev_to_file(struct vnode *host, dev_t devno)
 static int
 dev_file_destroy(struct file *fp)
 {
-    struct cdev_file *file = (struct cdev_file*)fp->state;
+    struct cdev_file *file;
+    
+    file = (struct cdev_file*)fp->state;
 
     VN_DEC_REF(file->host);
 
@@ -80,7 +84,9 @@ dev_file_destroy(struct file *fp)
 static int
 dev_file_getdev(struct file *fp, struct cdev **result)
 {
-    struct cdev_file *file = (struct cdev_file*)fp->state;
+    struct cdev_file *file;
+    
+    file = (struct cdev_file*)fp->state;
 
     *result = file->device;
 
@@ -90,7 +96,9 @@ dev_file_getdev(struct file *fp, struct cdev **result)
 static int
 dev_file_ioctl(struct file *fp, uint64_t request, void *arg)
 {
-    struct cdev_file *file = (struct cdev_file*)fp->state;
+    struct cdev_file *file;
+    
+    file = (struct cdev_file*)fp->state;
 
     return cdev_ioctl(file->device, request, (uintptr_t)arg);
 }
@@ -98,7 +106,9 @@ dev_file_ioctl(struct file *fp, uint64_t request, void *arg)
 static int
 dev_file_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset)
 {
-    struct cdev_file *file = (struct cdev_file*)fp->state;
+    struct cdev_file *file;
+    
+    file = (struct cdev_file*)fp->state;
 
     return cdev_mmap(file->device, addr, size, prot, offset);
 }
@@ -106,7 +116,9 @@ dev_file_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offs
 static int
 dev_file_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct cdev_file *file = (struct cdev_file*)fp->state;
+    struct cdev_file *file;
+    
+    file = (struct cdev_file*)fp->state;
 
     return cdev_read(file->device, buf, nbyte, fp->position);
 }
@@ -138,9 +150,13 @@ dev_file_seek(struct file *file, off_t *cur_pos, off_t off, int whence)
 static int
 dev_file_stat(struct file *fp, struct stat *stat)
 {
-    struct cdev_file *file = (struct cdev_file*)fp->state;
-    struct vnode *host = file->host;
-    struct vops *ops = host->ops;
+    struct cdev_file *file;
+    struct vnode *host;
+    struct vops *ops;
+
+    file = fp->state;
+    host = file->host;
+    ops = host->ops;
 
     if (ops->stat) {
         return ops->stat(host, stat);
@@ -152,7 +168,9 @@ dev_file_stat(struct file *fp, struct stat *stat)
 static int
 dev_file_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct cdev_file *file = (struct cdev_file*)fp->state;
+    struct cdev_file *file;
+    
+    file = (struct cdev_file*)fp->state;
 
     return cdev_write(file->device, buf, nbyte, fp->position);
 }

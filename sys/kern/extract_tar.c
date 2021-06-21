@@ -70,29 +70,35 @@ extract_file(struct vnode *root, const char *name, void *data, size_t size, mode
 void
 tar_extract_archive(struct vnode *root, struct vnode *cwd, const void *archive)
 {
+    int i;
+    mode_t mode;
+    size_t size;
+    void *data;
+    char name[100];
+
+    const struct tar_header *header;
+
     printf("kernel: extracting files to ramdisk...\n\r");
 
-    for (int i = 0; ;i++) {
-        struct tar_header *header = (struct tar_header*)archive;
+    for (i = 0; ;i++) {
+        header = archive;
 
         if (!*header->name) {
             break;
         }
-
-        char name[100];
 
         strcpy(name, header->name + 1);
 
         discard_trailing_slash(name);
 
         //node->header = header;
-        void *data = (void*)(archive + 512);
+        data = (void*)(archive + 512);
         //node->gid = atoi(header->gid, 8);
         //node->mode = atoi(header->mode, 8);
         //node->uid = atoi(header->uid, 8);
         //node->mtime = atoi(header->mtime, 8);
-        mode_t mode = atoi(header->mode, 8);
-        size_t size = atoi(header->size, 8);
+        mode = atoi(header->mode, 8);
+        size = atoi(header->size, 8);
 
 
         archive += ((size / 512) + 1) * 512;

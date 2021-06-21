@@ -45,7 +45,9 @@ struct pool file_pool;
 struct file *
 file_new(struct fops *ops, void *state)
 {
-    struct file *file = pool_get(&file_pool);
+    struct file *file;
+    
+    file = pool_get(&file_pool);
 
     file->ops = ops;
     file->state = state;
@@ -59,11 +61,13 @@ file_new(struct fops *ops, void *state)
 int
 fop_close(struct file *file)
 {
+    struct fops *ops;
+    
     if ((--file->refs) > 0) {
         return 0;
     }
 
-    struct fops *ops = file->ops;
+    ops = file->ops;
     
     if (ops->close) {
         ops->close(file);
@@ -79,11 +83,14 @@ fop_close(struct file *file)
 struct file *
 vfs_duplicate_file(struct file *file)
 {
+    struct file *new_file;
+    struct fops *ops;
+
     if (!file) {
         return NULL;
     }
 
-    struct file *new_file = pool_get(&file_pool);
+    new_file = pool_get(&file_pool);
 
     memcpy(new_file, file, sizeof(struct file));
 
@@ -91,7 +98,7 @@ vfs_duplicate_file(struct file *file)
 
     vfs_file_count++;
 
-    struct fops *ops = new_file->ops;
+    ops = new_file->ops;
 
     if (ops && ops->duplicate) {
         ops->duplicate(new_file);
@@ -103,7 +110,9 @@ vfs_duplicate_file(struct file *file)
 int
 fop_fchmod(struct file *fp, mode_t mode)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops && ops->chmod) {
         return ops->chmod(fp, mode);
@@ -115,7 +124,9 @@ fop_fchmod(struct file *fp, mode_t mode)
 int
 fop_fchown(struct file *fp, uid_t owner, gid_t group)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops && ops->chown) {
         return ops->chown(fp, owner, group);
@@ -127,7 +138,9 @@ fop_fchown(struct file *fp, uid_t owner, gid_t group)
 int
 fop_ftruncate(struct file *fp, off_t length)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops && ops->truncate) {
         return ops->truncate(fp, length);
@@ -139,7 +152,9 @@ fop_ftruncate(struct file *fp, off_t length)
 int
 fop_getdev(struct file *fp, struct cdev **result)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops && ops->getdev) {
         return ops->getdev(fp, result);
@@ -151,7 +166,9 @@ fop_getdev(struct file *fp, struct cdev **result)
 int
 fop_getvn(struct file *fp, struct vnode **result)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
     
     if (ops && ops->getvn) {
         return ops->getvn(fp, result);
@@ -175,7 +192,9 @@ fop_ioctl(struct file *fp, uint64_t request, void *arg)
 int
 fop_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops->mmap) {
         return ops->mmap(fp, addr, size, prot, offset);
@@ -187,14 +206,17 @@ fop_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset)
 int
 fop_read(struct file *fp, char *buf, size_t nbyte)
 {
+    int read;
+    struct fops *ops;
+
     if (fp->flags == O_WRONLY) {
         return -(EPERM);
     }
 
-    struct fops *ops = fp->ops;
+    ops = fp->ops;
 
     if (ops->read) {
-        int read = ops->read(fp, buf, nbyte);
+        read = ops->read(fp, buf, nbyte);
     
         if (read > 0) {
             fp->position += read;
@@ -209,10 +231,13 @@ fop_read(struct file *fp, char *buf, size_t nbyte)
 int
 fop_readdirent(struct file *fp, struct dirent *dirent)
 {
-    struct fops *ops = fp->ops;
+    int res;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops->readdirent) {
-        int res = ops->readdirent(fp, dirent, fp->position);
+        res = ops->readdirent(fp, dirent, fp->position);
 
         if (res == 0) {
             fp->position++;
@@ -227,7 +252,9 @@ fop_readdirent(struct file *fp, struct dirent *dirent)
 int
 fop_seek(struct file *fp, off_t off, int whence)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops->seek) {
         return ops->seek(fp, &fp->position, off, whence);
@@ -239,7 +266,9 @@ fop_seek(struct file *fp, off_t off, int whence)
 int
 fop_stat(struct file *fp, struct stat *stat)
 {
-    struct fops *ops = fp->ops;
+    struct fops *ops;
+    
+    ops = fp->ops;
 
     if (ops->stat) {
         return ops->stat(fp, stat);
@@ -257,14 +286,17 @@ fop_tell(struct file *fp)
 int
 fop_write(struct file *fp, const char *buf, size_t nbyte)
 {
+    ssize_t written;
+    struct fops *ops;
+
     if (fp->flags == O_RDONLY) {
         return -(EPERM);
     }
 
-    struct fops *ops = fp->ops;
+    ops = fp->ops;
 
     if (ops->write) {
-        ssize_t written = ops->write(fp, buf, nbyte);
+        written = ops->write(fp, buf, nbyte);
 
         if (written > 0) {
             fp->position += (off_t)written;

@@ -25,23 +25,28 @@
 static int
 sys_accept(struct thread *th, syscall_args_t argv)
 {
+    int res;
+    struct file *file;
+    struct file *fp;
+    struct socket *sock;
+    struct socket *client;
+
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t*, address_len, 2, argv);
 
-    struct file *fp = procdesc_getfile(fd);
+    fp = procdesc_getfile(fd);
 
     if (!fp) {
         return -(EBADF);
     }
 
-    struct socket *sock = file_to_sock(fp);
-    struct socket *client;
+    sock = file_to_sock(fp);
 
-    int res = sock_accept(sock, &client, address, address_len);
+    res = sock_accept(sock, &client, address, address_len);
 
     if (res == 0) {
-        struct file *file = sock_to_file(client);
+        file = sock_to_file(client);
 
         return procdesc_newfd(file);
     }
@@ -52,17 +57,20 @@ sys_accept(struct thread *th, syscall_args_t argv)
 static int
 sys_bind(struct thread *th, syscall_args_t argv)
 {
+    struct file *fp;
+    struct socket *sock;
+
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
 
-    struct file *fp = fp = procdesc_getfile(fd);
+    fp = procdesc_getfile(fd);
 
     if (!fp) {
         return -(EBADF); 
     }   
 
-    struct socket *sock = file_to_sock(fp);
+    sock = file_to_sock(fp);
 
     return sock_bind(sock, address, address_len);
 }
@@ -70,14 +78,17 @@ sys_bind(struct thread *th, syscall_args_t argv)
 static int
 sys_connect(struct thread *th, syscall_args_t argv)
 {
+    struct file *fp;
+    struct socket *sock;
+
     DEFINE_SYSCALL_PARAM(int, fd, 0, argv);
     DEFINE_SYSCALL_PARAM(void*, address, 1, argv);
     DEFINE_SYSCALL_PARAM(size_t, address_len, 2, argv);
 
-    struct file *fp = procdesc_getfile(fd);
+    fp = procdesc_getfile(fd);
 
     if (fp) {
-        struct socket *sock = file_to_sock(fp);
+        sock = file_to_sock(fp);
 
         return sock_connect(sock, address, address_len);
     }
@@ -88,19 +99,21 @@ sys_connect(struct thread *th, syscall_args_t argv)
 static int
 sys_socket(struct thread *th, syscall_args_t argv)
 {
+    int ret;
+    struct file *file;
+    struct socket *sock;
+
     DEFINE_SYSCALL_PARAM(int, domain, 0, argv);
     DEFINE_SYSCALL_PARAM(int, type, 1, argv);
     DEFINE_SYSCALL_PARAM(int, protocol, 2, argv);
 
-    struct socket *sock;
-
-    int ret = sock_new(&sock, domain, type, protocol);
+    ret = sock_new(&sock, domain, type, protocol);
 
     if (ret != 0) {
         return ret;
     }
 
-    struct file *file = sock_to_file(sock);
+    file = sock_to_file(sock);
 
     return procdesc_newfd(file);
 }

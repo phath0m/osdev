@@ -33,10 +33,12 @@ getfsbyname(const char *name)
 {
     list_iter_t iter;
 
+    struct filesystem *fs;
+    struct filesystem *res;
+
     list_get_iter(&fs_list, &iter);
 
-    struct filesystem *fs;
-    struct filesystem *res = NULL;
+    res = NULL;
 
     while (iter_move_next(&iter, (void**)&fs)) {
         if (strcmp(name, fs->name) == 0) {
@@ -53,19 +55,23 @@ getfsbyname(const char *name)
 int
 fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags)
 {
-    struct filesystem *fs = getfsbyname(fsname);
+    int res;
+    struct filesystem *fs;
+    struct vnode *vn;
+
+    fs = getfsbyname(fsname);
 
     if (fs) {
-        struct vnode *node = NULL;
+        vn = NULL;
 
-        int result = fs->ops->mount(NULL, dev, &node);
+        res = fs->ops->mount(NULL, dev, &vn);
 
-        if (node) {
-            node->mount_flags = flags;
-            *root = node;
+        if (vn) {
+            vn->mount_flags = flags;
+            *root = vn;
         }
 
-        return result;
+        return res;
     }
 
     return -1;
@@ -74,7 +80,9 @@ fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags)
 void
 fs_register(char *name, struct fs_ops *ops)
 {
-    struct filesystem *fs = (struct filesystem*)malloc(sizeof(struct filesystem));
+    struct filesystem *fs;
+    
+    fs = malloc(sizeof(struct filesystem));
 
     fs->name = name;
     fs->ops = ops;
@@ -87,11 +95,10 @@ fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *p
 {
     struct vnode *mount;
     struct file *file;
+    struct vnode *mount_point;
 
     if (fs_open(dev, &mount, fsname, flags) == 0) {
         if (vfs_open(current_proc, &file, path, O_RDONLY) == 0) {
-            struct vnode *mount_point;
-
             if (fop_getvn(file, &mount_point) == 0) { 
                 mount_point->ismount = true;
                 mount_point->mount = mount;
@@ -108,7 +115,9 @@ fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *p
 bool
 fs_probe(struct cdev *dev, const char *fsname, int uuid_length, const uint8_t *uuid)
 {
-    struct filesystem *fs = getfsbyname(fsname);
+    struct filesystem *fs;
+    
+    fs = getfsbyname(fsname);
 
     if (!fs) {
         return false;

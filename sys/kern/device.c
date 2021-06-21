@@ -31,15 +31,19 @@ struct list device_list;
 struct cdev *
 cdev_from_devno(dev_t devno)
 {
-    uint16_t dev_minor = minor(devno);
-    uint16_t dev_major = major(devno);
-
     list_iter_t iter;
+    uint16_t dev_minor;
+    uint16_t dev_major;
+
+    struct cdev *dev;
+    struct cdev *ret;
+
+    dev_minor = minor(devno);
+    dev_major = major(devno);
 
     list_get_iter(&device_list, &iter);
 
-    struct cdev *dev;
-    struct cdev *ret = NULL;
+    ret = NULL;
 
     while (iter_move_next(&iter, (void**)&dev)) {
         if (dev->majorno == dev_major && dev->minorno == dev_minor) {
@@ -58,8 +62,12 @@ struct cdev *
 cdev_new(const char *name, int mode, int majorno, int minorno, struct cdev_ops *ops,
     void *state)
 {
-    struct cdev *dev = calloc(1, sizeof(struct cdev) + strlen(name) + 1);
+    struct cdev *dev;
+    
+    dev = calloc(1, sizeof(struct cdev) + strlen(name) + 1);
+
     strcpy((char*)&dev[1], name);
+
     dev->name = (char*)&dev[1];
     dev->majorno = majorno;
     dev->minorno = minorno;

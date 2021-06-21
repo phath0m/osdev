@@ -36,9 +36,11 @@
 struct va_map *
 va_map_new(uintptr_t base, uintptr_t limit)
 {
-    size_t bitmap_size = PAGE_COUNT(limit - base);
-
-    struct va_map *vamap = calloc(1, sizeof(struct va_map) + bitmap_size);
+    size_t bitmap_size;
+    struct va_map *vamap;
+ 
+    bitmap_size = PAGE_COUNT(limit - base);
+    vamap = calloc(1, sizeof(struct va_map) + bitmap_size);
 
     vamap->base = base;
     vamap->limit = limit;
@@ -50,14 +52,19 @@ va_map_new(uintptr_t base, uintptr_t limit)
 uintptr_t
 va_find_block(struct va_map *vamap, size_t length)
 {
-    size_t required_pages = PAGE_COUNT(length);
-    size_t max_pages = PAGE_COUNT(vamap->limit);
+    int i;
+    int free_page_count;
 
-    int free_page_count = 0;
+    size_t required_pages;
+    size_t max_pages;
+    uint8_t *bitmap;
 
-    uint8_t *bitmap = vamap->bitmap;
+    free_page_count = 0;
+    required_pages = PAGE_COUNT(length);
+    max_pages = PAGE_COUNT(vamap->limit);
+    bitmap = vamap->bitmap;
 
-    for (int i = 1; i < max_pages; i++) {
+    for (i = 1; i < max_pages; i++) {
         if (free_page_count == required_pages) {
             return vamap->base + (i - free_page_count) * 4096;
         }
@@ -78,19 +85,22 @@ va_find_block(struct va_map *vamap, size_t length)
 void
 va_mark_block(struct va_map *vamap, uintptr_t addr, size_t length)
 {
+    int i;
+    int start_page;
+    size_t required_pages;
+    uint8_t *bitmap;
+
     if (addr + length > vamap->limit) {
         return;
     }
 
     addr -= vamap->base;
 
-    size_t required_pages = PAGE_COUNT(length);
+    required_pages = PAGE_COUNT(length);
+    start_page = PAGE_INDEX(addr);
+    bitmap = vamap->bitmap;
 
-    int start_page = PAGE_INDEX(addr);
-
-    uint8_t *bitmap = vamap->bitmap;
-
-    for (int i = 0; i < required_pages; i++) {
+    for (i = 0; i < required_pages; i++) {
         BITMAP_SET(bitmap, start_page + i);
     }
 }
@@ -112,18 +122,23 @@ va_alloc_block(struct va_map *vamap, uintptr_t addr, size_t length)
 void
 va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
 {
+    int i;
+    int start_page;
+    size_t required_pages;
+    uint8_t *bitmap;
+
     if (addr + length > vamap->limit) {
         return;
     }
 
     addr -= vamap->base;
 
-    size_t required_pages = PAGE_COUNT(length);
-    int start_page = PAGE_INDEX(addr);
+    required_pages = PAGE_COUNT(length);
+    start_page = PAGE_INDEX(addr);
 
-    uint8_t *bitmap = vamap->bitmap;
+    bitmap = vamap->bitmap;
 
-    for (int i = 0; i < required_pages; i++) {
+    for (i = 0; i < required_pages; i++) {
         BITMAP_CLEAR(bitmap, start_page + i);
     }
 }
@@ -132,6 +147,10 @@ va_free_block(struct va_map *vamap, uintptr_t addr, size_t length)
 int
 vm_access(struct vm_space *space, const void *buf, size_t nbyte, int prot)
 {
+    int i;
+    int start_page;
+    size_t required_pages;
+    uint8_t *bitmap;
     struct va_map *vamap = NULL;
 
     if (VM_IS_KERN(prot) && VA_BOUNDCHECK(space->kva_map, buf, nbyte)) {
@@ -144,12 +163,12 @@ vm_access(struct vm_space *space, const void *buf, size_t nbyte, int prot)
         return -1;
     }
 
-    int start_page = PAGE_INDEX((uintptr_t)buf - vamap->base);
-    size_t required_pages = PAGE_COUNT(nbyte);
+    start_page = PAGE_INDEX((uintptr_t)buf - vamap->base);
+    required_pages = PAGE_COUNT(nbyte);
 
-    uint8_t *bitmap = vamap->bitmap;
+    bitmap = vamap->bitmap;
 
-    for (int i = 0; i < required_pages; i++) {
+    for (i = 0; i < required_pages; i++) {
         if (!BITMAP_GET(bitmap, start_page + i)) {
             return -1;
         }
@@ -164,10 +183,12 @@ vm_find_block(struct vm_space *space, uintptr_t vaddr)
 {
     list_iter_t iter;
 
+    struct vm_block *block;
+    struct vm_block *res;
+
     list_get_iter(&space->map, &iter);
 
-    struct vm_block *block;
-    struct vm_block *res = NULL;
+    res = NULL;
 
     while (iter_move_next(&iter, (void**)&block)) {
         if (block->start_virtual == vaddr) {

@@ -28,17 +28,18 @@
 static int
 sys_isatty(struct thread *th, syscall_args_t argv)
 {
+    struct cdev *tty;
+    struct file *file;
+
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
 
     TRACE_SYSCALL("isatty", "%d", fildes);
 
-    struct file *file = procdesc_getfile(fildes);
+    file = procdesc_getfile(fildes);
 
     if (!file) {
         return -(EBADF);
     }
-
-    struct cdev *tty;
 
     if (fop_getdev(file, &tty) != 0) {
         return -(ENOTTY);
@@ -54,18 +55,19 @@ sys_isatty(struct thread *th, syscall_args_t argv)
 static int
 sys_ttyname(struct thread *th, syscall_args_t argv)
 {
+    struct cdev *tty;
+    struct file *file;
+
     DEFINE_SYSCALL_PARAM(int, fildes, 0, argv);
     DEFINE_SYSCALL_PARAM(char *, buf, 1, argv);
 
     TRACE_SYSCALL("ttyname", "%d, 0x%p", fildes, buf);
 
-    struct file *file = procdesc_getfile(fildes);
+    file = procdesc_getfile(fildes);
 
     if (!file) {
         return -(EBADF);
     }
-
-    struct cdev *tty;
 
     if (fop_getdev(file, &tty) != 0) {
         return -(ENOTTY);
@@ -86,18 +88,20 @@ sys_ttyname(struct thread *th, syscall_args_t argv)
 static int
 sys_mkpty(struct thread *th, syscall_args_t argv)
 {
+    extern struct file *mkpty();
+
+    int fd;
+    struct file *fp;
 
     TRACE_SYSCALL("mkpty", "void");
 
-    extern struct file *mkpty();
-
-    struct file *fp = mkpty();
+    fp = mkpty();
 
     if (!fp) {
         return -1;
     }
     
-    int fd = procdesc_getfd();
+    fd = procdesc_getfd();
 
     if (fd < 0) {
         fop_close(fp);

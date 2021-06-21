@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/vnode.h>
 #include <sys/vm.h>
+#include <sys/world.h>
 
 struct fork_state {
     struct proc *   proc;
@@ -133,6 +134,7 @@ proc_fork(struct regs *regs)
     new_proc->root = proc->root;
     new_proc->umask = proc->umask;
     new_proc->group = proc->group;
+    new_proc->world = proc->world;
 
     VN_INC_REF(proc->root);
     VN_INC_REF(proc->cwd);
@@ -142,6 +144,7 @@ proc_fork(struct regs *regs)
     KASSERT(proc->group != NULL, "process cannot inherit a NULL group");
 
     list_append(&proc->group->members, new_proc);
+    list_append(&proc->world->members, new_proc);
 
     copy_stack(proc->thread, new_space);
     copy_image(proc, new_space);

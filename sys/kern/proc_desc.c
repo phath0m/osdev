@@ -26,7 +26,9 @@
 int
 procdesc_dup(int oldfd)
 {
-    int newfd = procdesc_getfd();
+    int newfd;
+    
+    newfd = procdesc_getfd();
 
     return procdesc_dup2(oldfd, newfd);
 }
@@ -34,6 +36,9 @@ procdesc_dup(int oldfd)
 int
 procdesc_dup2(int oldfd, int newfd)
 {
+    struct file *existing_fp;
+    struct file *fp;
+
     if (oldfd >= 4096 || newfd >= 4096) {
         return -1;
     }
@@ -42,13 +47,13 @@ procdesc_dup2(int oldfd, int newfd)
         return -1;
     }
 
-    struct file *existing_fp = current_proc->files[newfd];
+    existing_fp = current_proc->files[newfd];
 
     if (existing_fp) {
         fop_close(existing_fp);   
     }
 
-    struct file *fp = current_proc->files[oldfd];
+    fp = current_proc->files[oldfd];
    
     if (!fp) {
         return -1;
@@ -73,7 +78,9 @@ procdesc_getfile(int fildes)
 int
 procdesc_getfd()
 {   
-    for (int i = 0; i < 4096; i++) { 
+    int i;
+
+    for (i = 0; i < 4096; i++) { 
         if (!current_proc->files[i]) {
             return i;
         }
@@ -85,7 +92,9 @@ procdesc_getfd()
 int
 procdesc_newfd(struct file *file)
 {
-    for (int i = 0; i < 4096; i++) {
+    int i;
+
+    for (i = 0; i < 4096; i++) {
         if (!current_proc->files[i]) {
             current_proc->files[i] = file;
             return i;
@@ -98,7 +107,9 @@ procdesc_newfd(struct file *file)
 static int
 get_fcntl_flags(struct file *fp)
 {
-    int ret = 0;
+    int ret;
+
+    ret = 0;
 
     if ((fp->flags & O_CLOEXEC)) {
         ret |= FD_CLOEXEC; 
@@ -120,11 +131,13 @@ set_fcntl_flags(struct file *fp, int flags)
 int
 procdesc_fcntl(int fd, int cmd, void *arg)
 {
+    struct file *fp;
+
     if (fd >= 4096 || fd >= 4096) {
         return -1;
     }
 
-    struct file *fp = current_proc->files[fd];
+    fp = current_proc->files[fd];
 
     if (!fp) {
         return -1;

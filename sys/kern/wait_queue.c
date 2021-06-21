@@ -25,15 +25,15 @@
 void
 wq_empty(struct wait_queue *queue)
 {
+    list_iter_t iter;
+
+    struct thread *thread;
+
     if (queue->wait_count == 0) {
         return;
     }
 
-    list_iter_t iter;
-
     list_get_iter(&queue->waiting_threads, &iter);
-
-    struct thread *thread;
 
     queue->signaled = true;
 
@@ -49,15 +49,14 @@ wq_empty(struct wait_queue *queue)
 void
 wq_pulse(struct wait_queue *queue)
 {
+    list_iter_t iter;
+    struct thread *thread;
+
     if (queue->wait_count == 0) {
         return;
     }
 
-    list_iter_t iter;
-
     list_get_iter(&queue->waiting_threads, &iter);
-
-    struct thread *thread;
 
     queue->signaled = true;
 

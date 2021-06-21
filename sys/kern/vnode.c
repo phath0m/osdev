@@ -42,7 +42,9 @@ free_vfs_node_child(void *p)
 void
 vn_destroy(struct vnode *node)
 {
-    struct vops *ops = node->ops;
+    struct vops *ops;
+    
+    ops = node->ops;
 
     if (ops && ops->destroy) {
         ops->destroy(node);
@@ -58,7 +60,9 @@ vn_destroy(struct vnode *node)
 struct vnode *
 vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops)
 {
-    struct vnode *node = pool_get(&vn_pool);
+    struct vnode *node;
+    
+    node = pool_get(&vn_pool);
 
     if (parent) {
         VN_INC_REF(parent);
@@ -75,15 +79,20 @@ vn_new(struct vnode *parent, struct cdev *dev, struct vops *ops)
 int
 vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char *path)
 {
+    int res;
+    char *nextdir;
+    char dir[PATH_MAX];
+
+    struct vnode *parent;
+    struct vnode *child;
+
     if (*path == 0) {
         return -(ENOENT);
     }
 
-    char dir[PATH_MAX];
-    char *nextdir = NULL;
-
-    struct vnode *parent = root;
-    struct vnode *child = NULL;
+    parent = root;
+    child = NULL;
+    nextdir = NULL;
 
     if (cwd && *path != '/') {
         parent = cwd;
@@ -106,7 +115,7 @@ vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char
             strcpy(dir, path);
         }
 
-        int res = vn_lookup(parent, &child, dir);
+        res = vn_lookup(parent, &child, dir);
 
         if (res != 0) {
             return res;
@@ -128,9 +137,11 @@ vn_open(struct vnode *root, struct vnode *cwd, struct vnode **result, const char
 int
 vn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 {
-    struct vnode *node = NULL;
+    int res;
+    struct vnode *node;
 
-    int res = ENOENT;
+    res = ENOENT;
+    node = NULL;
 
     if (!strcmp(".", name)) {
         node = parent;
@@ -159,7 +170,9 @@ vn_lookup(struct vnode *parent, struct vnode **result, const char *name)
 int     
 vop_fchmod(struct vnode *node, mode_t mode)
 {       
-    struct vops *ops = node->ops;
+    struct vops *ops;
+    
+    ops = node->ops;
     
     if (ops && ops->chmod) {
         return ops->chmod(node, mode);
@@ -171,7 +184,9 @@ vop_fchmod(struct vnode *node, mode_t mode)
 int
 vop_fchown(struct vnode *node, uid_t owner, gid_t group)
 {
-    struct vops *ops = node->ops;
+    struct vops *ops;
+    
+    ops = node->ops;
 
     if (ops && ops->chown) {
         return ops->chown(node, owner, group);
@@ -183,7 +198,9 @@ vop_fchown(struct vnode *node, uid_t owner, gid_t group)
 int
 vop_ftruncate(struct vnode *node, off_t length)
 {
-    struct vops *ops = node->ops;
+    struct vops *ops;
+    
+    ops = node->ops;
 
     if (ops && ops->truncate) {
         return ops->truncate(node, length);
@@ -195,7 +212,9 @@ vop_ftruncate(struct vnode *node, off_t length)
 int
 vop_read(struct vnode *node, char *buf, size_t nbyte, off_t offset)
 {
-    struct vops *ops = node->ops;
+    struct vops *ops;
+    
+    ops = node->ops;
 
     if (ops && ops->read) {
         return ops->read(node, buf, nbyte, offset);
@@ -207,7 +226,9 @@ vop_read(struct vnode *node, char *buf, size_t nbyte, off_t offset)
 int
 vop_readdirent(struct vnode *node, struct dirent *dirent, int dirno)
 {
-    struct vops *ops = node->ops;
+    struct vops *ops;
+    
+    ops = node->ops;
 
     if (ops && ops->readdirent) {
         return ops->readdirent(node, dirent, dirno);
@@ -219,7 +240,9 @@ vop_readdirent(struct vnode *node, struct dirent *dirent, int dirno)
 int
 vop_stat(struct vnode *node, struct stat *stat)
 {
-    struct vops *ops = node->ops;
+    struct vops *ops;
+    
+    ops = node->ops;
 
     if (ops->stat) {
         return ops->stat(node, stat);
@@ -231,10 +254,13 @@ vop_stat(struct vnode *node, struct stat *stat)
 int
 vop_write(struct vnode *node, const char *buf, size_t nbyte, off_t offset)
 {
-    struct vops *ops = node->ops;
+    int written;
+    struct vops *ops;
+    
+    ops = node->ops;
 
     if (ops->write) {
-        int written = ops->write(node, buf, nbyte, offset);
+        written = ops->write(node, buf, nbyte, offset);
 
         return written;
     }

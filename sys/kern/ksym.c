@@ -36,7 +36,9 @@ struct dict ksym_all;
 void
 ksym_declare(const char *name, uintptr_t val)
 {
-    struct ksym *sym = calloc(1, sizeof(struct ksym));
+    struct ksym *sym;
+    
+    sym = calloc(1, sizeof(struct ksym));
     sym->value = val;
     strncpy(sym->name, name, sizeof(sym->name));
     dict_set(&ksym_all, name, sym);
@@ -60,15 +62,17 @@ int
 ksym_find_nearest(uintptr_t needle, uintptr_t *offset, char *buf, size_t bufsize)
 {
     list_iter_t iter;
+    uintptr_t delta;
+
+    char *name;
+    struct ksym *closest;
+    struct ksym *ksym;
 
     dict_get_keys(&ksym_all, &iter);
 
-    struct ksym *closest = NULL;
-    char *name = NULL;
+    closest = NULL;
 
     while (iter_move_next(&iter, (void**)&name)) {
-        struct ksym *ksym;
-
         if (!dict_get(&ksym_all, name, (void**)&ksym)) {
             continue;
         }
@@ -82,7 +86,7 @@ ksym_find_nearest(uintptr_t needle, uintptr_t *offset, char *buf, size_t bufsize
             continue;
         }
 
-        uintptr_t delta = needle - ksym->value;
+        delta = needle - ksym->value;
 
         if (delta < needle - closest->value) {
             closest = ksym;

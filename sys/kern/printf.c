@@ -47,7 +47,9 @@ panic(const char *fmt, ...)
 void
 puts(const char *str)
 {   
-    size_t nbyte = strlen(str);
+    size_t nbyte;
+    
+    nbyte = strlen(str);
 
     if (output_device) {
         cdev_write(output_device, str, nbyte, 0);
@@ -79,14 +81,17 @@ vprint_d(int arg)
 static inline void
 vprint_p(uintptr_t arg)
 {
+    int i;
+    int len;
+    int padding;
     char buf[16];
 
     itoa_u(arg, buf, 16);
 
-    int len = strlen(buf);
-    int padding = (sizeof(uintptr_t) * 2) - len;
+    len = strlen(buf);
+    padding = (sizeof(uintptr_t) * 2) - len;
 
-    for (int i = 0; i < padding; i++) {
+    for (i = 0; i < padding; i++) {
         puts("0");
     }
 
@@ -112,13 +117,20 @@ vprint_x(unsigned int arg)
 void
 vprintf(const char *fmt, va_list arg)
 {
-    int fmt_length = strlen(fmt);
+    char ch;
+    char spec;
+    int i;
+    int fmt_length;
 
-    for (int i = 0; i < fmt_length; i++) {
-        char ch = fmt[i];
+    char buf[2];
+
+    fmt_length = strlen(fmt);
+
+    for (i = 0; i < fmt_length; i++) {
+        ch = fmt[i];
 
         if (ch == '%') {
-            char spec = fmt[++i];
+            spec = fmt[++i];
 
             switch (spec) {
                 case '%':
@@ -141,7 +153,6 @@ vprintf(const char *fmt, va_list arg)
             }
 
         } else {
-            char buf[2];
             buf[0] = fmt[i];
             buf[1] = 0;
             puts(buf);

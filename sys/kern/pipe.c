@@ -42,11 +42,11 @@ struct pipe {
     int                 write_refs;
 };
 
-static int pipe_close(struct file *fp);
-static int pipe_destroy(struct file *fp);
-static int pipe_duplicate(struct file *newfile);
-static int pipe_read(struct file *fp, void *buf, size_t nbyte);
-static int pipe_write(struct file *fp, const void *buf, size_t nbyte);
+static int pipe_close(struct file *);
+static int pipe_destroy(struct file *);
+static int pipe_duplicate(struct file *);
+static int pipe_read(struct file *, void *, size_t);
+static int pipe_write(struct file *, const void *, size_t);
 
 struct fops pipe_ops = {
     .close      = pipe_close,
@@ -59,21 +59,28 @@ struct fops pipe_ops = {
 struct pipe *
 pipe_new()
 {
-    struct pipe *pipe = (struct pipe*)calloc(1, sizeof(struct pipe));
-    pipe->buf = (char*)malloc(4096);
+    struct pipe *pipe;
+    
+    pipe = calloc(1, sizeof(struct pipe));
+    pipe->buf = malloc(4096);
     pipe->buf_size = 4096;
     pipe->ref_count = 2;
     pipe->write_refs = 1;
     pipe->read_refs = 1;
+
     return pipe;
 }
 
 void
 create_pipe(struct file **pipes)
 {
-    struct pipe *pipe = pipe_new();
-    struct file *read_end = file_new(&pipe_ops, NULL);
-    struct file *write_end = file_new(&pipe_ops, NULL);
+    struct pipe *pipe;
+    struct file *read_end;
+    struct file *write_end;
+ 
+    pipe = pipe_new();
+    read_end = file_new(&pipe_ops, NULL);
+    write_end = file_new(&pipe_ops, NULL);
   
     read_end->state = pipe; 
     read_end->flags = O_RDONLY;
@@ -87,7 +94,9 @@ create_pipe(struct file **pipes)
 static int
 pipe_close(struct file *fp)
 {
-    struct pipe *pipe = (struct pipe*)fp->state;
+    struct pipe *pipe;
+    
+    pipe = fp->state;
 
     if (fp->flags & O_WRONLY) {
         pipe->write_refs--;
@@ -108,7 +117,9 @@ pipe_close(struct file *fp)
 static int
 pipe_destroy(struct file *fp)
 {
-    struct pipe *pipe = (struct pipe*)fp->state;
+    struct pipe *pipe;
+    
+    pipe = fp->state;
 
     free(pipe->buf);
     free(pipe);
@@ -119,7 +130,9 @@ pipe_destroy(struct file *fp)
 static int
 pipe_duplicate(struct file *newfile)
 {
-    struct pipe *pipe = (struct pipe*)newfile->state;
+    struct pipe *pipe;
+    
+    pipe = newfile->state;
 
     if (newfile->flags & O_WRONLY) {
         pipe->write_refs++;
@@ -133,18 +146,22 @@ pipe_duplicate(struct file *newfile)
 static int
 pipe_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct pipe *pipe = (struct pipe*)fp->state;
+    extern struct thread *sched_curr_thread;
+
+    int i;
+    uint8_t *buf8;
+    struct pipe *pipe;
+    
+    pipe = fp->state;
 
     if (!pipe) {
         return -1;
     }
 
-    uint8_t *buf8 = (uint8_t*)buf;
+    buf8 = buf;
 
     while (pipe->size == 0 && !pipe->write_closed) {
         thread_yield();
-
-        extern struct thread *sched_curr_thread;
 
         if (sched_curr_thread->exit_requested) {
             return -(EINTR);
@@ -161,7 +178,7 @@ pipe_read(struct file *fp, void *buf, size_t nbyte)
         nbyte = pipe->size;
     }
 
-    for (int i = 0; i < nbyte; i++) {
+    for (i = 0; i < nbyte; i++) {
         buf8[i] = pipe->buf[i % pipe->buf_size + pipe->head_pos];
     }
 
@@ -182,16 +199,19 @@ pipe_read(struct file *fp, void *buf, size_t nbyte)
 static int
 pipe_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct pipe *pipe = (struct pipe*)fp->state;
+    extern struct thread *sched_curr_thread;
+        
+    int i;
+    uint8_t const *buf8;
+    struct pipe *pipe;
+    
+    pipe = fp->state;
 
     if (!pipe) {
         return -1;
     }
 
     while (pipe->size != 0 && !pipe->read_closed) {
-        //thread_yield();
-        extern struct thread *sched_curr_thread;
-        
         if (sched_curr_thread->exit_requested) {
             return -(EINTR);
         }
@@ -203,9 +223,9 @@ pipe_write(struct file *fp, const void *buf, size_t nbyte)
 
     spinlock_lock(&pipe->lock);
 
-    uint8_t *buf8 = (uint8_t*)buf;
+    buf8 = buf;
 
-    for (int i = 0; i < nbyte; i++) {
+    for (i = 0; i < nbyte; i++) {
         pipe->buf[(i + pipe->tail_pos) % pipe->buf_size] = buf8[i];
     }
 

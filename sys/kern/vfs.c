@@ -42,7 +42,9 @@
 static int
 vfop_chmod(struct file *fp, mode_t mode)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         return vop_fchmod(vn, mode);
@@ -55,7 +57,9 @@ vfop_chmod(struct file *fp, mode_t mode)
 static int
 vfop_chown(struct file *fp, uid_t owner, uid_t group)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         return vop_fchown(vn, owner, group);
@@ -67,7 +71,9 @@ vfop_chown(struct file *fp, uid_t owner, uid_t group)
 static int
 vfop_close(struct file *fp)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         VN_DEC_REF(vn);
@@ -85,7 +91,9 @@ vfop_destroy(struct file *fp)
 static int
 vfop_duplicate(struct file *fp)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         VN_INC_REF(vn);
@@ -97,7 +105,9 @@ vfop_duplicate(struct file *fp)
 static int
 vfop_getdev(struct file *fp, struct cdev **result)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn && vn->device) {
         *result = vn->device;
@@ -110,7 +120,9 @@ vfop_getdev(struct file *fp, struct cdev **result)
 static int
 vfop_getvn(struct file *fp, struct vnode **result)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         *result = vn;
@@ -129,7 +141,9 @@ vfop_ioctl(struct file *fp, uint64_t request, void *arg)
 static int
 vfop_readdirent(struct file *fp, struct dirent *dirent, uint64_t entry)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         return vop_readdirent(vn, dirent, entry);
@@ -141,7 +155,9 @@ vfop_readdirent(struct file *fp, struct dirent *dirent, uint64_t entry)
 static int
 vfop_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         return vop_read(vn, buf, nbyte, FILE_POSITION(fp));
@@ -153,15 +169,15 @@ vfop_read(struct file *fp, void *buf, size_t nbyte)
 static int
 vfop_seek(struct file *fp, off_t *pos, off_t off, int whence)
 {
-    struct vnode *vn = fp->state;
-
+    off_t new_pos;
     struct stat stat;
+    struct vnode *vn;
+
+    vn = fp->state;
 
     if (vop_stat(vn, &stat) != 0) {
         return -(ESPIPE);
     }
-
-    off_t new_pos;
 
     switch (whence) {
         case SEEK_CUR:
@@ -187,7 +203,9 @@ vfop_seek(struct file *fp, off_t *pos, off_t off, int whence)
 static int
 vfop_stat(struct file *fp, struct stat *stat)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         return vop_stat(vn, stat);
@@ -199,7 +217,9 @@ vfop_stat(struct file *fp, struct stat *stat)
 static int
 vfop_truncate(struct file *fp, off_t length)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         return vop_ftruncate(vn, length);
@@ -211,7 +231,9 @@ vfop_truncate(struct file *fp, off_t length)
 static int
 vfop_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct vnode *vn = fp->state;
+    struct vnode *vn;
+    
+    vn = fp->state;
 
     if (vn) {
         return vop_write(vn, buf, nbyte, FILE_POSITION(fp));
@@ -242,9 +264,12 @@ struct fops vfs_ops = {
 static bool
 split_path(char *path, char **directory, char **file)
 {
+    int i;
     int last_slash = -1;
 
-    for (int i = 0; i < PATH_MAX && path[i]; i++) {
+    last_slash = -1;
+
+    for (i = 0; i < PATH_MAX && path[i]; i++) {
         if (path[i] == '/') last_slash = i;
     }
 
@@ -298,13 +323,18 @@ can_write(struct vnode *node, struct cred *creds)
 int
 vfs_access(struct proc *proc, const char *path, int mode)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    bool will_read;
+    bool will_write;
 
-    bool will_write = mode & W_OK;
-    bool will_read = mode & R_OK;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
 
-    struct vnode *child = NULL;
+    root = proc->root;
+    cwd = proc->cwd;
+
+    will_write = mode & W_OK;
+    will_read = mode & R_OK;
 
     if (vn_open(root, cwd, &child, path) != 0) {
         return -(ENOENT);
@@ -328,10 +358,14 @@ vfs_access(struct proc *proc, const char *path, int mode)
 int
 vfs_chmod(struct proc *proc, const char *path, mode_t mode)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+    struct vops *ops;
 
-    struct vnode *child = NULL;
+    root = proc->root;
+    cwd = proc->cwd;
+    child = NULL;
 
     if (vn_open(root, cwd, &child, path) != 0) {
         return -(ENOENT);
@@ -345,7 +379,7 @@ vfs_chmod(struct proc *proc, const char *path, mode_t mode)
         return -(EACCES);
     }
 
-    struct vops *ops = child->ops;
+    ops = child->ops;
 
     if (ops && ops->chmod) {
         return ops->chmod(child, mode);
@@ -357,10 +391,14 @@ vfs_chmod(struct proc *proc, const char *path, mode_t mode)
 int
 vfs_chown(struct proc *proc, const char *path, uid_t owner, gid_t group)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+    struct vops *ops;
 
-    struct vnode *child = NULL;
+    root = proc->root;
+    cwd = proc->cwd;
+    child = NULL;
 
     if (vn_open(root, cwd, &child, path) != 0) {
         return -(ENOENT);
@@ -374,7 +412,7 @@ vfs_chown(struct proc *proc, const char *path, uid_t owner, gid_t group)
         return -(EACCES);
     }
 
-    struct vops *ops = child->ops;
+    ops = child->ops;
 
     if (ops && ops->chown) {
         return ops->chown(child, owner, group);
@@ -386,16 +424,24 @@ vfs_chown(struct proc *proc, const char *path, uid_t owner, gid_t group)
 int
 vfs_creat(struct proc *proc, struct file **result, const char *path, mode_t mode)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    int res;
+    char *filename;
+    char *parent_path;
+
+    struct file *file;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+    struct vops *ops;
 
     char path_buf[PATH_MAX+1];
 
-    strncpy(path_buf, path, PATH_MAX);
-
-    char *filename;
-    char *parent_path;
     struct vnode *parent;
+
+    root = proc->root;
+    cwd = proc->cwd;
+
+    strncpy(path_buf, path, PATH_MAX);
 
     if (!split_path(path_buf, &parent_path, &filename)) {
         parent = cwd;
@@ -407,8 +453,7 @@ vfs_creat(struct proc *proc, struct file **result, const char *path, mode_t mode
         return -(EROFS);
     }
 
-    struct vops *ops = parent->ops;
-    struct vnode *child;
+    ops = parent->ops;
 
     if (!ops || !ops->creat) {
         return -(ENOTSUP);
@@ -418,13 +463,13 @@ vfs_creat(struct proc *proc, struct file **result, const char *path, mode_t mode
         return -(EACCES);
     }
 
-    int res = ops->creat(parent, &child, filename, mode);
+    res = ops->creat(parent, &child, filename, mode);
 
     if (res != 0) {
         return res;
     }
 
-    struct file *file = file_new(&vfs_ops, child);
+    file = file_new(&vfs_ops, child);
 
     VN_INC_REF(child);
 
@@ -438,16 +483,21 @@ vfs_creat(struct proc *proc, struct file **result, const char *path, mode_t mode
 int
 vfs_mkdir(struct proc *proc, const char *path, mode_t mode)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+ 
+    char *dirname;
+    char *parent_path;
+    struct vnode *parent;
+
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vops *ops;
 
     char path_buf[PATH_MAX+1];
 
     strncpy(path_buf, path, PATH_MAX);
-    
-    char *dirname;
-    char *parent_path;
-    struct vnode *parent;
+
+    root = proc->root;
+    cwd = proc->cwd; 
 
     if (!split_path(path_buf, &parent_path, &dirname)) {
         parent = cwd;
@@ -463,7 +513,7 @@ vfs_mkdir(struct proc *proc, const char *path, mode_t mode)
         return -(EACCES);
     }
 
-    struct vops *ops = parent->ops;
+    ops = parent->ops;
 
     if (ops && ops->mkdir) {
         return ops->mkdir(parent, dirname, mode);
@@ -475,16 +525,20 @@ vfs_mkdir(struct proc *proc, const char *path, mode_t mode)
 int
 vfs_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    char *parent_path;
+    char *nodename;
+    struct vnode *parent;
+
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vops *ops;
 
     char path_buf[PATH_MAX+1];
 
-    strncpy(path_buf, path, PATH_MAX);
+    root = proc->root;
+    cwd = proc->cwd; 
 
-    char *nodename;
-    char *parent_path;
-    struct vnode *parent;
+    strncpy(path_buf, path, PATH_MAX);
 
     if (!split_path(path_buf, &parent_path, &nodename)) {
         parent = cwd;
@@ -500,7 +554,7 @@ vfs_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev)
         return -(EACCES);
     }
 
-    struct vops *ops = parent->ops;
+    ops = parent->ops;
 
     if (ops && ops->mknod) {
         return ops->mknod(parent, nodename, mode, dev);
@@ -512,16 +566,22 @@ vfs_mknod(struct proc *proc, const char *path, mode_t mode, dev_t dev)
 int
 vfs_rmdir(struct proc *proc, const char *path)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    int res;
+    char *dirname;
+    char *parent_path;
+
+    struct vnode *parent;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+    struct vops *ops;
 
     char path_buf[PATH_MAX+1];
 
-    strncpy(path_buf, path, PATH_MAX);
+    root = proc->root;
+    cwd = proc->cwd;
 
-    char *dirname;
-    char *parent_path;
-    struct vnode *parent;
+    strncpy(path_buf, path, PATH_MAX);
 
     if (!split_path(path_buf, &parent_path, &dirname)) {
         parent = cwd;
@@ -537,13 +597,11 @@ vfs_rmdir(struct proc *proc, const char *path)
         return -(EACCES);
     }
 
-    struct vops *ops = parent->ops;
+    ops = parent->ops;
 
     if (ops && ops->rmdir) {
-        int res = ops->rmdir(parent, dirname);
+        res = ops->rmdir(parent, dirname);
         
-        struct vnode *child;
-
         if (res == 0 && dict_get(&parent->children, dirname, (void**)&child)) {
             dict_remove(&parent->children, dirname);
             VN_DEC_REF(child);
@@ -564,14 +622,21 @@ vfs_open(struct proc *proc, struct file **result, const char *path, int flags)
 int
 vfs_open_r(struct proc *proc, struct file **result, const char *path, int flags)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    bool will_read;
+    bool will_write;
 
-    struct vnode *child = NULL;
+    struct file *file;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+
+    file = NULL;
+    root = proc->root;
+    cwd = proc->cwd;
 
     if (vn_open(root, cwd, &child, path) == 0) {
-        bool will_write = (flags & O_WRONLY);
-        bool will_read = true; // this is a hack.
+        will_write = (flags & O_WRONLY);
+        will_read = true; // this is a hack.
 
         if ((child->mount_flags & MS_RDONLY) && will_write) {
             return -(EROFS);
@@ -584,8 +649,6 @@ vfs_open_r(struct proc *proc, struct file **result, const char *path, int flags)
         if (will_read && !can_read(child, &proc->creds)) {
             return -(EACCES);
         }
-
-        struct file *file = NULL;
 
         if ((child->mode & S_IFIFO)) {
             file = fifo_to_file(child, flags);
@@ -618,10 +681,14 @@ vfs_open_r(struct proc *proc, struct file **result, const char *path, int flags)
 int
 vfs_truncate(struct proc *proc, const char *path, off_t length)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+    struct vops *ops;
 
-    struct vnode *child = NULL;
+    root = proc->root;
+    cwd = proc->cwd;
+    child = NULL;
 
     if (vn_open(root, cwd, &child, path) != 0) {
         return -(ENOENT);
@@ -635,7 +702,7 @@ vfs_truncate(struct proc *proc, const char *path, off_t length)
         return -(EACCES);
     }
 
-    struct vops *ops = child->ops;
+    ops = child->ops;
 
     if (ops && ops->truncate) {
         return ops->truncate(child, length);
@@ -647,16 +714,22 @@ vfs_truncate(struct proc *proc, const char *path, off_t length)
 int
 vfs_unlink(struct proc *proc, const char *path)
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    int res;
+    char *filename;
+    char *parent_path;
+
+    struct vnode *parent;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+    struct vops *ops;
 
     char path_buf[PATH_MAX+1];
 
-    strncpy(path_buf, path, PATH_MAX);
+    root = proc->root;
+    cwd = proc->cwd;
 
-    char *filename;
-    char *parent_path;
-    struct vnode *parent;
+    strncpy(path_buf, path, PATH_MAX);
 
     if (!split_path(path_buf, &parent_path, &filename)) {
         parent = cwd;
@@ -672,13 +745,11 @@ vfs_unlink(struct proc *proc, const char *path)
         return -(EACCES);
     }
 
-    struct vops *ops = parent->ops;
+    ops = parent->ops;
 
     if (ops && ops->unlink) {
-        int res = ops->unlink(parent, filename);
+        res = ops->unlink(parent, filename);
         
-        struct vnode *child; 
-
         if (res == 0 && dict_get(&parent->children, filename, (void**)&child)) {
             dict_remove(&parent->children, filename);
             VN_DEC_REF(child);
@@ -693,10 +764,13 @@ vfs_unlink(struct proc *proc, const char *path)
 int
 vfs_utimes(struct proc *proc, const char *path, struct timeval times[2])
 {
-    struct vnode *root = proc->root;
-    struct vnode *cwd = proc->cwd;
+    struct vnode *root;
+    struct vnode *cwd;
+    struct vnode *child;
+    struct vops *ops;
 
-    struct vnode *child = NULL;
+    root = proc->root;
+    cwd = proc->cwd;
 
     if (vn_open(root, cwd, &child, path) != 0) {
         return -(ENOENT);
@@ -710,7 +784,7 @@ vfs_utimes(struct proc *proc, const char *path, struct timeval times[2])
         return -(EACCES);
     }
 
-    struct vops *ops = child->ops;
+    ops = child->ops;
 
     if (ops && ops->utimes) {
         return ops->utimes(child, times);

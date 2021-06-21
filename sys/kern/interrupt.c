@@ -29,12 +29,13 @@ struct list driver_all;
 int
 device_register(struct device *dev)
 {
-    list_append(&device_all, dev);
-
-       list_iter_t iter;
-    list_get_iter(&driver_all, &iter);
+    list_iter_t iter;
 
     struct driver *driver;
+
+    list_append(&device_all, dev);
+
+    list_get_iter(&driver_all, &iter);
 
     while (iter_move_next(&iter, (void**)&driver)) {
         if (driver->attached) {
@@ -62,13 +63,14 @@ device_setup_intr(struct device *dev, int inum, dev_intr_t handler)
 int
 driver_register(struct driver *driver)
 {
+    list_iter_t iter;
+    struct device *dev;
+
     if (!driver->attach) {
         return -1;
     }
 
     list_append(&driver_all, driver);
-
-    struct device *dev;
 
     if (!driver->probe) {
         /* 
@@ -88,7 +90,6 @@ driver_register(struct driver *driver)
         return 0;
     }
 
-    list_iter_t iter;
     list_get_iter(&device_all, &iter);
 
     while (iter_move_next(&iter, (void**)&dev)) {
