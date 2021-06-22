@@ -26,8 +26,9 @@ struct stackframe {
 void
 stacktrace(int max_frames)
 {
-    char name[256];
     uintptr_t offset;
+
+    char name[256];
     struct stackframe *frame;
 
     asm volatile("movl %%ebp, %%edx": "=d"(frame));

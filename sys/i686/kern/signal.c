@@ -68,9 +68,11 @@ thread_call_sa_handler(struct thread *thread, struct sigcontext *ctx)
 {
     extern struct vm_space *sched_curr_address_space;
 
+    struct irq_regs *regs;
+
     ctx->invoked = true;
 
-    struct irq_regs *regs = (struct irq_regs*)open_stack(thread, thread->stack);
+    regs = (struct irq_regs*)open_stack(thread, thread->stack);
     ctx->regs = calloc(1, sizeof(struct regs));
 
     ctx->regs->ds = regs->ds;

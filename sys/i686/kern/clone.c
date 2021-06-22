@@ -40,10 +40,19 @@ struct clone_state {
 static int
 init_child_proc(void *statep)
 {
-    struct clone_state *state = (struct clone_state*)statep;
+    /* defined in sys/i686/kern/sched.c */
+    extern struct thread *sched_curr_thread;
 
     /* defined in sys/i686/kern/sched.c */
     extern struct thread *sched_curr_thread;
+
+    /* defined in sys/i686/kern/usermode.asm */
+    extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);
+
+    uint32_t *stack;
+    struct clone_state *state;
+    
+    state = statep;
 
     sched_curr_thread->proc = state->proc;
     sched_curr_thread->u_stack_bottom = state->u_stack_bottom;
@@ -54,7 +63,7 @@ init_child_proc(void *statep)
 
     list_append(&current_proc->threads, sched_curr_thread);
 
-    uint32_t *stack = (uint32_t*)state->u_stack_top;
+    stack = (uint32_t*)state->u_stack_top;
 
     --stack;
 
@@ -62,9 +71,6 @@ init_child_proc(void *statep)
     *(--stack) = NULL;
 
     free(statep);
-
-    /* defined in sys/i686/kern/usermode.asm */
-    extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);
 
     return_to_usermode((uintptr_t)state->func, (uintptr_t)stack, (uintptr_t)stack, 0);
     
@@ -74,15 +80,17 @@ init_child_proc(void *statep)
 int
 proc_clone(void *func, void *stack, int flags, void *arg)
 {
+    extern struct vm_space *sched_curr_address_space;
+
+    struct clone_state *state;
+
     if (flags != (CLONE_VM | CLONE_FILES)) {
         return -(ENOTSUP);
     }
 
     bus_interrupts_off();
 
-    extern struct vm_space *sched_curr_address_space;
-
-    struct clone_state *state = (struct clone_state*)calloc(1, sizeof(struct clone_state));
+    state = calloc(1, sizeof(struct clone_state));
     
     state->proc = current_proc;
     state->func = func;

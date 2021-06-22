@@ -66,8 +66,8 @@ struct stackframe {
     uintptr_t           eip;
 };
 
-static void print_stack(struct regs *regs, int max_fames);
-static void print_regs(struct regs *regs);
+static void print_stack(struct regs *, int);
+static void print_regs(struct regs *);
 
 static int
 handle_generic_exception(int inum, struct regs *regs)
@@ -88,15 +88,19 @@ handle_generic_exception(int inum, struct regs *regs)
 static int
 handle_page_fault(int inum, struct regs *regs)
 {
+    bool present;
+    bool rw;
+    bool user;
+    int err;
+    uint32_t fault_addr;
+
     bus_interrupts_off();
 
-    int err = regs->error_code;
+    err = regs->error_code;
 
-    bool present = (err & 0x1);
-    bool rw = (err & 0x02) != 0;
-    bool user = (err & 0x04) != 0;
-
-    uint32_t fault_addr;
+    present = (err & 0x1);
+    rw = (err & 0x02) != 0;
+    user = (err & 0x04) != 0;
 
     asm volatile("movl %%cr2, %%edx": "=d"(fault_addr));
 
@@ -136,13 +140,18 @@ handle_page_fault(int inum, struct regs *regs)
 static void
 print_stack(struct regs *regs, int max_fames)
 {
-    char name[256];
+    int i;
     uintptr_t offset;
-    struct stackframe *frame = (struct stackframe*)regs->ebp;
+
+    char name[256];
+
+    struct stackframe *frame;
+    
+    frame = (struct stackframe*)regs->ebp;
  
     printf("Trace:\n\r");
 
-    for (int i = 0; i < max_fames && frame; i++) {
+    for (i = 0; i < max_fames && frame; i++) {
         if (ksym_find_nearest(frame->eip, &offset, name, 256) == 0) {
             printf("    [0x%p] <%s+0x%x>\n\r", frame->eip, name, offset);
         } else {
@@ -159,8 +168,9 @@ print_stack(struct regs *regs, int max_fames)
 static void
 print_regs(struct regs *regs)
 {
-    char name[256];
     uintptr_t offset;
+
+    char name[256];
 
     if (ksym_find_nearest(regs->eip, &offset, name, 256) == 0) {
         printf("EIP is at %s+0x%x\n\r", name, offset);
@@ -174,8 +184,11 @@ print_regs(struct regs *regs)
 void
 traps_init()
 {
-    for (int i = 0; i < 14; i++) {
+    int i;
+
+    for (i = 0; i < 14; i++) {
         swi_register(i, handle_generic_exception);
     }
+
     swi_register(14, handle_page_fault);
 }

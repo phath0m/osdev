@@ -59,7 +59,6 @@ pci_read_long(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset)
     return (pci_read_short(bus, slot, func, offset + 2) << 16) | pci_read_short(bus, slot, func, offset);
 }
 
-
 void
 pci_write_long(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t data)
 {
@@ -75,11 +74,13 @@ pci_write_long(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t
 int
 pci_get_device_id(struct device *dev)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return -1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pcidev->device_id;
 }
@@ -87,11 +88,13 @@ pci_get_device_id(struct device *dev)
 int
 pci_get_vendor_id(struct device *dev)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return -1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pcidev->vendor_id;
 }
@@ -99,11 +102,13 @@ pci_get_vendor_id(struct device *dev)
 int
 pci_get_class(struct device *dev)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return -1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
     
     return pcidev->class;
 }
@@ -111,11 +116,13 @@ pci_get_class(struct device *dev)
 uintptr_t
 pci_get_bar0(struct device *dev)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return -1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pci_read_long(pcidev->bus, pcidev->slot, pcidev->func, 0x10);
 }
@@ -123,11 +130,13 @@ pci_get_bar0(struct device *dev)
 int
 pci_get_subclass(struct device *dev)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return -1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pcidev->subclass;
 }
@@ -135,11 +144,13 @@ pci_get_subclass(struct device *dev)
 int
 pci_get_subsystem_id(struct device *dev)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return -1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pcidev->subsystem_id;
 }
@@ -147,11 +158,13 @@ pci_get_subsystem_id(struct device *dev)
 uint8_t
 pci_get_config8(struct device *dev, int offset)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return (uint8_t)-1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pci_read_short(pcidev->bus, pcidev->slot, pcidev->func, offset) & 0xFF;
 }
@@ -159,11 +172,13 @@ pci_get_config8(struct device *dev, int offset)
 uint16_t
 pci_get_config16(struct device *dev, int offset)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return (uint16_t)-1;
     }
     
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pci_read_short(pcidev->bus, pcidev->slot, pcidev->func, offset);
 }
@@ -171,11 +186,13 @@ pci_get_config16(struct device *dev, int offset)
 uint32_t
 pci_get_config32(struct device *dev, int offset)
 {
+    struct pci_device *pcidev;
+
     if (dev->type != DEVICE_PCI) {
         return (uint32_t)-1;
     }
 
-    struct pci_device *pcidev = (struct pci_device*)dev;
+    pcidev = (struct pci_device*)dev;
 
     return pci_read_long(pcidev->bus, pcidev->slot, pcidev->func, offset);
 }
@@ -183,13 +200,17 @@ pci_get_config32(struct device *dev, int offset)
 bool
 pci_enumerate_device(uint8_t bus, uint8_t slot, uint8_t func)
 {
-    uint16_t vendor = pci_read_short(bus, slot, 0, 0);
+    uint16_t vendor;
+
+    struct pci_device *dev;
+
+    vendor = pci_read_short(bus, slot, 0, 0);
 
     if (vendor == 0xFFFF) {
         return false;
     }
 
-    struct pci_device *dev = calloc(1, sizeof(struct pci_device));
+    dev = calloc(1, sizeof(struct pci_device));
 
     dev->_header.type = DEVICE_PCI;
     dev->bus = bus;
@@ -201,12 +222,15 @@ pci_enumerate_device(uint8_t bus, uint8_t slot, uint8_t func)
     dev->subclass = pci_read_short(bus, slot, func, 0x0A) & 0xFF;
     dev->header_type = pci_read_short(bus, slot, func, 0x0E) & 0xFF;
     dev->subsystem_id = pci_read_short(bus, slot, func, 0x2E);
+
     printf("PCI: %d:%d.%d\n\r", bus, slot, func);
 
     device_register((struct device*)dev);
 
     if (func == 0 && (dev->header_type & 0x80) != 0) {
-        for (int i = 1; i < 8; i++) { 
+        int i;
+
+        for (i = 1; i < 8; i++) { 
             pci_enumerate_device(bus, slot, i);
         }
     }
@@ -217,8 +241,11 @@ pci_enumerate_device(uint8_t bus, uint8_t slot, uint8_t func)
 void
 pci_init()
 {
-    for (uint16_t bus = 0; bus < 256; bus++) {
-        for (uint8_t slot = 0; slot < 32; slot++) {
+    uint16_t bus;
+    uint16_t slot;
+
+    for (bus = 0; bus < 256; bus++) {
+        for (slot = 0; slot < 32; slot++) {
             if (!pci_enumerate_device(bus, slot, 0)) continue;
         }
     }

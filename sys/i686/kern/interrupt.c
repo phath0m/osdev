@@ -101,7 +101,9 @@ struct tss_entry    task_state_segment;
 void
 gdt_set_gate(uint8_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity)
 {
-    struct gdt_entry *entry = &global_descriptor_table[num];
+    struct gdt_entry *entry;
+    
+    entry = &global_descriptor_table[num];
 
     entry->base_low = (base & 0xFFFF);
     entry->base_middle = (base >> 16) & 0xFF;
@@ -115,7 +117,9 @@ gdt_set_gate(uint8_t num, uint32_t base, uint32_t limit, uint8_t access, uint8_t
 void
 idt_set_gate(uint8_t inum, uint32_t base, uint16_t selector, uint8_t flags)
 {
-    struct idt_entry *entry = &interrupt_table[inum];
+    struct idt_entry *entry;
+    
+    entry = &interrupt_table[inum];
 
     entry->offset_1 = base & 0xFFFF;
     entry->offset_2 = (base >> 16) & 0xFFFF;
@@ -133,8 +137,11 @@ set_tss_esp0(uint32_t esp0)
 void
 set_task_segment(uint32_t num, uint16_t ss0, uint32_t esp0)
 {
-    uint32_t base = (uint32_t)&task_state_segment;
-    uint32_t limit = base + sizeof(struct tss_entry);
+    uint32_t base;
+    uint32_t limit;
+
+    base = (uint32_t)&task_state_segment;
+    limit = base + sizeof(struct tss_entry);
 
     gdt_set_gate(num, base, limit, 0xE9, 0x00);
 
@@ -156,12 +163,15 @@ dispatch_intr(struct regs *regs)
 {
     extern struct thread * sched_curr_thread;
 
+    uint8_t inum;
+    struct intr_handler *handler;
+
     if (sched_curr_thread) {
         __sync_lock_test_and_set(&sched_curr_thread->interrupt_in_progress, 1);
         thread_interrupt_enter(sched_curr_thread, regs);
     }
 
-    uint8_t inum = regs->inum;
+    inum = regs->inum;
 
     if (inum >= 40) {
         io_write8(0xA0, 0x20);
@@ -169,7 +179,7 @@ dispatch_intr(struct regs *regs)
     
     io_write8(0x20, 0x20);
 
-    struct intr_handler *handler = &intr_handlers[inum];
+    handler = &intr_handlers[inum];
 
     if (handler->handler) {
         switch (handler->type) {
@@ -211,50 +221,8 @@ swi_register(int inum, intr_handler_t handler)
 void
 intr_init()
 {
-    struct dt_ptr gdt_ptr;
-    struct dt_ptr idt_ptr;
-
-    memset(&global_descriptor_table, 0, sizeof(struct gdt_entry) * 6);
-    
-    gdt_ptr.limit = sizeof(struct gdt_entry) * 6;
-    gdt_ptr.base = (uint32_t)&global_descriptor_table;
-
-    gdt_set_gate(0, 0, 0, 0, 0); // null segment
-    gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // code segment
-    gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // data segment
-    gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // usermode code segment
-    gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // usermode data segment
-
-    set_task_segment(5, 0x10, 0xFFFFFFFF);
-
     /* defined in sys/i686/kern/gdt.asm */
     extern void gdt_flush_ptr(struct dt_ptr *ptr);
-
-    gdt_flush_ptr(&gdt_ptr);
-
-    asm volatile (
-        ".Intel_syntax noprefix;"
-        "mov ax, 0x2B;"
-        "ltr ax;"
-        ".att_syntax noprefix;"
-    );
-
-    memset(&interrupt_table, 0, sizeof(struct idt_entry) * 256);
-
-    idt_ptr.limit = 2047;
-    idt_ptr.base = (uint32_t)&interrupt_table;
-    
-    io_write8(0x20, 0x11);
-    io_write8(0xA0, 0x11);
-    io_write8(0x21, 0x20);
-    io_write8(0xA1, 0x28);
-    io_write8(0x21, 0x04);
-    io_write8(0xA1, 0x02);
-    io_write8(0x21, 0x01);
-    io_write8(0xA1, 0x01);
-    io_write8(0x21, 0x00);
-    io_write8(0xA1, 0x00);
-
 
     /*
      * defined in interrupt_handlers.asm
@@ -311,7 +279,51 @@ intr_init()
     extern void irq14(struct regs *regs);
     extern void irq15(struct regs *regs);
 
-    uint32_t handler_pointers[] = {
+
+    int i;
+    uint32_t *handler_pointers;
+    struct dt_ptr gdt_ptr;
+    struct dt_ptr idt_ptr;
+
+    memset(&global_descriptor_table, 0, sizeof(struct gdt_entry) * 6);
+    
+    gdt_ptr.limit = sizeof(struct gdt_entry) * 6;
+    gdt_ptr.base = (uint32_t)&global_descriptor_table;
+
+    gdt_set_gate(0, 0, 0, 0, 0); // null segment
+    gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // code segment
+    gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // data segment
+    gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // usermode code segment
+    gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // usermode data segment
+
+    set_task_segment(5, 0x10, 0xFFFFFFFF);
+
+    gdt_flush_ptr(&gdt_ptr);
+
+    asm volatile (
+        ".Intel_syntax noprefix;"
+        "mov ax, 0x2B;"
+        "ltr ax;"
+        ".att_syntax noprefix;"
+    );
+
+    memset(&interrupt_table, 0, sizeof(struct idt_entry) * 256);
+
+    idt_ptr.limit = 2047;
+    idt_ptr.base = (uint32_t)&interrupt_table;
+    
+    io_write8(0x20, 0x11);
+    io_write8(0xA0, 0x11);
+    io_write8(0x21, 0x20);
+    io_write8(0xA1, 0x28);
+    io_write8(0x21, 0x04);
+    io_write8(0xA1, 0x02);
+    io_write8(0x21, 0x01);
+    io_write8(0xA1, 0x01);
+    io_write8(0x21, 0x00);
+    io_write8(0xA1, 0x00);
+
+    handler_pointers = (uint32_t[]){
         (uint32_t)isr0, (uint32_t)isr1,
         (uint32_t)isr2, (uint32_t)isr3,
         (uint32_t)isr4, (uint32_t)isr5,
@@ -339,7 +351,7 @@ intr_init()
         NULL
     };
 
-    for (int i = 0; handler_pointers[i]; i++) {
+    for (i = 0; handler_pointers[i]; i++) {
         idt_set_gate(i, handler_pointers[i], 0x08, 0x8E);
     }
 

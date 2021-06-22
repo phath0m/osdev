@@ -27,7 +27,9 @@ struct syscall *syscall_table[256];
 int
 register_syscall(int num, int argc, syscall_t handler)
 {
-    struct syscall *syscall = (struct syscall*)calloc(1, sizeof(struct syscall));
+    struct syscall *syscall;
+    
+    syscall = calloc(1, sizeof(struct syscall));
 
     syscall->num = num;
     syscall->argc = argc;
@@ -41,12 +43,18 @@ register_syscall(int num, int argc, syscall_t handler)
 int
 syscall_handler(int inum, struct regs *regs)
 {
-    int syscall_num = regs->eax;
+    extern struct thread *sched_curr_thread;
+ 
+    int syscall_num;
+    int res;
+    struct syscall *syscall;
 
-    struct syscall *syscall = syscall_table[syscall_num];
+    syscall_num = regs->eax;    
+    syscall = syscall_table[syscall_num];
 
     if (syscall) {
         uintptr_t arguments[16];
+        struct syscall_args args;
 
         arguments[0] = (uintptr_t)regs->ebx;
         arguments[1] = (uintptr_t)regs->ecx;
@@ -54,12 +62,10 @@ syscall_handler(int inum, struct regs *regs)
         arguments[3] = (uintptr_t)regs->esi;
         arguments[4] = (uintptr_t)regs->edi;
 
-        struct syscall_args args;
         args.args = (uintptr_t*)&arguments;
         args.state = regs;
 
-        extern struct thread *sched_curr_thread;
-        int res = syscall->handler(sched_curr_thread, &args);
+        res = syscall->handler(sched_curr_thread, &args);
 
         regs->eax = res;
 

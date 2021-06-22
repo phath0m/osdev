@@ -34,23 +34,31 @@
 static const char **
 copy_strings(const char **strs, size_t *sizep, int *countp)
 {
-    int count = 0;
-    size_t size = 0;
-    
-    for (count = 0; strs[count]; count++) {
+    int count;
+    int i;
+    size_t size;
+    size_t ptrs_size;
+    uintptr_t *str_ptrs;
+
+    char *dest;
+    void *buf;
+
+    char const *src;
+
+    for (count = 0, size = 0; strs[count]; count++) {
         size += strlen(strs[count]) + 1;
     }
 
-    size_t ptrs_size = (count + 1) * sizeof(char*);
+    ptrs_size = (count + 1) * sizeof(char*);
 
-    void *buf = calloc(1, size + ptrs_size);
+    buf = calloc(1, size + ptrs_size);
 
-    uintptr_t *str_ptrs = (uint32_t*)buf;
+    str_ptrs = (uint32_t*)buf;
     
-    char *dest = (char*)((uintptr_t)buf + ptrs_size);
+    dest = (char*)((uintptr_t)buf + ptrs_size);
     
-    for (int i = 0; strs[i]; i++) {
-        const char *src = strs[i];
+    for (i = 0; strs[i]; i++) {
+        src = strs[i];
 
         strcpy(dest, src);
 
@@ -78,13 +86,20 @@ realign_pointers(uintptr_t *ptr, size_t delta)
 static void
 elf_get_dimensions(struct elf32_ehdr *hdr, uintptr_t *vlow, uintptr_t *vhigh)
 {
-    struct elf32_phdr *phdrs = elf_get_pheader(hdr);
+    int i;
+    uintptr_t high;
+    uintptr_t low;
 
-    uintptr_t high = 0;
-    uintptr_t low = 0xFFFFFFFF;
+    struct elf32_phdr *phdr;
+    struct elf32_phdr *phdrs;
 
-    for (int i = 0; i < hdr->e_phnum; i++) {
-        struct elf32_phdr *phdr = &phdrs[i];
+    phdrs = elf_get_pheader(hdr);
+
+    high = 0;
+    low = 0xFFFFFFFF;
+
+    for (i = 0; i < hdr->e_phnum; i++) {
+        phdr = &phdrs[i];
 
         if (phdr->p_type == PT_LOAD) {
             if (low > phdr->p_vaddr) {
@@ -104,10 +119,14 @@ elf_get_dimensions(struct elf32_ehdr *hdr, uintptr_t *vlow, uintptr_t *vhigh)
 static void
 elf_load_image(struct vm_space *space, struct elf32_ehdr *hdr)
 {
-    struct elf32_phdr *phdrs = elf_get_pheader(hdr);
+    int i;
+    struct elf32_phdr *phdr;
+    struct elf32_phdr *phdrs;
+    
+    phdrs = elf_get_pheader(hdr);
 
-    for (int i = 0; i < hdr->e_phnum; i++) {
-        struct elf32_phdr *phdr = &phdrs[i];
+    for (i = 0; i < hdr->e_phnum; i++) {
+        phdr = &phdrs[i];
 
         if (phdr->p_type == PT_LOAD) {
             memcpy((void*)phdr->p_vaddr, ((void*)(uintptr_t)hdr + phdr->p_offset), phdr->p_filesz);
@@ -118,19 +137,24 @@ elf_load_image(struct vm_space *space, struct elf32_ehdr *hdr)
 static void
 elf_zero_sections(struct vm_space *space, struct elf32_ehdr *hdr)
 {
-    struct elf32_shdr *shdr = elf_get_sheader(hdr);
+    int i;
 
-    for (int i = 0; i < hdr->e_shnum; i++) {
-        struct elf32_shdr *section = &shdr[i];
+    struct elf32_shdr *shdr;
+    struct elf32_shdr *shdrs;
+    
+    shdrs = elf_get_sheader(hdr);
 
-        if (section->sh_type == SHT_NOBITS) {
+    for (i = 0; i < hdr->e_shnum; i++) {
+        shdr = &shdrs[i];
 
-            if (!section->sh_size) {
+        if (shdr->sh_type == SHT_NOBITS) {
+
+            if (!shdr->sh_size) {
                 continue;
             }
 
-            if (section->sh_flags & SHF_ALLOC) {
-                memset((void*)section->sh_addr, 0, section->sh_size);
+            if (shdr->sh_flags & SHF_ALLOC) {
+                memset((void*)shdr->sh_addr, 0, shdr->sh_size);
             }
         }
     }
@@ -166,18 +190,44 @@ unload_userspace(struct vm_space *space)
 int
 proc_execve(const char *path, const char **argv, const char **envp)
 {
+    /* defined in sys/i686/kern/usermode.asm */
+    extern void return_to_usermode(uintptr_t, uintptr_t, uintptr_t, uintptr_t);
+ 
+    int argc;
+    int envc;
+    int i;
+
+    size_t argv_size;
+    size_t envp_size;
+    size_t prog_size;
+    size_t size;
+
+    uintptr_t entrypoint;
+    uintptr_t prog_low;
+    uintptr_t prog_high;
+    uintptr_t stack_bottom;
+    uintptr_t stackp;
+    uintptr_t u_argv;
+    uintptr_t u_envp;
+    
+    const char **cp_argv;
+    const char **cp_envp;
+
+    struct elf32_ehdr *elf;
+    struct file *exe;
+    struct proc *proc;
+    struct vm_space *space;
+    struct vnode *root;
+
     bus_interrupts_off();
 
-    /* defined in sys/i686/sched.c */
-    struct proc *proc = current_proc;
+    proc = current_proc;
 
     /* defined in sys/i686/kern/sched.c */
     extern struct thread *sched_curr_thread;
 
-    struct vm_space *space = sched_curr_thread->address_space;
-    struct vnode *root = proc->root;
-
-    struct file *exe;
+    space = sched_curr_thread->address_space;
+    root = proc->root;
 
     if (vfs_open(proc, &exe, path, O_RDONLY) != 0) {
         return -(ENOENT);
@@ -185,29 +235,22 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     fop_seek(exe, 0, SEEK_END);
 
-    size_t size = FILE_POSITION(exe);
+    size = FILE_POSITION(exe);
 
     fop_seek(exe, 0, SEEK_SET);
 
-    struct elf32_ehdr *elf = (struct elf32_ehdr*)calloc(1, size);
+    elf = calloc(1, size);
 
     fop_read(exe, (char*)elf, size);
 
-    int argc;
-    int envc;
-    size_t argv_size;
-    size_t envp_size;
-
-    const char **cp_argv = copy_strings(argv, &argv_size, &argc);
-    const char **cp_envp = copy_strings(envp, &envp_size, &envc);
+    cp_argv = copy_strings(argv, &argv_size, &argc);
+    cp_envp = copy_strings(envp, &envp_size, &envc);
 
     unload_userspace(space);
 
-    uintptr_t prog_low;
-    uintptr_t prog_high;
     elf_get_dimensions(elf, &prog_low, &prog_high);
 
-    size_t prog_size = prog_high - prog_low;
+    prog_size = prog_high - prog_low;
 
     vm_map(space, (void*)prog_low, prog_size, VM_EXEC | VM_READ | VM_WRITE);
 
@@ -227,8 +270,6 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     sched_curr_thread->u_stack_top = KERNEL_VIRTUAL_BASE - 1;
 
-    uintptr_t stack_bottom;
-
     for (stack_bottom = 0xBFFFF000; stack_bottom > 0xBFFFA000; stack_bottom -= 0x1000) {
         vm_map(space, (void*)stack_bottom, 0x1000, VM_READ | VM_WRITE);
         memset((void*)stack_bottom, 0, 0x1000);
@@ -239,14 +280,14 @@ proc_execve(const char *path, const char **argv, const char **envp)
     /*
      * This is kind of messy, but this is pushing argv and envp onto the stack so it can be accessed from userland
      */
-    uintptr_t stackp = (uintptr_t)0xBFFFFFFF;
+    stackp = (uintptr_t)0xBFFFFFFF;
     stackp -= envp_size;
     memcpy((void*)stackp, cp_envp, envp_size);
-    uintptr_t u_envp = stackp;
+    u_envp = stackp;
     realign_pointers((uintptr_t*)stackp, (uintptr_t)cp_envp - stackp);
     stackp -= argv_size;
     memcpy((void*)stackp, cp_argv, argv_size);
-    uintptr_t u_argv = stackp;
+    u_argv = stackp;
     realign_pointers((uintptr_t*)stackp, (uintptr_t)cp_argv - stackp);
 
     *((uint32_t*)(stackp - 4)) = u_envp;
@@ -263,8 +304,10 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
     // now just make sure we close any private files
 
-    for (int i = 0; i < 4096; i++) {
-        struct file *fp = proc->files[i];
+    for (i = 0; i < 4096; i++) {
+        struct file *fp;
+
+        fp = proc->files[i];
 
         if (fp && (fp->flags & O_CLOEXEC)) {
             proc->files[i] = NULL;
@@ -272,15 +315,11 @@ proc_execve(const char *path, const char **argv, const char **envp)
         }
     }
 
-    uintptr_t entrypoint = elf->e_entry;
+    entrypoint = elf->e_entry;
 
     free(elf);
 
     bus_interrupts_on();
-
-    /* defined in sys/i686/kern/usermode.asm */
-    extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t ebp, uintptr_t eax);
-    
     return_to_usermode(entrypoint, stackp, stackp, 0);
 
     return 0;

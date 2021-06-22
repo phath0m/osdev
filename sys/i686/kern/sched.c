@@ -42,9 +42,10 @@ static void
 sched_reap_threads()
 {
     list_iter_t iter;
+    struct thread *thread;
+
     list_get_iter(&dead_threads, &iter);
 
-    struct thread *thread;
     while (iter_move_next(&iter, (void**)&thread)) {
         thread_destroy(thread);
     }
@@ -59,11 +60,11 @@ sched_get_next_proc(uintptr_t prev_esp)
     /* defined in sys/i686/kern/interrupt.c */
     extern void set_tss_esp0(uint32_t esp0);
 
+    struct thread *next_thread;
+
     timer_tick();
 
     sched_ticks++;
-
-    struct thread *next_thread = NULL;
 
     if (list_remove_front(&run_queue, (void**)&next_thread) && next_thread != sched_curr_thread) {
         
@@ -140,7 +141,13 @@ thread_interrupt_leave(struct thread *thread, struct regs *regs)
 void
 thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 {
-    struct thread *thread = thread_new(space);
+    uint32_t *stack;
+    uint32_t *stack_base;
+    uint32_t *stack_top;
+
+    struct thread *thread;
+    
+    thread = thread_new(space);
 
     if (space) {
         thread->address_space = space;
@@ -150,9 +157,9 @@ thread_run(kthread_entry_t entrypoint, struct vm_space *space, void *arg)
 
     thread->state = SRUN;
 
-    uint32_t *stack_base = calloc(1, 65536);
-    uint32_t *stack_top = &stack_base[16380];
-    uint32_t *stack = (uint32_t*)stack_top;
+    stack_base = calloc(1, 65536);
+    stack_top = &stack_base[16380];
+    stack = (uint32_t*)stack_top;
     
     *--stack = (uint32_t)arg;
     *--stack = (uintptr_t)stack_top; /* idk (I think ESP?)) */
@@ -208,7 +215,10 @@ thread_schedule(int state, struct thread *thread)
 void
 sched_init()
 {
-    uint32_t divisor = 1193180 / sched_hz;
+    uint32_t divisor;
+    
+    divisor = 1193180 / sched_hz;
+
     io_write8(0x43, 0x36);
     io_write8(0x40, divisor & 0xFF);
     io_write8(0x40, (divisor >> 8) & 0xFF);

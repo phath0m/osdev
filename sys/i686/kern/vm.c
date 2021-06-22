@@ -49,7 +49,7 @@ struct vm_statistics vm_stat;
 static struct frame *
 get_free_frame()
 {
-    struct frame *result = NULL;
+    struct frame *result;
     
     if (list_remove_front(&frames_free, (void**)&result)) {
         return result;
@@ -62,9 +62,11 @@ get_free_frame()
 static uintptr_t
 frame_alloc(struct frame **res)
 {
+    struct frame *frame;
+
     spinlock_lock(&frame_alloc_lock);
 
-    struct frame *frame = get_free_frame();
+    frame = get_free_frame();
 
     if (!frame) {
         frame = (struct frame*)calloc(1, sizeof(struct frame));
@@ -86,14 +88,16 @@ frame_alloc(struct frame **res)
 static void
 frame_free(void *addr)
 {
-    spinlock_lock(&frame_alloc_lock);
-
     list_iter_t iter;
+
+    struct frame *frame;
+    struct frame *to_remove;
+
+    spinlock_lock(&frame_alloc_lock);
 
     list_get_iter(&frames_allocated, &iter);
 
-    struct frame *frame = NULL;
-    struct frame *to_remove = NULL;
+    to_remove = NULL;
 
     while (iter_move_next(&iter, (void**)&frame)) {
         if (frame->addr == (uintptr_t)addr) {
@@ -117,11 +121,18 @@ frame_free(void *addr)
 static void
 page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t paddr, bool write, bool user)
 {
-    uint32_t page_table = PAGE_INDEX(vaddr);
-    uint32_t page_table_entry = page_table / 1024;
+    uint32_t page_table;
+    uint32_t page_table_entry;
 
-    struct page_directory_entry *dir_entry = &directory->tables[page_table_entry];
-    struct page_table *table = (struct page_table*)(dir_entry->address << 12);
+    struct page_directory_entry *dir_entry;
+    struct page_entry *page;
+    struct page_table *table;
+
+    page_table = PAGE_INDEX(vaddr);
+    page_table_entry = page_table / 1024;
+
+    dir_entry = &directory->tables[page_table_entry];
+    table = (struct page_table*)(dir_entry->address << 12);
 
     if (!dir_entry->present) {    
         table = pool_get(&page_table_pool);
@@ -139,7 +150,7 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
         table = (struct page_table*)PTOKVA(table);
     }
 
-    struct page_entry *page = &table->pages[page_table % 1024];
+    page = &table->pages[page_table % 1024];
 
     page->frame = FRAME_INDEX(paddr);
     page->present = true;
@@ -153,11 +164,17 @@ page_map_entry(struct page_directory *directory, uintptr_t vaddr, uintptr_t padd
 static void
 page_directory_free(struct page_directory *directory)
 {
-    for (int i = 0; i < 1024; i++) {
-        struct page_directory_entry *entry = &directory->tables[i];
+    int i;
+
+    for (i = 0; i < 1024; i++) {
+        struct page_directory_entry *entry;
+        
+        entry = &directory->tables[i];
 
         if (entry->present && !entry->size) {
-            struct page_table *table = (struct page_table*)PTOKVA(entry->address << 12);
+            struct page_table *table;
+            
+            table = (struct page_table*)PTOKVA(entry->address << 12);
             VMSTAT_DEC_PAGE_TABLE_COUNT(&vm_stat);
             entry->present = false;
             pool_put(&page_table_pool, table);
@@ -171,7 +188,8 @@ page_directory_free(struct page_directory *directory)
 struct vm_block *
 vm_block_new()
 {
-    struct vm_block *block = (struct vm_block*)calloc(1, sizeof(struct vm_block));
+    struct vm_block *block;
+    block = (struct vm_block*)calloc(1, sizeof(struct vm_block));
     VMSTAT_INC_PAGE_COUNT(&vm_stat);
     return block;
 }
@@ -180,10 +198,20 @@ vm_block_new()
 void *
 vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *addr2, size_t length, int prot)
 {
-    int required_pages = PAGE_COUNT(length);
+    bool write;
+    bool user;
+    int i;
+    int required_pages;
+    uintptr_t offset;
+    uintptr_t paddr;
+    uintptr_t vaddr;
 
-    bool write = VM_IS_WRITABLE(prot);
-    bool user = VM_IS_USER(prot);
+    struct page_directory *directory;
+
+    required_pages = PAGE_COUNT(length);
+
+    write = VM_IS_WRITABLE(prot);
+    user = VM_IS_USER(prot);
 
     if (user) {
         addr1 = (void*)va_alloc_block(space1->uva_map, (uintptr_t)addr1, length);
@@ -191,20 +219,24 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
         addr1 = (void*)va_alloc_block(space1->kva_map, (uintptr_t)addr1, length);
     }
 
-    uintptr_t offset = PAGE_OFFSET(addr2);
+    offset = PAGE_OFFSET(addr2);
 
     addr1 = (void*)ALIGN_ADDRESS(addr1);
     addr2 = (void*)ALIGN_ADDRESS(addr2);
 
-    struct page_directory *directory = (struct page_directory*)space1->state_virtual;
+    directory = (struct page_directory*)space1->state_virtual;
 
-    for (int i = 0; i < required_pages; i++) {
-        struct vm_block *src_block = vm_find_block(space2, (uintptr_t)addr2 + (i * PAGE_SIZE));
-        struct vm_block *block = vm_block_new();
-        struct frame *frame = (struct frame*)src_block->state;
+    for (i = 0; i < required_pages; i++) {
+        struct vm_block *src_block;
+        struct vm_block *block;
+        struct frame *frame;
 
-        uintptr_t paddr = src_block->start_physical;
-        uintptr_t vaddr = (uintptr_t)addr1 + (PAGE_SIZE * i);
+        src_block = vm_find_block(space2, (uintptr_t)addr2 + (i * PAGE_SIZE));
+        block = vm_block_new();
+        frame = (struct frame*)src_block->state;
+
+        paddr = src_block->start_physical;
+        vaddr = (uintptr_t)addr1 + (PAGE_SIZE * i);
 
         frame->ref_count++;
 
@@ -226,10 +258,17 @@ vm_share(struct vm_space *space1, struct vm_space *space2, void *addr1, void *ad
 void *
 vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 {
-    int required_pages = PAGE_COUNT(length);
+    bool write;
+    bool user;
+    int i;
+    int required_pages;
 
-    bool write = VM_IS_WRITABLE(prot);
-    bool user = VM_IS_USER(prot);
+    struct page_directory *directory;
+
+    required_pages = PAGE_COUNT(length);
+
+    write = VM_IS_WRITABLE(prot);
+    user = VM_IS_USER(prot);
 
     if (user) {
         addr = (void*)va_alloc_block(space->uva_map, (uintptr_t)addr, length);
@@ -237,12 +276,14 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
         addr = (void*)va_alloc_block(space->kva_map, (uintptr_t)addr, length);
     }
 
-    struct page_directory *directory = (struct page_directory*)space->state_virtual;
+    directory = (struct page_directory*)space->state_virtual;
 
-    for (int i = 0; i < required_pages; i++) {
+    for (i = 0; i < required_pages; i++) {
         struct frame *frame;
 
-        struct vm_block *block = vm_block_new();
+        struct vm_block *block;
+        
+        block = vm_block_new();
 
         block->size = PAGE_SIZE;
         block->start_physical = frame_alloc(&frame);
@@ -264,10 +305,18 @@ vm_map(struct vm_space *space, void *addr, size_t length, int prot)
 void *
 vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t length, int prot)
 {
-    int required_pages = PAGE_COUNT(length);
+    bool user;
+    bool write;
 
-    bool write = VM_IS_WRITABLE(prot);
-    bool user = VM_IS_USER(prot);
+    int i;
+    int required_pages;
+
+    struct page_directory *directory;
+
+    required_pages = PAGE_COUNT(length);
+
+    write = VM_IS_WRITABLE(prot);
+    user = VM_IS_USER(prot);
 
     if (user) {
         addr = (void*)va_alloc_block(space->uva_map, (uintptr_t)addr, length);
@@ -275,10 +324,12 @@ vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t l
         addr = (void*)va_alloc_block(space->kva_map, (uintptr_t)addr, length);
     }
 
-    struct page_directory *directory = (struct page_directory*)space->state_virtual;
+    directory = (struct page_directory*)space->state_virtual;
 
-    for (int i = 0; i < required_pages; i++) {
-        struct vm_block *block = vm_block_new();
+    for (i = 0; i < required_pages; i++) {
+        struct vm_block *block;
+        
+        block = vm_block_new();
 
         block->size = PAGE_SIZE;
         block->start_physical = ALIGN_ADDRESS(physical + (PAGE_SIZE * i));
@@ -298,7 +349,10 @@ vm_map_physical(struct vm_space *space, void *addr, uintptr_t physical, size_t l
 void
 vm_unmap(struct vm_space *space, void *addr, size_t length)
 {
-    int required_pages = PAGE_COUNT(length);
+    int i;
+    int required_pages;
+    
+    required_pages = PAGE_COUNT(length);
 
     addr = (void*)ALIGN_ADDRESS(addr);
 
@@ -311,9 +365,12 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
         panic("attempted to unmap non-mapped address 0x%p", addr);
     }
 
-    for (int i = 0; i < required_pages; i++) {
-        struct vm_block *block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
-        struct frame *frame = (struct frame*)block->state;
+    for (i = 0; i < required_pages; i++) {
+        struct frame *frame;
+        struct vm_block *block;
+        
+        block = vm_find_block(space, (uintptr_t)addr + (i * PAGE_SIZE));
+        frame = (struct frame*)block->state;
 
         if (frame) {
             frame->ref_count--;
@@ -377,6 +434,10 @@ map_vbe_data(struct page_directory *directory)
     /* defined in sys/i686/kern/premain.c */
     extern multiboot_info_t *multiboot_header;
 
+    uintptr_t i;
+    vbe_info_t *info;
+
+
     if (!multiboot_header->vbe_mode_info) {
         return;
     }
@@ -387,9 +448,9 @@ map_vbe_data(struct page_directory *directory)
      * the linear framebuffer used for VBE is properly mapped for each vm_space we create
      * to ensure we can seemlessly access the framebuffer
      */
-    vbe_info_t *info = (vbe_info_t*)(KERNEL_VIRTUAL_BASE + multiboot_header->vbe_mode_info);    
+    info = (vbe_info_t*)(KERNEL_VIRTUAL_BASE + multiboot_header->vbe_mode_info);    
 
-    for (uintptr_t i = 0; i < info->Yres * info->pitch; i += 0x1000) {
+    for (i = 0; i < info->Yres * info->pitch; i += 0x1000) {
         page_map_entry(directory, info->physbase + i, info->physbase + i, true, false);
     } 
 }
@@ -399,17 +460,25 @@ map_vbe_data(struct page_directory *directory)
 struct vm_space *
 vm_space_new()
 {
-    struct vm_space *vm_space = (struct vm_space*)calloc(0, sizeof(struct vm_space));
-    struct page_directory *directory = pool_get(&page_directory_pool);
+    int i;
+    uint32_t page_start;
+
+    struct vm_space *vm_space;
+    struct page_directory *directory;
+
+    vm_space = calloc(1, sizeof(struct vm_space));
+    directory = pool_get(&page_directory_pool);
 
     VMSTAT_INC_VM_SPACE_COUNT(&vm_stat);
 
     memset(directory, 0, sizeof(struct page_directory));
     
-    uint32_t page_start = KERNEL_VIRTUAL_BASE >> 22;
+    page_start = KERNEL_VIRTUAL_BASE >> 22;
 
-    for (int i = 0; i < 127; i++) {
-        struct page_directory_entry *dir_entry = &directory->tables[page_start + i];
+    for (i = 0; i < 127; i++) {
+        struct page_directory_entry *dir_entry;
+        
+        dir_entry = &directory->tables[page_start + i];
         dir_entry->present = true;
         dir_entry->read_write = true;
         dir_entry->user = false;
@@ -442,5 +511,3 @@ vm_init()
     pool_init(&page_table_pool, sizeof(struct page_table), 4096);
     pool_init(&page_directory_pool, sizeof(struct page_directory), 4096);
 }
-
-

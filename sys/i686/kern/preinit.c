@@ -37,19 +37,33 @@ multiboot_info_t *multiboot_header;
 void
 ksym_init()
 {
-    struct elf32_shdr *shdr = (struct elf32_shdr*)PTOKVA(multiboot_header->u.elf_sec.addr);
+    int i;
+    int nents;
+
+    char *all_strings;
+
+    struct elf32_shdr *shdr;
+    struct elf32_shdr *symtab;
+    struct elf32_shdr *strtab;
+    struct elf32_sym *all_syms;
+
+    shdr = (struct elf32_shdr*)PTOKVA(multiboot_header->u.elf_sec.addr);
+
     /* note to self: this is a hack, we're assuming where these are*/
-    struct elf32_shdr *symtab = &shdr[16];
-    struct elf32_shdr *strtab = &shdr[17];
+    symtab = &shdr[16];
+    strtab = &shdr[17];
     
-    char *all_strings = (char*)PTOKVA(strtab->sh_addr);
-    struct elf32_sym *all_syms = (struct elf32_sym*)PTOKVA(symtab->sh_addr);
+    all_strings = (char*)PTOKVA(strtab->sh_addr);
+    all_syms = (struct elf32_sym*)PTOKVA(symtab->sh_addr);
     
-    int nents = symtab->sh_size / sizeof(struct elf32_sym);
+    nents = symtab->sh_size / sizeof(struct elf32_sym);
     
-    for (int i = 0; i < nents; i++) {
-        struct elf32_sym *sym = &all_syms[i];
-        char *name = &all_strings[sym->st_name];
+    for (i = 0; i < nents; i++) {
+        char *name;
+        struct elf32_sym *sym;
+
+        sym = &all_syms[i];
+        name = &all_strings[sym->st_name];
 
         if (name) {
             ksym_declare(name, sym->st_value);
@@ -64,8 +78,23 @@ _preinit(multiboot_info_t *multiboot_hdr)
     extern void _init();
     extern struct cdev serial0_device;
 
-    uint32_t initrd = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr));
-    uint32_t heap = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr + 4));
+    extern void machine_dev_init();
+    extern void vm_init();
+    extern void intr_init();
+    extern void syscall_init();
+    extern void traps_init();
+    extern void sched_init();
+
+    int i;
+    uint32_t avail_memory;
+    uint32_t initrd;
+    uint32_t heap;
+    uint32_t real_memory;
+
+    const char *args;
+
+    initrd = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr));
+    heap = PTOKVA(*(uint32_t*)PTOKVA(multiboot_hdr->mods_addr + 4));
 
     bus_interrupts_off();
 
@@ -84,11 +113,13 @@ _preinit(multiboot_info_t *multiboot_hdr)
     printf("base=0x%p initrd=0x%p heap=0x%p\n\r", KERNEL_VIRTUAL_BASE, initrd, heap);
     printf("physical memory map:\n\r"); 
 
-    uint32_t real_memory = 0;
-    uint32_t avail_memory = 0;
+    real_memory = 0;
+    avail_memory = 0;
 
-    for (int i = 0; i < multiboot_hdr->mmap_length; i+= sizeof(struct multiboot_mmap_entry)) {
-        struct multiboot_mmap_entry * entry = (struct multiboot_mmap_entry*)PTOKVA(multiboot_hdr->mmap_addr + i);
+    for (i = 0; i < multiboot_hdr->mmap_length; i+= sizeof(struct multiboot_mmap_entry)) {
+        struct multiboot_mmap_entry * entry;
+        
+        entry = (struct multiboot_mmap_entry*)PTOKVA(multiboot_hdr->mmap_addr + i);
 
         if (entry->type == 1) {
             printf("  %p-%p\n\r", (int)entry->addr, (int)(entry->addr+entry->len));
@@ -100,12 +131,6 @@ _preinit(multiboot_info_t *multiboot_hdr)
 
     printf("real  mem = %d KB\n\r", real_memory / 1024);
     printf("avail mem = %d KB\n\r", avail_memory / 1024);
-
-    extern void vm_init();
-    extern void intr_init();
-    extern void syscall_init();
-    extern void traps_init();
-    extern void sched_init();
 
     /* initialize virtual memory first*/
     vm_init();
@@ -122,12 +147,10 @@ _preinit(multiboot_info_t *multiboot_hdr)
     /* finally, the scheduler */
     sched_init();
 
-    /* move this somewhere else*/
-    extern void machine_dev_init();
-
+    /* I should move this somewhere else */
     machine_dev_init();
 
-    const char *args = (const char *)PTOKVA(multiboot_header->cmdline);
+    args = (const char *)PTOKVA(multiboot_header->cmdline);
     
     if (kmain(args) != 0) {
         printf("Unable to boot kernel!\n");
