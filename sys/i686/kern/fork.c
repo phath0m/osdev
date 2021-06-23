@@ -38,14 +38,17 @@ struct fork_state {
 static void
 copy_image(struct proc *proc, struct vm_space *new_space)
 {
-    ssize_t image_size = ((proc->brk - proc->base));
+    ssize_t image_size;
+    void *image;
+
+    image_size = ((proc->brk - proc->base));
 
     KASSERT("proc image size should not be zero or negative", image_size > 0);
 
     vm_map(new_space, (void*)proc->base, image_size, VM_READ | VM_WRITE);
 
-    void *image = vm_share(proc->thread->address_space, new_space, NULL, (void*)proc->base,
-                           image_size, VM_READ | VM_WRITE | VM_KERN);
+    image = vm_share(proc->thread->address_space, new_space, NULL, (void*)proc->base,
+                        image_size, VM_READ | VM_WRITE | VM_KERN);
 
     memcpy(image, (void*)proc->base, image_size);
 
@@ -55,7 +58,9 @@ copy_image(struct proc *proc, struct vm_space *new_space)
 static void
 copy_fildes(struct proc *proc, struct proc *new_proc)
 {
-    for (int i = 0; i < 4096; i++) {
+    int i;
+
+    for (i = 0; i < 4096; i++) {
         if (proc->files[i]) {
             new_proc->files[i] = vfs_duplicate_file(proc->files[i]);
         }
@@ -65,11 +70,14 @@ copy_fildes(struct proc *proc, struct proc *new_proc)
 static void
 copy_stack(struct thread *thread, struct vm_space *new_space)
 {
-    size_t stack_size = thread->u_stack_top - thread->u_stack_bottom;
+    size_t stack_size;
+    void *stack;
+
+    stack_size = thread->u_stack_top - thread->u_stack_bottom;
 
     vm_map(new_space, (void*)thread->u_stack_bottom, stack_size, VM_READ | VM_WRITE);
 
-    void *stack = vm_share(thread->address_space, new_space, NULL, (void*)thread->u_stack_bottom,
+    stack = vm_share(thread->address_space, new_space, NULL, (void*)thread->u_stack_bottom,
                            stack_size, VM_READ | VM_WRITE | VM_KERN);
     memcpy(stack, (void*)thread->u_stack_bottom, stack_size);
 
@@ -79,13 +87,23 @@ copy_stack(struct thread *thread, struct vm_space *new_space)
 static int
 init_child_proc(void *statep)
 {
-    bus_interrupts_off();
-
-    struct fork_state *state = (struct fork_state*)statep;
-    struct proc *proc = state->proc;
-
     /* defined in sys/i686/kern/sched.c */
     extern struct thread *sched_curr_thread;
+
+    /* defined in sys/i686/kern/usermode.asm */
+    extern void return_to_usermode(uintptr_t, uintptr_t, uintptr_t, uintptr_t);
+
+    uintptr_t eip;
+    uintptr_t esp;
+    uintptr_t ebp;
+
+    struct fork_state *state;
+    struct proc *proc;
+
+    bus_interrupts_off();
+
+    state = statep;
+    proc = state->proc;
 
     proc->thread = sched_curr_thread;
     
@@ -98,16 +116,13 @@ init_child_proc(void *statep)
 
     current_proc = proc;
 
-    uintptr_t eip = state->regs.eip;
-    uintptr_t esp = state->regs.uesp;
-    uintptr_t ebp = state->regs.ebp;
+    eip = state->regs.eip;
+    esp = state->regs.uesp;
+    ebp = state->regs.ebp;
 
     state->initialized = true;
 
     bus_interrupts_on();
-
-    /* defined in sys/i686/kern/usermode.asm */
-    extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);
 
     return_to_usermode(eip, esp, ebp, 0);
     
@@ -117,14 +132,18 @@ init_child_proc(void *statep)
 int
 proc_fork(struct regs *regs)
 {
+    struct fork_state state;
+    struct proc *proc;
+    struct proc *new_proc;
+    struct vm_space *new_space;
+
     bus_interrupts_off();
 
-    struct proc *proc = current_proc;
-    struct proc *new_proc = proc_new();
-    struct vm_space *new_space = vm_space_new();
+    proc = current_proc;
+    new_proc = proc_new();
+    new_space = vm_space_new();
 
     strncpy(new_proc->name, proc->name, sizeof(new_proc->name));
-
     memcpy(&new_proc->creds, &proc->creds, sizeof(struct cred));
 
     new_proc->base = proc->base;
@@ -150,7 +169,6 @@ proc_fork(struct regs *regs)
     copy_image(proc, new_space);
     copy_fildes(proc, new_proc);
 
-    struct fork_state state;
     memset(&state, 0, sizeof(state));
     state.proc = new_proc;
     state.u_stack_top = proc->thread->u_stack_top;
