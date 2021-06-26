@@ -123,7 +123,8 @@ struct driver serial_driver = {
 static void
 echo_char(struct serial_state *state, char ch)
 {
-    int port = state->port;
+    int port;
+    port = state->port;
 
     while ((io_read8(port + 5) & 0x20) == 0);
 
@@ -133,11 +134,14 @@ echo_char(struct serial_state *state, char ch)
 static char
 read_char(struct serial_state *state)
 {
-    int port = state->port;
+    char ch;
+    int port;
+    
+    port = state->port;
 
     while ((io_read8(port + 5) & 0x1) == 0);
 
-    char ch = io_read8(port);
+    ch = io_read8(port);
     
     switch (ch) {
         case 0x0D:
@@ -158,9 +162,11 @@ serial_close(struct cdev *dev)
 static void
 serial_init_device(struct cdev *cdev)
 {
-    struct serial_state *state = (struct serial_state*)cdev->state;
-
-    int port = state->port;
+    int port;
+    struct serial_state *state;
+    
+    state = cdev->state;
+    port = state->port;
 
     io_write8(port + 1, 0x00); // disable all interupts
     io_write8(port + 3, 0x80);  // enable DLAB
@@ -205,10 +211,15 @@ serial_open(struct cdev *dev)
 static int
 serial_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
-    struct serial_state *state = (struct serial_state*)dev->state;
+    char ch;
+    int i;
 
-    for (int i = 0; i < nbyte; i++) {
-        char ch = read_char(state);
+    struct serial_state *state;
+    
+    state = dev->state;
+
+    for (i = 0; i < nbyte; i++) {
+        ch = read_char(state);
 
         echo_char(state, ch);
 
@@ -225,9 +236,12 @@ serial_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 static int
 serial_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
-    struct serial_state *state = (struct serial_state*)dev->state;
+    int i;
+    struct serial_state *state;
+    
+    state = dev->state;
 
-    for (int i = 0; i < nbyte; i++) {
+    for (i = 0; i < nbyte; i++) {
         echo_char(state, buf[i]);
     }
 

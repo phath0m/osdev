@@ -277,6 +277,8 @@ init_thread(void *argp)
 int
 kmain(const char *args)
 {
+    extern void pseudo_devices_init();
+ 
     /* initialize various pools for the various subsystems  */
     pool_init(&proc_pool, sizeof(struct proc), 0);
     pool_init(&thread_pool, sizeof(struct thread), 0);
@@ -289,7 +291,6 @@ kmain(const char *args)
     /* initialize all system calls*/
     syscalls_init();
 
-    extern void pseudo_devices_init();
     pseudo_devices_init();
 
     thread_run((kthread_entry_t)init_thread, NULL, (void*)args);

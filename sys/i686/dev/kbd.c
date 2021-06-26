@@ -55,12 +55,11 @@ keyboard_irq_handler(struct device *dev, int inum)
 static int
 keyboard_attach(struct driver *driver, struct device *dev)
 {
+    struct cdev_ops kbd_ops;
+
     struct cdev *cdev;
 
-    keyboard_buf = fifo_new(4096);
-    irq_register(dev, 1, keyboard_irq_handler);
-
-    struct cdev_ops kbd_ops = {
+    kbd_ops = (struct cdev_ops) {
         .close  = NULL,
         .init   = NULL,
         .ioctl  = keyboard_ioctl,
@@ -70,6 +69,9 @@ keyboard_attach(struct driver *driver, struct device *dev)
         .read   = keyboard_read,
         .write  = NULL
     };
+
+    keyboard_buf = fifo_new(4096);
+    irq_register(dev, 1, keyboard_irq_handler);
 
     cdev = cdev_new("kbd", 0666, DEV_MAJOR_KBD, 0, &kbd_ops, NULL);
     

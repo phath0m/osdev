@@ -91,27 +91,33 @@ struct tmpfs_node {
 static struct tmpfs_node *
 tmpfs_node_new()
 {
-    struct tmpfs_node *node = (struct tmpfs_node*)calloc(0, sizeof(struct tmpfs_node));
+    struct tmpfs_node *node;
+    
+    node = calloc(1, sizeof(struct tmpfs_node));
 
     return node;
 }
 
 static int
-tmpfs_chmod(struct vnode *node, mode_t mode)
+tmpfs_chmod(struct vnode *vn, mode_t mode)
 {
-    struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
+    struct tmpfs_node *tmpfs_node;
+    
+    tmpfs_node = vn->state;
 
     tmpfs_node->mode &= ~(0777);
     tmpfs_node->mode |= mode;
-    node->mode = tmpfs_node->mode;
+    vn->mode = tmpfs_node->mode;
 
     return 0;
 }
 
 static int
-tmpfs_chown(struct vnode *node, uid_t owner, gid_t group)
+tmpfs_chown(struct vnode *vn, uid_t owner, gid_t group)
 {
-    struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
+    struct tmpfs_node *tmpfs_node;
+    
+    tmpfs_node = vn->state;
 
     tmpfs_node->uid = owner;
     tmpfs_node->gid = group;
@@ -120,9 +126,12 @@ tmpfs_chown(struct vnode *node, uid_t owner, gid_t group)
 }
 
 static int
-tmpfs_creat(struct vnode *parent, struct vnode **child, const char *name, mode_t mode)
+tmpfs_creat(struct vnode *vn_parent, struct vnode **vn_child, const char *name, mode_t mode)
 {
-    struct tmpfs_node *node = tmpfs_node_new();
+    struct tmpfs_node *parent_dir;
+    struct tmpfs_node *node;
+    
+    node = tmpfs_node_new();
 
     node->content = membuf_new();
     node->gid = 0;
@@ -130,30 +139,32 @@ tmpfs_creat(struct vnode *parent, struct vnode **child, const char *name, mode_t
     node->uid = 0;
     node->mtime = 0;
 
-    struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
+    parent_dir = vn_parent->state;
 
     dict_set(&parent_dir->children, name, node);
 
-    return tmpfs_lookup(parent, child, name);
+    return tmpfs_lookup(vn_parent, vn_child, name);
 }
 
 static int
-tmpfs_lookup(struct vnode *parent, struct vnode **result, const char *name)
+tmpfs_lookup(struct vnode *vn_parent, struct vnode **vn_result, const char *name)
 {
-    struct tmpfs_node *dir = (struct tmpfs_node*)parent->state;
-
+    struct tmpfs_node *dir;
     struct tmpfs_node *child;
+    struct vnode *vn;
+
+    dir = vn_parent->state;
 
     if (dict_get(&dir->children, name, (void**)&child)) {
-        struct vnode *node = vn_new(parent, NULL, &tmpfs_file_ops);
+        vn = vn_new(vn_parent, NULL, &tmpfs_file_ops);
         
-        node->state = child;
-        node->mode = child->mode;
-        node->uid = child->uid;
-        node->gid = child->gid;    
-        node->devno = child->devno;
+        vn->state = child;
+        vn->mode = child->mode;
+        vn->uid = child->uid;
+        vn->gid = child->gid;    
+        vn->devno = child->devno;
 
-        *result = node;
+        *vn_result = vn;
 
         return 0;
     }
@@ -162,16 +173,19 @@ tmpfs_lookup(struct vnode *parent, struct vnode **result, const char *name)
 }
 
 static int
-tmpfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
+tmpfs_mount(struct vnode *vn_parent, struct cdev *dev, struct vnode **vn_root)
 {
-    struct vnode *node = vn_new(parent, dev, &tmpfs_file_ops);
+    struct tmpfs_node *root;
+    struct vnode *vn;
 
-    struct tmpfs_node *root_node = tmpfs_node_new();
-    root_node->mode = 0755 | S_IFDIR;
-    node->state = root_node;
-    node->mode = 0755 | S_IFDIR;
+    vn = vn_new(vn_parent, dev, &tmpfs_file_ops);
+    root = tmpfs_node_new();
 
-    *root = node;
+    root->mode = 0755 | S_IFDIR;
+    vn->state = root;
+    vn->mode = 0755 | S_IFDIR;
+
+    *vn_root = vn;
 
     return 0;
 }
@@ -179,10 +193,15 @@ tmpfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
 static int
 tmpfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 {
-    struct tmpfs_node *file = (struct tmpfs_node*)node->state;
+    uint64_t end;
+    uint64_t start;
     
-    uint64_t start = pos;
-    uint64_t end = start + nbyte;
+    struct tmpfs_node *file;
+
+    file = node->state;
+    
+    start = pos;
+    end = start + nbyte;
 
     if (!S_ISREG(file->mode)) {
         return -(EISDIR);
@@ -200,20 +219,24 @@ tmpfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
 }
 
 static int
-tmpfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
+tmpfs_readdirent(struct vnode *vn, struct dirent *dirent, uint64_t entry)
 {
-    struct tmpfs_node *dir = (struct tmpfs_node*)node->state;
-
+    int i;
+    int res;
     list_iter_t iter;
+    
+    char *name;
+
+    struct tmpfs_node *dir;
+
+    dir = vn->state;
+    res = -1;
 
     dict_get_keys(&dir->children, &iter);
 
-    char *name = NULL;
 
-    int res = -1;
-
-    for (int i = 0; iter_move_next(&iter, (void**)&name); i++) {
-        struct tmpfs_node *node = NULL;
+    for (i = 0; iter_move_next(&iter, (void**)&name); i++) {
+        struct tmpfs_node *node;
 
         if (i == entry && name && dict_get(&dir->children, name, (void**)&node)) {
             strncpy(dirent->name, name, PATH_MAX);
@@ -229,10 +252,12 @@ tmpfs_readdirent(struct vnode *node, struct dirent *dirent, uint64_t entry)
 }
 
 static int
-tmpfs_rmdir(struct vnode *parent, const char *dirname)
+tmpfs_rmdir(struct vnode *vn_parent, const char *dirname)
 {
-    struct tmpfs_node *parent_node = (struct tmpfs_node*)parent->state;
+    struct tmpfs_node *parent_node;
     struct tmpfs_node *result;
+
+    parent_node = vn_parent->state;
 
     if (!dict_get(&parent_node->children, dirname, (void**)&result)) {
         return -(ENOENT);
@@ -248,16 +273,19 @@ tmpfs_rmdir(struct vnode *parent, const char *dirname)
 }
 
 static int
-tmpfs_mkdir(struct vnode *parent, const char *name, mode_t mode)
+tmpfs_mkdir(struct vnode *vn_parent, const char *name, mode_t mode)
 {
-    struct tmpfs_node *node = tmpfs_node_new();
+    struct tmpfs_node *node;
+    struct tmpfs_node *parent_dir;
+
+    node = tmpfs_node_new();
 
     node->gid = 0;
     node->mode = mode | S_IFDIR;
     node->uid = 0;
     node->mtime = 0;
 
-    struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
+    parent_dir = vn_parent->state;
 
     dict_set(&parent_dir->children, name, node);
     
@@ -265,9 +293,14 @@ tmpfs_mkdir(struct vnode *parent, const char *name, mode_t mode)
 }
 
 static int
-tmpfs_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev)
+tmpfs_mknod(struct vnode *vn_parent, const char *name, mode_t mode, dev_t dev)
 {
-    struct tmpfs_node *node = tmpfs_node_new();
+    struct tmpfs_node *node;
+    struct tmpfs_node *parent_dir;
+
+    parent_dir = vn_parent->state;
+
+    node = tmpfs_node_new();
 
     node->gid = 0;
     node->mode = mode;
@@ -275,19 +308,18 @@ tmpfs_mknod(struct vnode *parent, const char *name, mode_t mode, dev_t dev)
     node->mtime = 0;
     node->devno = dev;
 
-    struct tmpfs_node *parent_dir = (struct tmpfs_node*)parent->state;
-
     dict_set(&parent_dir->children, name, node);
 
     return 0;
 }
 
 static int
-tmpfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
+tmpfs_seek(struct vnode *vn, off_t *cur_pos, off_t off, int whence)
 {
-    struct tmpfs_node *file = (struct tmpfs_node*)node->state;
-
     off_t new_pos;
+    struct tmpfs_node *file;
+
+    file = vn->state;
 
     switch (whence) {
         case SEEK_CUR:
@@ -311,9 +343,11 @@ tmpfs_seek(struct vnode *node, off_t *cur_pos, off_t off, int whence)
 }
 
 static int
-tmpfs_stat(struct vnode *node, struct stat *stat)
+tmpfs_stat(struct vnode *vn, struct stat *stat)
 {
-    struct tmpfs_node *file = (struct tmpfs_node*)node->state;
+    struct tmpfs_node *file;
+
+    file = vn->state;
 
     stat->st_dev = (dev_t)0;
     stat->st_gid = file->gid;
@@ -332,9 +366,11 @@ tmpfs_stat(struct vnode *node, struct stat *stat)
 }
 
 static int
-tmpfs_truncate(struct vnode *node, off_t length)
+tmpfs_truncate(struct vnode *vn, off_t length)
 {
-    struct tmpfs_node *tmpfs_node = (struct tmpfs_node*)node->state;
+    struct tmpfs_node *tmpfs_node;
+    
+    tmpfs_node = vn->state;
 
     membuf_clear(tmpfs_node->content);
 
@@ -342,10 +378,12 @@ tmpfs_truncate(struct vnode *node, off_t length)
 }
 
 static int
-tmpfs_unlink(struct vnode *parent, const char *dirname)
+tmpfs_unlink(struct vnode *vn_parent, const char *dirname)
 {
-    struct tmpfs_node *parent_node = (struct tmpfs_node*)parent->state;
+    struct tmpfs_node *parent_node;
     struct tmpfs_node *result;
+
+    parent_node = vn_parent->state;
 
     if (!dict_get(&parent_node->children, dirname, (void**)&result)) {
         return -(ENOENT);
@@ -366,9 +404,11 @@ tmpfs_unlink(struct vnode *parent, const char *dirname)
 }
 
 static int
-tmpfs_utime(struct vnode *node, struct timeval tv[2])
+tmpfs_utime(struct vnode *vn, struct timeval tv[2])
 {
-    struct tmpfs_node *file = (struct tmpfs_node*)node->state;
+    struct tmpfs_node *file;
+
+    file = vn->state;    
 
     file->atime = tv[0].tv_sec;
     file->mtime = tv[1].tv_sec;
@@ -377,9 +417,11 @@ tmpfs_utime(struct vnode *node, struct timeval tv[2])
 }
 
 static int
-tmpfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
+tmpfs_write(struct vnode *vn, const void *buf, size_t nbyte, uint64_t pos)
 {
-    struct tmpfs_node *file = (struct tmpfs_node*)node->state;
+    struct tmpfs_node *file;
+    
+    file = vn->state;
 
     if (!S_ISREG(file->mode)) {
         return -(EISDIR);

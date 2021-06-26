@@ -311,9 +311,9 @@ sys_getppid()
 static int
 sys_gettid(struct thread *th, syscall_args_t argv)
 {
-    TRACE_SYSCALL("gettid", "void");
-
     extern struct thread *sched_curr_thread;
+
+    TRACE_SYSCALL("gettid", "void");
 
     return sched_curr_thread->tid;
 }

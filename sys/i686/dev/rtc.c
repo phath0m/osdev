@@ -61,16 +61,31 @@ static int seconds_per_month_leap_lut[] = {
 static time_t
 get_cmos_time()
 {
+    bool is_leap_year;
+    int actual_year;
+    int years_since_epoch;
+    int leap_years;
+    int non_leap_years;
+
+    time_t epoch;
+
+    uint8_t second;
+    uint8_t minute;
+    uint8_t hour;
+    uint8_t day;
+    uint8_t month;
+    uint8_t year;
+    uint8_t regb;
+
     while (cmos_update_in_progress());
 
-    uint8_t second = get_rtc_register(0x00);
-    uint8_t minute = get_rtc_register(0x02);
-    uint8_t hour = get_rtc_register(0x04);
-    uint8_t day = get_rtc_register(0x07);
-    uint8_t month = get_rtc_register(0x08);
-    uint8_t year = get_rtc_register(0x09);
-
-    uint8_t regb = get_rtc_register(0x0B);
+    second = get_rtc_register(0x00);
+    minute = get_rtc_register(0x02);
+    hour = get_rtc_register(0x04);
+    day = get_rtc_register(0x07);
+    month = get_rtc_register(0x08);
+    year = get_rtc_register(0x09);
+    regb = get_rtc_register(0x0B);
 
     if (!(regb & 0x04)) {
         second = (second & 0x0F) + ((second / 16) * 10);
@@ -81,14 +96,14 @@ get_cmos_time()
         year = (year & 0x0F) + ((year / 16) * 10);
     }
 
-    int actual_year = 2000 + year;
-    int years_since_epoch = actual_year - 1970;
-    int leap_years = years_since_epoch / 4;
-    int non_leap_years = years_since_epoch - leap_years;
+    actual_year = 2000 + year;
+    years_since_epoch = actual_year - 1970;
+    leap_years = years_since_epoch / 4;
+    non_leap_years = years_since_epoch - leap_years;
 
-    bool is_leap_year = actual_year % 4 == 0;
+    is_leap_year = actual_year % 4 == 0;
 
-    time_t epoch = 0;
+    epoch = 0;
 
     epoch += leap_years * 31622400;
     epoch += non_leap_years * 31536000;
@@ -109,7 +124,10 @@ get_cmos_time()
 static int
 rtc_attach(struct driver *driver, struct device *dev)
 {
-    struct cdev_ops rtc_ops = {
+    struct cdev *cdev;
+    struct cdev_ops rtc_ops;
+
+    rtc_ops = (struct cdev_ops){
         .close  = NULL,
         .init   = NULL,
         .ioctl  = NULL,
@@ -120,7 +138,7 @@ rtc_attach(struct driver *driver, struct device *dev)
         .write  = NULL
     };
 
-    struct cdev *cdev = cdev_new("rtc", 0666, DEV_MAJOR_RTC, 0, &rtc_ops, NULL);
+    cdev = cdev_new("rtc", 0666, DEV_MAJOR_RTC, 0, &rtc_ops, NULL);
 
     if (cdev && cdev_register(cdev) == 0) {
         return 0;
@@ -132,11 +150,11 @@ rtc_attach(struct driver *driver, struct device *dev)
 static int
 rtc_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
 {
+    time_t last_time;
+
     if (nbyte != 4) {
         return -1;
     }
-    
-    time_t last_time;
 
     do {
         last_time = get_cmos_time();

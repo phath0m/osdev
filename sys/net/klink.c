@@ -111,14 +111,6 @@ struct protocol klink_protocol = {
 static int
 klink_send_heapstat(struct klink_session *session)
 {
-    size_t resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_heap_stat);
-
-    struct klink_dgram *resp = (struct klink_dgram*)calloc(1, resp_sz);
-    struct klink_heap_stat *heapstat = (struct klink_heap_stat*)(resp + 1);
-
-    resp->what = KWHAT_HEAPSTAT;
-    resp->size = sizeof(struct klink_heap_stat);
-
     /* defined in sys/libk/malloc.c */
     extern intptr_t kernel_break;
     extern intptr_t kernel_heap_end;
@@ -136,6 +128,18 @@ klink_send_heapstat(struct klink_session *session)
     /* defined in sys/libk/list.c */
     extern int list_elem_count;
 
+    size_t resp_sz;
+
+    struct klink_dgram *resp;
+    struct klink_heap_stat *heapstat;
+
+    resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_heap_stat);
+    resp = calloc(1, resp_sz);
+    heapstat = (struct klink_heap_stat*)(resp + 1);
+
+    resp->what = KWHAT_HEAPSTAT;
+    resp->size = sizeof(struct klink_heap_stat);
+
     heapstat->heap_start = kernel_heap_start;
     heapstat->heap_break = kernel_break;
     heapstat->heap_end = kernel_heap_end;
@@ -150,6 +154,7 @@ klink_send_heapstat(struct klink_session *session)
     heapstat->page_table_count = vm_stat.page_table_count;
     heapstat->vm_block_count = vm_stat.page_count;
     heapstat->vm_space_count = vm_stat.vmspace_count;
+
     list_append(&session->resp_queue, resp);
 
     return 0;
@@ -163,21 +168,28 @@ klink_send_proclist(struct klink_session *session)
      */
     extern struct list process_list;
 
-    bus_interrupts_off();
-
+    int i;
     list_iter_t iter;
+    size_t resp_sz;
+
+    struct klink_dgram *resp;
+    struct klink_proc_info *procs;
+    struct proc *proc;
+
+    bus_interrupts_off();
 
     list_get_iter(&process_list, &iter);
 
-    size_t resp_sz = sizeof(struct klink_dgram) + LIST_SIZE(&process_list)*sizeof(struct klink_proc_info);
+    resp_sz = sizeof(struct klink_dgram) + LIST_SIZE(&process_list)*sizeof(struct klink_proc_info);
 
-    struct klink_dgram *resp = (struct klink_dgram*)calloc(0, resp_sz);
-    struct klink_proc_info *procs = (struct klink_proc_info*)(resp + 1);
-    struct proc *proc;
-    int i = 0;
+    resp = calloc(1, resp_sz);
+    procs = (struct klink_proc_info*)(resp + 1);
+    i = 0;
 
     while (iter_move_next(&iter, (void**)&proc)) {
-        struct klink_proc_info *info = (struct klink_proc_info*)&procs[i++];
+        struct klink_proc_info *info;
+        
+        info = &procs[i++];
 
         info->pid = proc->pid;
         info->uid = proc->creds.uid;
@@ -209,26 +221,29 @@ klink_send_procstat(struct klink_session *session, int target)
      */
     extern struct list process_list;
 
+    list_iter_t iter;
+    struct klink_dgram *resp;
+    struct proc *proc;
+
     /* turn off interrupts while holding lock on process_list */    
     bus_interrupts_off();
 
-    list_iter_t iter;
-    
     list_get_iter(&process_list, &iter);
 
-    struct klink_dgram *resp = NULL;
-    struct proc *proc;
+    resp = NULL;
     
     while (iter_move_next(&iter, (void**)&proc)) {
+        size_t resp_sz;
+        char *tty;
+        struct klink_proc_stat *stat;
+
         if (proc && proc->pid == target) {
-            size_t resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_proc_stat);
+            resp_sz = sizeof(struct klink_dgram) + sizeof(struct klink_proc_stat);
 
-            resp = (struct klink_dgram*)(calloc(1, resp_sz));
-
-            struct klink_proc_stat *stat = (struct klink_proc_stat*)(resp + 1);
-            
+            resp = calloc(1, resp_sz);
+            stat = (struct klink_proc_stat*)(resp + 1);
             stat->stime = proc->start_time;
-            char *tty = proc_getctty(proc);
+            tty = proc_getctty(proc);
             strncpy(stat->cmd, proc->name, 255);
             
             if (tty) {
@@ -281,7 +296,9 @@ klink_query(struct klink_session *session, struct klink_dgram *req)
 static int
 klink_destroy(struct socket *sock)
 {
-    struct klink_session *session = (struct klink_session*)sock->state;
+    struct klink_session *session;
+    
+    session = sock->state;
 
     list_destroy(&session->resp_queue, true);
 
@@ -299,7 +316,9 @@ klink_connect(struct socket *socket, void *address, size_t address_len)
 static int
 klink_init(struct socket *socket, int type, int protocol)
 {
-    struct klink_session *session = (struct klink_session*)calloc(0, sizeof(struct klink_session));
+    struct klink_session *session;
+    
+    session = calloc(1, sizeof(struct klink_session));
 
     socket->state = session;
 
@@ -309,19 +328,22 @@ klink_init(struct socket *socket, int type, int protocol)
 static size_t
 klink_recv(struct socket *sock, void *buf, size_t size)
 {
-    struct klink_session *session = (struct klink_session*)sock->state;
+    struct klink_session *session;
+    
+    session = sock->state;
 
     if (LIST_SIZE(&session->resp_queue)) {
+        size_t minsize;
+
         struct klink_dgram *resp;
 
         if (!list_remove_front(&session->resp_queue, (void**)&resp)) {
             return -1;
         }
 
-        size_t minsize = MIN(sizeof(struct klink_dgram) + resp->size, size);
+        minsize = MIN(sizeof(struct klink_dgram) + resp->size, size);
 
         memcpy(buf, resp, minsize);
-
         free(resp);
 
         return minsize;
@@ -332,9 +354,12 @@ klink_recv(struct socket *sock, void *buf, size_t size)
 static size_t
 klink_send(struct socket *sock, const void *buf, size_t size)
 {
-    struct klink_session *session = (struct klink_session*)sock->state;
-    struct klink_dgram *dgram = (struct klink_dgram*)buf;
-    
+    struct klink_session *session;
+    struct klink_dgram *dgram;
+
+    session = sock->state;
+    dgram = (struct klink_dgram*)buf;
+
     switch (dgram->opcode) {
         case KLINK_QUERY:
             klink_query(session, dgram);

@@ -19,7 +19,6 @@ KERNEL_I686_OBJECTS += kern/boot.o
 KERNEL_I686_OBJECTS += kern/gdt.o
 KERNEL_I686_OBJECTS += kern/halt.o
 KERNEL_I686_OBJECTS += kern/interrupt.o
-KERNEL_I686_OBJECTS += kern/interrupt_dispatch.o
 KERNEL_I686_OBJECTS += kern/interrupt_handler.o
 KERNEL_I686_OBJECTS += kern/exec.o
 KERNEL_I686_OBJECTS += kern/fork.o

@@ -57,14 +57,21 @@ struct driver virtio_blk_driver = {
 static int
 vblk_write_sector(struct device *dev, uint64_t sector, void *data)
 {
-    uint8_t status = 0xFF;
-    struct virtio_blk_req req = {
+    uint8_t status;
+    struct virtio_blk_req req;
+    struct virtq_buffer *buffers;
+
+    volatile uint8_t *status_p;
+
+    status = 0xFF;
+
+    req = (struct virtio_blk_req){
         .type = VIRTIO_BLK_T_OUT,
         .sector = sector,
         .reserved = 0
     };
 
-    struct virtq_buffer buffers[] = {
+    buffers = (struct virtq_buffer[]){
         {
             .length = 16,
             .flags = VIRTQ_DESC_F_NEXT,
@@ -84,8 +91,8 @@ vblk_write_sector(struct device *dev, uint64_t sector, void *data)
 
     virtq_send(dev, 0, buffers, 3);
 
-    volatile uint8_t *status_p = &status;
-     while (*status_p == 0xFF);
+    status_p = &status;
+    while (*status_p == 0xFF);
 
     if (status != 0) {
         printf("virtio_blk: write_sector() error: sector=%d status=%d\n\r", sector, status);
@@ -97,14 +104,22 @@ vblk_write_sector(struct device *dev, uint64_t sector, void *data)
 static int
 vblk_read_sector(struct device *dev, uint64_t sector, void *data)
 {
-    uint8_t status = 0xFF;
-    struct virtio_blk_req req = {
+    uint8_t status;
+
+    struct virtio_blk_req req;
+    struct virtq_buffer *buffers;
+
+    volatile uint8_t *status_p;
+
+    status = 0xFF;
+    
+    req = (struct virtio_blk_req){
         .type = VIRTIO_BLK_T_IN,
         .sector = sector,
         .reserved = 0
     };
 
-    struct virtq_buffer buffers[] = {
+    buffers = (struct virtq_buffer[]){
         {
             .length = 16,
             .flags = VIRTQ_DESC_F_NEXT,
@@ -124,7 +139,8 @@ vblk_read_sector(struct device *dev, uint64_t sector, void *data)
 
     virtq_send(dev, 0, buffers, 3);
 
-    volatile uint8_t *status_p = &status;
+    status_p = &status;
+
     while (*status_p == 0xFF);
 
     if (status != 0) {
@@ -137,9 +153,11 @@ vblk_read_sector(struct device *dev, uint64_t sector, void *data)
 static int
 vblk_ioctl(struct cdev *cdev, uint64_t request, uintptr_t argp)
 {
-    struct device *dev = cdev->state;
-
-    uint64_t total_size = (uint64_t)virtio_read32(dev, 0x14)*512;
+    uint64_t total_size;
+    struct device *dev;
+    
+    dev = cdev->state;
+    total_size = (uint64_t)virtio_read32(dev, 0x14)*512;
 
     switch (request) {
         case BLKGETSIZE:
@@ -154,14 +172,23 @@ static int
 vblk_read(struct cdev *cdev, char *buf, size_t nbyte, uint64_t pos)
 {
     static uint8_t block[512];
-    struct device *dev = cdev->state;
 
-    uint32_t bytes_read = 0;
-    uint64_t start_sector = pos >> 9;
-    uint32_t start_offset = (uint32_t)(pos & 0x1FF);
+    uint32_t bytes_read;
+    uint32_t bytes_this_block;
+    uint32_t i;
+    uint64_t start_sector;
+    uint32_t start_offset;
 
-    for (uint32_t i = 0; bytes_read < nbyte; i++) {
-        uint32_t bytes_this_block = MIN(512-start_offset, nbyte - bytes_read);
+    struct device *dev;
+    
+    dev = cdev->state;
+
+    bytes_read = 0;
+    start_sector = pos >> 9;
+    start_offset = (uint32_t)(pos & 0x1FF);
+
+    for (i = 0; bytes_read < nbyte; i++) {
+        bytes_this_block = MIN(512-start_offset, nbyte - bytes_read);
 
         vblk_read_sector(dev, start_sector + i, block);
         memcpy(&buf[bytes_read], &block[start_offset], bytes_this_block);
@@ -177,15 +204,25 @@ static int
 vblk_write(struct cdev *cdev, const char *buf, size_t nbyte, uint64_t pos)
 {
     static uint8_t block[512];
-    struct device *dev = cdev->state;
 
-    int bytes_written = 0;
-    int blocks_required = (nbyte >> 9) + 1;
-    int start_sector = pos >> 9;
-    int start_offset = pos & 0x1FF;
+    int bytes_this_block;
+    int bytes_written;
+    int blocks_required;
+    int i;
+    int start_sector;
+    int start_offset;
+ 
+    struct device *dev;
     
-    for (int i = 0; i < blocks_required; i++) {
-        int bytes_this_block = MIN(512-start_offset, nbyte - bytes_written);
+    dev = cdev->state;
+
+    bytes_written = 0;
+    blocks_required = (nbyte >> 9) + 1;
+    start_sector = pos >> 9;
+    start_offset = pos & 0x1FF;
+    
+    for (i = 0; i < blocks_required; i++) {
+        bytes_this_block = MIN(512-start_offset, nbyte - bytes_written);
 
         vblk_read_sector(dev, start_sector + i, block);
         memcpy(&block[start_offset], &buf[bytes_written], bytes_this_block);
@@ -203,16 +240,22 @@ vblk_attach(struct driver *driver, struct device *dev)
 {
     static int vd_counter = 0;
 
-    int res = virtio_attach(dev);
+    int res;
+
+    char cdev_name[16];
+
+    struct cdev_ops cdev_ops;
+    struct cdev *cdev;
+
+    res = virtio_attach(dev);
 
     if (res != 0) {
         return res;
     }
 
-    char cdev_name[16];
     sprintf(cdev_name, "rvd%c", '0' + vd_counter);
 
-    struct cdev_ops cdev_ops = {
+    cdev_ops = (struct cdev_ops) {
         .close  = NULL,
         .init   = NULL,
         .ioctl  = vblk_ioctl,
@@ -223,7 +266,7 @@ vblk_attach(struct driver *driver, struct device *dev)
         .write  = vblk_write
     };
 
-    struct cdev *cdev = cdev_new(cdev_name, 0666, DEV_MAJOR_RAW_DISK, vd_counter++, &cdev_ops, dev);
+    cdev = cdev_new(cdev_name, 0666, DEV_MAJOR_RAW_DISK, vd_counter++, &cdev_ops, dev);
 
     if (cdev && cdev_register(cdev) == 0) {
         return 0;

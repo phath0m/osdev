@@ -153,11 +153,13 @@ struct pallete_entry {
 static void
 vga_set_regs(uint8_t *regs)
 {   
+    int i;
+
     io_write8(VGA_MISC_WRITE, *regs);
     regs++;
 
     /* write SEQUENCER regs */
-    for (int i = 0; i < VGA_NUM_SEQ_REGS; i++) {
+    for (i = 0; i < VGA_NUM_SEQ_REGS; i++) {
       io_write8(VGA_SEQ_INDEX, i);
       io_write8(VGA_SEQ_DATA, *regs);
       regs++;
@@ -174,21 +176,21 @@ vga_set_regs(uint8_t *regs)
     regs[0x11] &= ~0x80;
 
     /* write CRTC regs */
-    for (int i = 0; i < VGA_NUM_CRTC_REGS; i++) {
+    for (i = 0; i < VGA_NUM_CRTC_REGS; i++) {
         io_write8(VGA_CRTC_INDEX, i);
         io_write8(VGA_CRTC_DATA, *regs);
         regs++;
     }
 
     /* write GRAPHICS CONTROLLER regs */
-    for (int i = 0; i < VGA_NUM_GC_REGS; i++) {
+    for (i = 0; i < VGA_NUM_GC_REGS; i++) {
         io_write8(VGA_GC_INDEX, i);
         io_write8(VGA_GC_DATA, *regs);
         regs++;
     }
 
     /* write ATTRIBUTE CONTROLLER regs */
-    for (int i = 0; i < VGA_NUM_AC_REGS; i++) {
+    for (i = 0; i < VGA_NUM_AC_REGS; i++) {
         io_read8(VGA_INSTAT_READ);
         io_write8(VGA_AC_INDEX, i);
         io_write8(VGA_AC_WRITE, *regs);
@@ -217,29 +219,33 @@ vga_read_reg(uint16_t iport, uint8_t reg)
 static void
 vga_write_font(uint8_t *buf, int font_height)
 {
-   vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MAP_MASK_REG, 0x04);
-   vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_CHARSET_REG, 0x00);
+    int i;
+    uint8_t mem_mode;
+    uint8_t graphics_mode;
 
-   uint8_t mem_mode = vga_read_reg(VGA_SEQ_INDEX, VGA_SEQ_MEMORY_MODE_REG);
+    vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MAP_MASK_REG, 0x04);
+    vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_CHARSET_REG, 0x00);
 
-   vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MEMORY_MODE_REG, 0x06);
-   vga_write_reg(VGA_GC_INDEX, VGA_GC_READ_MAP_SELECT_REG, 0x02);
+    mem_mode = vga_read_reg(VGA_SEQ_INDEX, VGA_SEQ_MEMORY_MODE_REG);
 
-   uint8_t graphics_mode = vga_read_reg(VGA_GC_INDEX, VGA_GC_GRAPHICS_MODE_REG);
+    vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MEMORY_MODE_REG, 0x06);
+    vga_write_reg(VGA_GC_INDEX, VGA_GC_READ_MAP_SELECT_REG, 0x02);
 
-   vga_write_reg(VGA_GC_INDEX, VGA_GC_GRAPHICS_MODE_REG, 0x00);
-   vga_write_reg(VGA_GC_INDEX, VGA_GC_MISC_REG, 0x0C);
+    graphics_mode = vga_read_reg(VGA_GC_INDEX, VGA_GC_GRAPHICS_MODE_REG);
 
-    for(int i = 0; i < 256; i++) {
+    vga_write_reg(VGA_GC_INDEX, VGA_GC_GRAPHICS_MODE_REG, 0x00);
+    vga_write_reg(VGA_GC_INDEX, VGA_GC_MISC_REG, 0x0C);
+
+    for(i = 0; i < 256; i++) {
         memcpy((void*)(TEXTSCREEN_ADDR + i*32), buf, font_height);
         buf += font_height;
     }
 
-   vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MAP_MASK_REG, 0x03);
-   vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MEMORY_MODE_REG, mem_mode);
-   vga_write_reg(VGA_GC_INDEX, VGA_GC_READ_MAP_SELECT_REG, 0x00);
-   vga_write_reg(VGA_GC_INDEX, VGA_GC_GRAPHICS_MODE_REG, graphics_mode);
-   vga_write_reg(VGA_GC_INDEX, VGA_GC_MISC_REG, 0x0C);
+    vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MAP_MASK_REG, 0x03);
+    vga_write_reg(VGA_SEQ_INDEX, VGA_SEQ_MEMORY_MODE_REG, mem_mode);
+    vga_write_reg(VGA_GC_INDEX, VGA_GC_READ_MAP_SELECT_REG, 0x00);
+    vga_write_reg(VGA_GC_INDEX, VGA_GC_GRAPHICS_MODE_REG, graphics_mode);
+    vga_write_reg(VGA_GC_INDEX, VGA_GC_MISC_REG, 0x0C);
 }
 
 static void
@@ -260,9 +266,13 @@ vga_clear(struct vga_state *state, uint8_t col)
 static void
 vga_fill(struct vga_state *state, struct draw_req *req)
 {
-    for (int x = 0; x < req->width; x++)
-    for (int y = 0; y < req->height; y++) {
-        int pos = 320 * (y + req->y) + (x + req->x);
+    int x;
+    int y;
+    int pos;
+
+    for (x = 0; x < req->width; x++)
+    for (y = 0; y < req->height; y++) {
+        pos = 320 * (y + req->y) + (x + req->x);
         state->video_buffer[pos] = req->col;
     }
 }
@@ -313,12 +323,19 @@ textscreen_enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
 static void
 textscreen_clear(uint8_t attr)
 {
-    uint16_t *vga_buffer = (uint16_t*)TEXTSCREEN_ADDR;
-    uint16_t cell_value = ' ' | (attr << 8);
+    int pos;
+    int x;
+    int y;
 
-    for (int y = 0; y < TEXTSCREEN_HEIGHT; y++) {
-        for (int x = 0; x < TEXTSCREEN_WIDTH; x++) {
-            int pos = y * TEXTSCREEN_WIDTH + x;
+    uint16_t cell_value;
+    uint16_t *vga_buffer;
+
+    vga_buffer = (uint16_t*)TEXTSCREEN_ADDR;
+    cell_value = ' ' | (attr << 8);
+
+    for (y = 0; y < TEXTSCREEN_HEIGHT; y++) {
+        for (x = 0; x < TEXTSCREEN_WIDTH; x++) {
+            pos = y * TEXTSCREEN_WIDTH + x;
             vga_buffer[pos] = cell_value;
         }
     }
@@ -328,17 +345,23 @@ textscreen_clear(uint8_t attr)
 static inline void
 textscreen_scroll(uint8_t attr)
 {
-    uint16_t *vga_buffer = (uint16_t*)TEXTSCREEN_ADDR;
+    int pos;
+    int x;
+    int y;
 
-    for (int y = 1; y < TEXTSCREEN_HEIGHT; y++) {
-        for (int x = 0; x < TEXTSCREEN_WIDTH; x++) {
-            int pos = y * TEXTSCREEN_WIDTH + x;
+    uint16_t *vga_buffer;
+    
+    vga_buffer = (uint16_t*)TEXTSCREEN_ADDR;
+
+    for (y = 1; y < TEXTSCREEN_HEIGHT; y++) {
+        for (x = 0; x < TEXTSCREEN_WIDTH; x++) {
+            pos = y * TEXTSCREEN_WIDTH + x;
             vga_buffer[pos - TEXTSCREEN_WIDTH] = vga_buffer[pos];
         }
     }
 
-    for (int x = 0; x < TEXTSCREEN_WIDTH; x++) {
-        int y = TEXTSCREEN_WIDTH * (TEXTSCREEN_HEIGHT - 1);
+    for (x = 0; x < TEXTSCREEN_WIDTH; x++) {
+        y = TEXTSCREEN_WIDTH * (TEXTSCREEN_HEIGHT - 1);
 
         vga_buffer[y + x] = ' ' | (attr << 8);
     }
@@ -347,12 +370,15 @@ textscreen_scroll(uint8_t attr)
 static int
 vga_attach(struct driver *driver, struct device *dev)
 {
+    struct cdev_ops vga_ops;
+    struct cdev *cdev;
+
     state.position = 0;
     state.foreground_color = 15;
     state.background_color = 0;
     state.video_buffer = (uint8_t*)0xC00A0000;
 
-    struct cdev_ops vga_ops = {
+    vga_ops = (struct cdev_ops) {
         .close  = NULL,
         .init   = NULL,
         .ioctl  = vga_ioctl,
@@ -363,7 +389,7 @@ vga_attach(struct driver *driver, struct device *dev)
         .write  = vga_write
     };
 
-    struct cdev *cdev = cdev_new("vga", 0666, DEV_MAJOR_CON, 0, &vga_ops, &state);
+    cdev = cdev_new("vga", 0666, DEV_MAJOR_CON, 0, &vga_ops, &state);
 
     if (cdev && cdev_register(cdev) == 0) {
         return 0;
@@ -375,7 +401,9 @@ vga_attach(struct driver *driver, struct device *dev)
 static int
 vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
-    struct vga_state *statep = (struct vga_state*)dev->state;
+    struct vga_state *statep;
+    
+    statep = dev->state;
 
     switch (request) {
     case TXIOCLRSCR:
@@ -410,14 +438,21 @@ vga_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 static int
 vga_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
 {
-    struct vga_state *statep = (struct vga_state*)dev->state;
+    char ch;
+    int i;
+    uint8_t attr;
 
-    uint16_t *vga_buffer = (uint16_t*)TEXTSCREEN_ADDR;
+    uint16_t *vga_buffer;
 
-    for (int i = 0; i < nbyte; i++) {
-        uint8_t attr = (statep->background_color << 4) | statep->foreground_color;
+    struct vga_state *statep;
+    
+    statep = dev->state;
 
-        char ch = buf[i];
+    vga_buffer = (uint16_t*)TEXTSCREEN_ADDR;
+
+    for (i = 0; i < nbyte; i++) {
+        attr = (statep->background_color << 4) | statep->foreground_color;
+        ch = buf[i];
 
         switch (ch) {
         case '\n':

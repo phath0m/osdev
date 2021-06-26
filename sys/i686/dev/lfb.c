@@ -237,6 +237,21 @@ lfb_attach(struct driver *driver, struct device *dev)
     extern multiboot_info_t *multiboot_header;
     
     static struct lfb_state state;
+
+    struct cdev *cdev;
+    struct cdev_ops lfb_ops;
+
+    lfb_ops = (struct cdev_ops) {
+        .close  = NULL,
+        .init   = NULL,
+        .ioctl  = lfb_ioctl,
+        .isatty = NULL,
+        .mmap   = lfb_mmap,
+        .open   = NULL,
+        .read   = NULL,
+        .write  = lfb_write
+    };
+
     state.vbe = (vbe_info_t*)(0xC0000000 + multiboot_header->vbe_mode_info);
     state.pitch = state.vbe->pitch;
     state.depth = state.vbe->pitch / state.vbe->Xres;
@@ -258,19 +273,8 @@ lfb_attach(struct driver *driver, struct device *dev)
     
     spinlock_unlock(&state.lock);
     timer_new(lfb_tick, 300, &state);
-       
-    struct cdev_ops lfb_ops = {
-        .close  = NULL,
-        .init   = NULL,
-        .ioctl  = lfb_ioctl,
-        .isatty = NULL,
-        .mmap   = lfb_mmap,
-        .open   = NULL,
-        .read   = NULL,
-        .write  = lfb_write
-    };
 
-    struct cdev *cdev = cdev_new("lfb", 0666, DEV_MAJOR_CON, 0, &lfb_ops, &state);
+    cdev = cdev_new("lfb", 0666, DEV_MAJOR_CON, 0, &lfb_ops, &state);
 
     if (cdev && cdev_register(cdev) == 0) {
         return 0;
@@ -343,8 +347,10 @@ lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
 {
     /* defined in sys/i686/kern/preinit.c */
     extern multiboot_info_t *multiboot_header;
+    extern struct vm_space *sched_curr_address_space;
 
     void *buf;
+    vbe_info_t *info;
     struct lfb_state *state;
 
     state = (struct lfb_state*)dev->state;
@@ -357,9 +363,7 @@ lfb_mmap(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
         return -(EINVAL);
     }
 
-    vbe_info_t *info = (vbe_info_t*)(KERNEL_VIRTUAL_BASE + multiboot_header->vbe_mode_info);
-
-    extern struct vm_space *sched_curr_address_space;
+    info = (vbe_info_t*)(KERNEL_VIRTUAL_BASE + multiboot_header->vbe_mode_info);
 
     buf = vm_map_physical(sched_curr_address_space, NULL, info->physbase, state->buffer_size, prot);
 
@@ -372,7 +376,7 @@ lfb_write(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
     int i;
     struct lfb_state *state;
 
-    state = (struct lfb_state*)dev->state;
+    state = dev->state;
 
     spinlock_lock(&state->lock);
 

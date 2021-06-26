@@ -73,30 +73,33 @@ struct un_conn {
 static int
 un_accept(struct socket *socket, struct socket **result, void *address, size_t *address_len)
 {
+    struct socket *client;
+    struct un_conn *client_conn;
+    struct un_conn *server_conn;
+    struct un_conn *server_state;
+    struct vnode *host;
+
     if (!socket->state) {
         return -(EINVAL);
     }
 
-    struct un_conn *server_state = socket->state;
+    server_state = socket->state;
 
     if (!server_state->host) {
         /* if this isn't set, this socket is not bound... */
         return -(EINVAL );
     }
 
-    struct vnode *host = server_state->host;
+    host = server_state->host;
 
     while (LIST_SIZE(&host->un.un_connections) == 0) {
         thread_yield();
     }
 
-    struct un_conn *client_conn;
-
     list_remove_back(&host->un.un_connections, (void**)&client_conn);
 
-    struct socket *client = calloc(1, sizeof(struct socket*));
-
-    struct un_conn *server_conn = calloc(1, sizeof(struct un_conn));
+    client = calloc(1, sizeof(struct socket*));
+    server_conn = calloc(1, sizeof(struct un_conn));
 
     server_conn->refs = 1;
     server_conn->rx_pipe[0] = client_conn->tx_pipe[0];
@@ -106,6 +109,7 @@ un_accept(struct socket *socket, struct socket **result, void *address, size_t *
     client_conn->accepted = true;
     client->state = server_conn;
     client->protocol = &un_protocol;
+
     *result = client;
 
     return 0;
@@ -114,12 +118,16 @@ un_accept(struct socket *socket, struct socket **result, void *address, size_t *
 static int
 un_bind(struct socket *socket, void *address, size_t address_len)
 {
-    struct sockaddr_un *addr_un = (struct sockaddr_un*)address;
-    struct un_conn *state = calloc(1, sizeof(struct un_conn));
+    int res;
+    struct sockaddr_un *addr_un;
+    struct un_conn *state;
+
+    addr_un = address;
+    state = calloc(1, sizeof(struct un_conn));
 
     socket->state = state;
 
-    int res = vfs_mknod(current_proc, addr_un->sun_path, 0777 | S_IFSOCK, 0);
+    res = vfs_mknod(current_proc, addr_un->sun_path, 0777 | S_IFSOCK, 0);
     
     if (res != 0) {
         return res;
@@ -137,7 +145,9 @@ un_bind(struct socket *socket, void *address, size_t address_len)
 static int
 un_destroy(struct socket *sock)
 {
-    struct un_conn *conn = (struct un_conn*)sock->state;
+    struct un_conn *conn;
+    
+    conn = sock->state;
 
     KASSERT("tx/rx pipes should be called before the vnode is destroyed",
             conn->rx_pipe[0] == NULL && conn->tx_pipe[1] == NULL);
@@ -154,7 +164,9 @@ un_destroy(struct socket *sock)
 static int
 un_duplicate(struct socket *sock)
 {
-    struct un_conn *conn = (struct un_conn*)sock->state;
+    struct un_conn *conn;
+    
+    conn = sock->state;
 
     conn->refs++;
 
@@ -164,7 +176,9 @@ un_duplicate(struct socket *sock)
 static int
 un_close(struct socket *sock)
 {
-    struct un_conn *conn = (struct un_conn*)sock->state;
+    struct un_conn *conn;
+    
+    conn = sock->state;
 
     if (!conn) {
         return 0;
@@ -189,14 +203,17 @@ un_close(struct socket *sock)
 static int
 un_connect(struct socket *socket, void *address, size_t address_len)
 {
-    struct sockaddr_un *addr_un = (struct sockaddr_un*)address;
+    struct sockaddr_un *addr_un;
+    struct un_conn *conn;
     struct vnode *host;
+
+    addr_un = address;
 
     if (vn_open(current_proc->root, current_proc->cwd, &host, addr_un->sun_path) != 0) {
         return -1;
     }
 
-    struct un_conn *conn = calloc(1, sizeof(struct un_conn));
+    conn = calloc(1, sizeof(struct un_conn));
 
     conn->host = host;
     conn->refs = 1;
@@ -224,13 +241,16 @@ un_init(struct socket *socket, int type, int protocol)
 static size_t
 un_recv(struct socket *sock, void *buf, size_t size)
 {
-    struct un_conn *conn = (struct un_conn*)sock->state;
+    int ret;
+    struct un_conn *conn;
+    
+    conn = sock->state;
 
     if (conn->peer->closed) {
         return -(ECONNRESET);
     }
 
-    int ret = fop_read(conn->rx_pipe[0], buf, size);
+    ret = fop_read(conn->rx_pipe[0], buf, size);
     
     if (ret == -(EPIPE)) {
         return -(ECONNRESET);
@@ -242,13 +262,16 @@ un_recv(struct socket *sock, void *buf, size_t size)
 static size_t
 un_send(struct socket *sock, const void *buf, size_t size)
 {
-    struct un_conn *conn = (struct un_conn*)sock->state;
+    int ret;
+    struct un_conn *conn;
+    
+    conn = sock->state;
 
     if (conn->peer->closed) {
         return -(ECONNRESET);
     }
 
-    int ret = fop_write(conn->tx_pipe[1], buf, size);
+    ret = fop_write(conn->tx_pipe[1], buf, size);
     
     if (ret == -(ESPIPE)) {
         return -(ECONNRESET);

@@ -38,11 +38,17 @@ static inline unsigned virtq_size(unsigned int qsz)
 static int
 virtq_init(struct virtio_dev *vdev, uint16_t addr, int nelems)
 {
-    size_t bufsize = sizeof(struct virtq_desc)*nelems;
-    size_t avail_size = 4 + (sizeof(uint16_t)*nelems);
-    size_t total_size = virtq_size(nelems);
+    size_t bufsize;
+    size_t avail_size;
+    size_t total_size;
 
-    uint8_t *buf = sbrk_a(total_size, 4096);
+    uint8_t *buf;
+
+    bufsize = sizeof(struct virtq_desc)*nelems;
+    avail_size = 4 + (sizeof(uint16_t)*nelems);
+    total_size = virtq_size(nelems);
+
+    buf = sbrk_a(total_size, 4096);
 
     vdev->queues[addr].buffers = (struct virtq_desc*)buf;
     vdev->queues[addr].available = (struct virtq_avail*)&buf[bufsize];
@@ -63,17 +69,27 @@ virtq_init(struct virtio_dev *vdev, uint16_t addr, int nelems)
 int
 virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int nbuffers)
 {
-    struct virtio_dev *vdev = dev->state;
-    struct virtq *queue = &vdev->queues[queue_idx];
+    bool acknowledged;
+    int avail_idx;
+    int buffer_idx;
+    int i;
+    int start_idx;
 
-    int start_idx = queue->buffer_idx % queue->size;
-    int avail_idx = queue->available->index % queue->size;
+    struct virtio_dev *vdev;
+    struct virtq *queue;
+    struct virtq_buffer *buffer;
+
+    vdev = dev->state;
+    queue = &vdev->queues[queue_idx];
+
+    start_idx = queue->buffer_idx % queue->size;
+    avail_idx = queue->available->index % queue->size;
 
     queue->available->rings[avail_idx] = start_idx;
 
-    for (int i = 0; i < nbuffers; i++) {
-        struct virtq_buffer *buffer = &buffers[i];
-        int buffer_idx = queue->buffer_idx % queue->size;
+    for (i = 0; i < nbuffers; i++) {
+        buffer = &buffers[i];
+        buffer_idx = queue->buffer_idx % queue->size;
         queue->buffers[buffer_idx].length = buffer->length;
         queue->buffers[buffer_idx].address = (uint64_t)KVATOP(buffer->buf);
         queue->buffers[buffer_idx].flags = buffer->flags;
@@ -90,9 +106,10 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 
     io_write8(vdev->iobase + 0x10, 0);
 
-    bool acknowledged = false;    
+    acknowledged = false;    
+
     while (!acknowledged) {
-        for (int i = 0; i < queue->size; i++) {
+        for (i = 0; i < queue->size; i++) {
             if (queue->used->rings[i].length != 0 && queue->used->rings[i].index == start_idx) {
                 queue->used->rings[i].length = 0;
                 acknowledged = true;
@@ -107,23 +124,33 @@ virtq_send(struct device *dev, int queue_idx, struct virtq_buffer *buffers, int 
 static int
 virtio_irq_handler(struct device *dev, int inum)
 {
-    struct virtio_dev *vdev = dev->state;
+    struct virtio_dev *vdev;
+    
+    vdev = dev->state;
 
     io_read8(vdev->iobase+0x13);
+
     return 0;
 }
 
 int
 virtio_attach(struct device *dev)
 {
-    struct virtio_dev *vdev = calloc(1, sizeof(struct virtio_dev));
+    int irq;
+    int size;
+    uint16_t addr;
+    uint32_t features;
+
+    struct virtio_dev *vdev;
+    
+    vdev = calloc(1, sizeof(struct virtio_dev));
     vdev->iobase = PCI_IO_BASE(pci_get_config32(dev, PCI_CONFIG_BAR0));
 
     io_write8(vdev->iobase+0x12, 0);
     io_write8(vdev->iobase+0x12, VIRTIO_ACKNOWLEDGE);
     io_write8(vdev->iobase+0x12, VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
 
-    uint32_t features = io_read32(vdev->iobase);
+    features = io_read32(vdev->iobase);
 
     features &= ~VIRTIO_BLK_F_RO;
     features &= ~VIRTIO_BLK_F_BLK_SIZE;
@@ -139,8 +166,8 @@ virtio_attach(struct device *dev)
 
     dev->state = vdev;
 
-    int size = 0;
-    uint16_t addr = 0;
+    size = 0;
+    addr = 0;
 
     do {
         io_write16(vdev->iobase+0x0E, addr);
@@ -154,9 +181,10 @@ virtio_attach(struct device *dev)
         addr++;
     } while (size != 0);
 
-    int irq = pci_get_config8(dev, PCI_CONFIG_IRQLINE);
+    irq = pci_get_config8(dev, PCI_CONFIG_IRQLINE);
 
     dev->state = vdev;
+
     irq_register(dev, irq, virtio_irq_handler);
     io_write8(vdev->iobase+0x12, VIRTIO_DRIVER_OK | VIRTIO_FEATURES_OK | VIRTIO_DRIVER | VIRTIO_ACKNOWLEDGE);
 
@@ -166,7 +194,9 @@ virtio_attach(struct device *dev)
 uint8_t
 virtio_read8(struct device *dev, int offset)
 {
-    struct virtio_dev *vdev = dev->state;
+    struct virtio_dev *vdev;
+    
+    vdev = dev->state;
 
     return io_read8(vdev->iobase+offset);
 }
@@ -174,7 +204,9 @@ virtio_read8(struct device *dev, int offset)
 uint16_t
 virtio_read16(struct device *dev, int offset)
 {
-    struct virtio_dev *vdev = dev->state;
+    struct virtio_dev *vdev;
+    
+    vdev = dev->state;
 
     return io_read16(vdev->iobase+offset);
 }
@@ -182,7 +214,9 @@ virtio_read16(struct device *dev, int offset)
 uint32_t
 virtio_read32(struct device *dev, int offset)
 {
-    struct virtio_dev *vdev = dev->state;
+    struct virtio_dev *vdev;
+    
+    vdev = dev->state;
 
     return io_read32(vdev->iobase+offset);
 }

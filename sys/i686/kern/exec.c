@@ -192,7 +192,10 @@ proc_execve(const char *path, const char **argv, const char **envp)
 {
     /* defined in sys/i686/kern/usermode.asm */
     extern void return_to_usermode(uintptr_t, uintptr_t, uintptr_t, uintptr_t);
- 
+
+     /* defined in sys/i686/kern/sched.c */
+    extern struct thread *sched_curr_thread;
+
     int argc;
     int envc;
     int i;
@@ -222,9 +225,6 @@ proc_execve(const char *path, const char **argv, const char **envp)
     bus_interrupts_off();
 
     proc = current_proc;
-
-    /* defined in sys/i686/kern/sched.c */
-    extern struct thread *sched_curr_thread;
 
     space = sched_curr_thread->address_space;
     root = proc->root;

@@ -3,6 +3,7 @@ MAKE=gmake
 include config.mk
 include $(shell realpath "$(ARCH)/config.mk")
 
+CFLAGS += -Wdeclaration-after-statement
 CFLAGS += -I "$(shell realpath ./)"
 CFLAGS += -D "__KERNEL__"
 

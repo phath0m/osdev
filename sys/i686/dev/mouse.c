@@ -39,7 +39,9 @@ static uint8_t mouse_buttons;
 static void
 mouse_wait(int a_type)
 {
-    int timeout = 10000;
+    int timeout;
+    
+    timeout = 10000;
 
     if (a_type) {
         while (timeout-- && io_read8(0x64));
@@ -91,12 +93,19 @@ mouse_irq_handler(struct device *dev, int inum)
 static int
 mouse_attach(struct driver *driver, struct device *dev)
 {
+    int status;
+
+    struct cdev_ops mouse_ops;
+    struct cdev *cdev;
+
     mouse_wait(1);
     io_write8(0x64, 0xA8);
     mouse_wait(1);
     io_write8(0x64, 0x20);
     mouse_wait(0);
-    int status = io_read8(0x60) | 2;
+
+    status = io_read8(0x60) | 2;
+
     mouse_wait(1);
     io_write8(0x64, 0x60);
     mouse_wait(1);
@@ -110,7 +119,7 @@ mouse_attach(struct driver *driver, struct device *dev)
 
     irq_register(dev, 12, mouse_irq_handler);
 
-    struct cdev_ops mouse_ops = {
+    mouse_ops = (struct cdev_ops) {
         .close  = NULL,
         .init   = NULL,
         .ioctl  = NULL,
@@ -121,7 +130,7 @@ mouse_attach(struct driver *driver, struct device *dev)
         .write  = NULL
     };
 
-    struct cdev *cdev = cdev_new("mouse", 0666, DEV_MAJOR_MOUSE, 0, &mouse_ops, NULL);
+    cdev = cdev_new("mouse", 0666, DEV_MAJOR_MOUSE, 0, &mouse_ops, NULL);
 
     if (cdev && cdev_register(cdev) == 0) {
         return 0;
