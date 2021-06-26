@@ -324,6 +324,7 @@ run_file(const char *path)
 
     fp = fopen(path, "r");
     len = 0;
+    line = NULL;
 
     while ((nread = getline(&line, &len, fp)) != -1) {
         eval_command(line);
