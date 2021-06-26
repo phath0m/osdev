@@ -1,5 +1,7 @@
 export CC=i686-elysium-gcc
 export LD=i686-elysium-gcc
+export CFLAGS=-c -Wall -Werror -Wdeclaration-after-statement
+export LDFLAGS
 export PREFIX
 export DESTDIR
 

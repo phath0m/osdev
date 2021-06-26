@@ -17,22 +17,24 @@
 #include "parser.h"
 #include "tokenizer.h"
 
-typedef int (*command_handler_t)(const char *name, int argc, const char *argv[]);
+typedef int (*command_handler_t)(const char *, int, const char *[]);
 
-static void eval_ast_node(struct ast_node *node);
+static void eval_ast_node(struct ast_node *);
 
 struct dict builtin_commands;
 
-ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+ssize_t getline(char **, size_t *, FILE *);
 
 static bool
 is_empty_or_comment(const char *str)
 {
+    bool empty;
+
     if (*str == '#') {
         return true;
     }
 
-    bool empty = true;
+    empty = true;
 
     while (*str) {
         if (!isspace((int)*str)) {
@@ -47,34 +49,38 @@ is_empty_or_comment(const char *str)
 static bool
 search_for_binary(const char *name, char *resolved)
 {
+    static char path_copy[1024];
+
+    bool succ;
+    char *path;
+    char *searchdir;
+    DIR *dirp;
+
     if (!strncmp(name, "/", 1) || !strncmp(name, "./", 2)) {
         strcpy(resolved, name);
         return true;
     }
 
-    char *path = getenv("PATH");
+    path = getenv("PATH");
 
     if (!path) {
         return false;
     }
 
-    static char path_copy[1024];
-
     strncpy(path_copy, path, 1024);
 
-    char *searchdir = strtok(path_copy, ":");
+    searchdir = strtok(path_copy, ":");
     
     while (searchdir != NULL) {
-        bool succ = false;
+        struct dirent *dirent;
+        succ = false;
 
-        DIR *dirp = opendir(searchdir);
+        dirp = opendir(searchdir);
 
         if (!dirp) {
             searchdir = strtok(NULL, ":");
             continue;
         }
-
-        struct dirent *dirent;
 
         while ((dirent = readdir(dirp))) { 
             if (strcmp(dirent->d_name, name) == 0) {
@@ -112,6 +118,8 @@ exec_binary(const char *name, int argc, const char *argv[])
 static int
 spawn_binary(const char *name, int argc, const char *argv[])
 {
+    int id;
+    int status;
     char full_path[512];
 
     if (!search_for_binary(name, full_path)) {
@@ -119,8 +127,8 @@ spawn_binary(const char *name, int argc, const char *argv[])
         return -1;
     }
 
-    int id = fork();
-    int status = -1;
+    id = fork();
+    status = -1;
 
     if (id == 0) {
         setpgid(0, 0);
@@ -136,25 +144,26 @@ spawn_binary(const char *name, int argc, const char *argv[])
 static int
 run_command(struct ast_node *root)
 {
-    char *name = (char*)root->value;
-    char *argv[512];
+    command_handler_t func;
 
-    argv[0] = (char*)name;
-
+    int i;
     list_iter_t iter;
-    list_get_iter(&root->children, &iter);
+
+    char *name;
+    char *argv[512];
 
     struct ast_node *arg;
 
-    int i;
+    name = root->value;
+    argv[0] = root->value;
+
+    list_get_iter(&root->children, &iter);
 
     for (i = 1; iter_move_next(&iter, (void**)&arg); i++) {
-        argv[i] = (char*)arg->value;
+        argv[i] = arg->value;
     }
 
     argv[i] = 0;
-
-    command_handler_t func;
 
     if (dict_get(&builtin_commands, name, (void**)&func)) {
         return func(argv[0], i, (const char**)argv);
@@ -167,9 +176,10 @@ static int
 handle_assign(struct ast_node *root)
 {
     list_iter_t iter;
+    struct ast_node *left;
+
     list_get_iter(&root->children, &iter);
 
-    struct ast_node *left;
     iter_move_next(&iter, (void**)&left);
 
     // temporary until I implement export
@@ -181,25 +191,27 @@ handle_assign(struct ast_node *root)
 static int
 handle_pipe(struct ast_node *root)
 {
+    int status;
     list_iter_t iter;
+    pid_t child;
 
-    list_get_iter(&root->children, &iter);
+    int fds[2];
 
     struct ast_node *left;
     struct ast_node *right;
     
+    list_get_iter(&root->children, &iter);
+    
     iter_move_next(&iter, (void**)&left);
     iter_move_next(&iter, (void**)&right);
 
-    int fds[2];
-
     pipe(fds);
 
-    int status;
-    pid_t child = fork();
+    child = fork();
 
     if (child != 0) {
-        int tmp = dup(STDIN_FILENO);
+        int tmp;
+        tmp = dup(STDIN_FILENO);
         dup2(fds[0], STDIN_FILENO);
         close(fds[1]);
         eval_ast_node(right);
@@ -219,23 +231,26 @@ handle_pipe(struct ast_node *root)
 static int
 handle_file_write(struct ast_node *root)
 {
+    int file_fd;
+    int tmp;
     list_iter_t iter;
-
-    list_get_iter(&root->children, &iter);
 
     struct ast_node *left;
     struct ast_node *right;
 
+
+    list_get_iter(&root->children, &iter);
+
     iter_move_next(&iter, (void**)&left);
     iter_move_next(&iter, (void**)&right);
 
-    int file_fd = open((const char*)right->value, O_WRONLY | O_CREAT);
+    file_fd = open((const char*)right->value, O_WRONLY | O_CREAT);
 
     if (file_fd < 0) {
         return -1;
     }
 
-    int tmp = dup(STDOUT_FILENO);
+    tmp = dup(STDOUT_FILENO);
 
     dup2(file_fd, STDOUT_FILENO);
 
@@ -272,22 +287,24 @@ eval_ast_node(struct ast_node *node)
 static void
 eval_command(const char *cmd)
 {
+    struct list tokens;
+    struct tokenizer scanner;
+    struct parser parser;
+
+    struct ast_node *root;
+
     if (is_empty_or_comment(cmd)) {
         return;
     }
 
-    struct list tokens;
-    struct tokenizer scanner;
     memset(&tokens, 0, sizeof(struct list));
 
     tokenizer_init(&scanner, cmd);
     tokenizer_scan(&scanner, &tokens);
     
-    struct parser parser;
-
     parser_init(&parser, &tokens);
 
-    struct ast_node *root = parser_parse(&parser);
+    root = parser_parse(&parser);
     
     eval_ast_node(root);
 
@@ -299,14 +316,16 @@ eval_command(const char *cmd)
 void
 run_file(const char *path)
 {
-    FILE *fp = fopen(path, "r");
+    size_t len;
+    ssize_t nread;
 
-    size_t len = 0;
-    ssize_t read;
+    char *line;
+    FILE *fp;
 
-    char *line = NULL;
+    fp = fopen(path, "r");
+    len = 0;
 
-    while ((read = getline(&line, &len, fp)) != -1) {
+    while ((nread = getline(&line, &len, fp)) != -1) {
         eval_command(line);
     }
 
@@ -338,11 +357,13 @@ builtin_clear(const char *name, int argc, const char *argv[])
 int
 builtin_exec(const char *name, int argc, const char *argv[])
 {
+    const char *prog;
+
 	if (argc < 2) {
 		return 0;
 	}
 
-    const char *prog = argv[1];
+    prog = argv[1];
     
     return exec_binary(prog, argc - 1, &argv[1]);
 }
@@ -350,7 +371,9 @@ builtin_exec(const char *name, int argc, const char *argv[])
 int
 builtin_exit(const char *name, int argc, const char *argv[])
 {
-    int exit_code = 0;
+    int exit_code;
+    
+    exit_code = 0;
 
     if (argc > 1) {
         exit_code = atoi(argv[1]);
@@ -374,10 +397,12 @@ builtin_pwd(const char *name, int argc, const char *argv[])
 int
 builtin_setenv(const char *name, int argc, const char *argv[])
 {
-    if (argc == 1) {
-        extern char **environ;
+    extern char **environ;
 
-        for (int i = 0; environ[i]; i++) {
+    int i;
+
+    if (argc == 1) {
+        for (i = 0; environ[i]; i++) {
             printf("%s\n", environ[i]);
         }
         return 0;
@@ -407,6 +432,8 @@ builtin_source(const char *name, int argc, const char *argv[])
 static void
 print_prompt_escape(char ch)
 {
+    char cwd[512];
+
     switch (ch) {
         case 'e': {
             putchar('\x1B');
@@ -417,7 +444,6 @@ print_prompt_escape(char ch)
             break;
         }              
         case 'w': {
-            char cwd[512];
             getcwd(cwd, 512);
             fputs(cwd, stdout);
             break;
@@ -437,10 +463,14 @@ print_prompt_escape(char ch)
 void
 print_prompt(const char *prompt)
 {
-    bool escaped = false;
+    bool escaped;
+    char ch;
+    int i;
 
-    for (int i =0; i < strlen(prompt); i++) {
-        char ch = prompt[i];
+    escaped = false;
+
+    for (i = 0; i < strlen(prompt); i++) {
+        ch = prompt[i];
 
         if (ch == '\\' && !escaped) {
             escaped = true;
@@ -460,17 +490,19 @@ print_prompt(const char *prompt)
 static void
 load_rc()
 {
+    char *home;
+
+    char rc_path[512];
+
     if (access("/etc/shrc", R_OK) == 0) {
         run_file("/etc/shrc");
     }
 
-    char *home = getenv("HOME");
+    home = getenv("HOME");
 
     if (!home) {
         return;
     }
-
-    char rc_path[512];
 
     sprintf(rc_path, "%s/.shrc", home);
 

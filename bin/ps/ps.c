@@ -16,9 +16,11 @@
 static void
 get_time_string(char *buf, size_t buf_size, time_t stime)
 {
-    time_t now = time(NULL);
+    time_t now;
+    struct tm *tp;
 
-    struct tm *tp = gmtime(&stime);
+    now = time(NULL);
+    tp = gmtime(&stime);
 
     if (now - stime < 86400) {
         strftime(buf, buf_size, "%R", tp);
@@ -38,9 +40,11 @@ ps_print_extended(struct kinfo_proc *entry)
 {
     char time_buf[10];
 
+    struct passwd *pwd;
+
     get_time_string(time_buf, 10, entry->stime);
 
-    struct passwd *pwd = getpwuid(entry->uid);
+    pwd = getpwuid(entry->uid);
 
     if (pwd) {
         printf("%-10s", pwd->pw_name);
@@ -60,6 +64,10 @@ ps_print_job_ctl(struct kinfo_proc *entry)
 static void
 ps_print_procs(int options, struct kinfo_proc *procs, int nprocs)
 {
+    bool show_all;
+    int i;
+    pid_t sid;
+
     switch (PS_FORMAT(options)) {
         case PS_FORMAT_EXTENDED:
             puts("UID         PID  PPID STIME TTY        CMD");
@@ -72,11 +80,13 @@ ps_print_procs(int options, struct kinfo_proc *procs, int nprocs)
             break;
     }
 
-    pid_t sid = getsid(0);
-    bool show_all = (options & PS_DISPLAY_ALL) != 0;
+    sid = getsid(0);
+    show_all = (options & PS_DISPLAY_ALL) != 0;
 
-    for (int i = 0; i < nprocs; i++) {
-        struct kinfo_proc *entry = &procs[i];
+    for (i = 0; i < nprocs; i++) {
+        struct kinfo_proc *entry;
+        
+        entry = &procs[i];
 
         if (!show_all && entry->sid != sid) {
             continue;
@@ -99,8 +109,17 @@ ps_print_procs(int options, struct kinfo_proc *procs, int nprocs)
 int
 main(int argc, char *argv[])
 {
-    int options = 0;
     int c;
+    int options;
+    int nprocs;
+    size_t bufsize;
+
+    struct kinfo_proc *procs;
+
+    int oid[3];
+
+    options = 0;
+
     while (optind < argc) {
         if ((c = getopt(argc, argv, "aefjA")) != -1) {
             switch (c) {
@@ -123,26 +142,25 @@ main(int argc, char *argv[])
         }
     }
 
-    int oid[3];
     oid[0] = CTL_KERN;
     oid[1] = KERN_PROC;
     oid[2] = KERN_PROC_ALL;
 
-    size_t bufsize = 0;
+    bufsize = 0;
 
     if (sysctl(oid, 3, NULL, &bufsize, NULL, 0)) {
         perror("sysctl");
         return -1;
     }
 
-    struct kinfo_proc *procs = calloc(1, bufsize);
+    procs = calloc(1, bufsize);
 
     if (sysctl(oid, 3, procs, &bufsize, NULL, 0)) {
         perror("sysctl");
         return -1;
     }
 
-    int nprocs = bufsize / sizeof(struct kinfo_proc);
+    nprocs = bufsize / sizeof(struct kinfo_proc);
 
     ps_print_procs(options, procs, nprocs);
 

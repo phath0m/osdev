@@ -18,6 +18,9 @@ new_string_size(size_t strsize)
 static char *
 strdyncat(char **ptr, size_t *bufsize, const char *substr, size_t substrlen)
 {
+    size_t oldstrlen;
+    size_t newstrlen;
+
     if (substrlen == 0) {
         return *ptr;
     }
@@ -29,8 +32,8 @@ strdyncat(char **ptr, size_t *bufsize, const char *substr, size_t substrlen)
         return *ptr;
     }
 
-    size_t oldstrlen = strlen(*ptr);
-    size_t newstrlen = oldstrlen + substrlen;
+    oldstrlen = strlen(*ptr);
+    newstrlen = oldstrlen + substrlen;
 
     if (newstrlen >= *bufsize) {
         *bufsize = new_string_size(newstrlen);
@@ -54,7 +57,9 @@ peek_char(struct tokenizer *scanner)
 static inline int
 read_char(struct tokenizer *scanner)
 {
-    int ch = peek_char(scanner);
+    int ch;
+    
+    ch = peek_char(scanner);
 
     if (ch >= 0) {
         scanner->position++;
@@ -66,9 +71,11 @@ read_char(struct tokenizer *scanner)
 struct token *
 token_new(token_kind_t kind, const char *value, int size)
 {
-    struct token *tok = (struct token*)calloc(1, (sizeof(struct token) + size + 1));
-    
-    char *buf = (char*)((intptr_t)tok + sizeof(struct token));
+    char *buf;
+    struct token *tok;
+
+    tok = (struct token*)calloc(1, (sizeof(struct token) + size + 1));
+    buf = (char*)((intptr_t)tok + sizeof(struct token));
 
     strncpy(buf, value, size);
 
@@ -88,14 +95,18 @@ is_symbol_character(int ch)
 static void 
 scan_string_literal(struct tokenizer *scanner, char **ptr, size_t *bufsize)
 {
+    int size;
+    int start;
+
     read_char(scanner);
-    int start = scanner->position;
+    
+    start = scanner->position;
 
     while (peek_char(scanner) != '\"') {
         read_char(scanner);
     }
 
-    int size = scanner->position - start;
+    size = scanner->position - start;
     read_char(scanner);
     strdyncat(ptr, bufsize, &scanner->text[start], size);
 }
@@ -103,12 +114,16 @@ scan_string_literal(struct tokenizer *scanner, char **ptr, size_t *bufsize)
 static struct token *
 scan_symbol(struct tokenizer *scanner)
 {
-    int start = scanner->position;
-    char *ptr = NULL;
+    char ch;
+    int start;
     size_t bufsize;
+    char *ptr;
+    
+    start = scanner->position;
+    ptr = NULL;
      
     while (is_symbol_character(peek_char(scanner))) {
-        char ch = peek_char(scanner);
+        ch = peek_char(scanner);
       
         if (ch == '\"') {
             if (scanner->position != start) {
@@ -131,11 +146,13 @@ scan_symbol(struct tokenizer *scanner)
 static struct token *
 scan_token(struct tokenizer *scanner)
 {
+    int ch;
+
     while (isspace(peek_char(scanner))) {
         read_char(scanner);
     }
 
-    int ch = peek_char(scanner);
+    ch = peek_char(scanner);
 
     switch (ch) {
         case '|':
@@ -166,9 +183,10 @@ tokenizer_init(struct tokenizer *scanner, const char *text)
 void
 tokenizer_scan(struct tokenizer *scanner, struct list *tokens)
 {
+    struct token *tok;
+
     for (;;) {
-        
-        struct token *tok = scan_token(scanner);
+        tok = scan_token(scanner);
 
         if (tok) {
             list_append(tokens, tok);

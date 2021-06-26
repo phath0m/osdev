@@ -11,23 +11,27 @@ usage()
 int
 main(int argc, char *argv[])
 {
+    int i;
+    ssize_t nread;
+    SHA1_CTX ctx;
+
+    FILE *fp;
+
+    uint8_t buf[1024];
+    uint8_t digest[20];
+ 
     if (argc != 2) {
         usage();
         return -1;
     }
 
-    FILE *fp = fopen(argv[1], "r");
+    fp = fopen(argv[1], "r");
 
     if (!fp) {
         perror("sha1");
         return -1;
     }
 
-    uint8_t buf[1024];
-    uint8_t digest[20];
-    ssize_t nread = 0;
-
-    SHA1_CTX ctx;
     SHA1Init(&ctx);
 
     while ((nread = fread(buf, 1, 1024, fp)) > 0) {
@@ -36,7 +40,7 @@ main(int argc, char *argv[])
 
     SHA1Final(digest, &ctx);
 
-    for (int i = 0; i < 20; i++) {
+    for (i = 0; i < 20; i++) {
         printf("%02x", digest[i]);
     }
 

@@ -4,7 +4,9 @@ __attribute__((noinline))
 void
 a_test_func(int argc, char *argv[])
 {
-    for (int i = 1; i < argc; i++) {
+    int i;
+
+    for (i = 1; i < argc; i++) {
         printf("%s", argv[i]);
     }
 }

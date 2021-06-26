@@ -13,10 +13,9 @@ struct cp_options {
 static bool
 prompt_to_overwrite(const char *path)
 {
-    fprintf(stderr, "cp: overwrite existing file '%s'? ", path);
-
     char ch;
 
+    fprintf(stderr, "cp: overwrite existing file '%s'? ", path);
     scanf(" %c", &ch);
 
     return ch == 'y' || ch == 'Y';
@@ -25,6 +24,12 @@ prompt_to_overwrite(const char *path)
 static int
 copy_file(struct cp_options *options, char *src, char *dst)
 {
+    ssize_t nread;
+    FILE *d_fp;
+    FILE *s_fp;
+
+    char buf[1024];
+
     struct stat stat_buf;
 
     if (stat(src, &stat_buf) != 0) {
@@ -36,22 +41,19 @@ copy_file(struct cp_options *options, char *src, char *dst)
         if (!prompt_to_overwrite(dst)) return 0;
     }
 
-    FILE *s_fp = fopen(src, "r");
+    s_fp = fopen(src, "r");
 
     if (!s_fp) {
         perror("cp");
         return -1;
     }
 
-    FILE *d_fp = fopen(dst, "w");
+    d_fp = fopen(dst, "w");
 
     if (!d_fp) {
         perror("cp");
         return -1;
     }
-
-    char buf[1024];
-    ssize_t nread;
 
     while ((nread = fread(buf, 1, 1024, s_fp)) > 0) {
         fwrite(buf, 1, nread, d_fp);
@@ -66,11 +68,13 @@ copy_file(struct cp_options *options, char *src, char *dst)
 int
 main(int argc, char *argv[])
 {
+    int c;
+    char *dst;
+    char *src;
+
     struct cp_options options;
     
     memset(&options, 0, sizeof(options));
-
-    int c;
 
     while (optind < argc) {
         if ((c = getopt(argc, argv, "rf")) != -1) {
@@ -93,8 +97,8 @@ main(int argc, char *argv[])
         return -1;
     } 
  
-    char *src = argv[optind];
-    char *dst = argv[optind + 1];   
+    src = argv[optind];
+    dst = argv[optind + 1];   
 
     copy_file(&options, src, dst);
 

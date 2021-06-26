@@ -13,10 +13,9 @@ struct rm_options {
 static bool
 prompt_to_delete(const char *path)
 {
-    fprintf(stderr, "rm: remove regular file '%s'? ", path);
-
     char ch;
 
+    fprintf(stderr, "rm: remove regular file '%s'? ", path);
     scanf(" %c", &ch);
 
     return ch == 'y' || ch == 'Y';
@@ -56,15 +55,18 @@ remove_file(struct rm_options *options, const char *path)
 static int
 remove_directory(struct rm_options *options, const char *dirpath)
 {
-    DIR *dp = opendir(dirpath);
+    DIR *dp;
+
+    char childpath[512];
+
+    struct dirent *dirent;
+
+    dp = opendir(dirpath);
 
     if (!dp) {
         perror("rm");
         return -1;
     }
-
-    struct dirent *dirent;
-    char childpath[512];
 
     while ((dirent = readdir(dp))) {
         if (strcmp(dirent->d_name, "..") == 0 || strcmp(dirent->d_name, ".") == 0) {
@@ -92,8 +94,10 @@ remove_directory(struct rm_options *options, const char *dirpath)
 int
 main(int argc, char *argv[])
 {
-    struct rm_options options;
     int c;
+    int i;
+
+    struct rm_options options;
 
     while (optind < argc) {
         if ((c = getopt(argc, argv, "rf")) != -1) {
@@ -112,7 +116,7 @@ main(int argc, char *argv[])
         }
     }
 
-    for (int i = optind; i < argc; i++) {
+    for (i = optind; i < argc; i++) {
         remove_file(&options, argv[i]);
     }
 

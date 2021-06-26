@@ -34,16 +34,21 @@ struct ls_options {
 static void
 get_date_string(int st_time, char *buf, size_t buf_size)
 {
-    static struct tm *tm_now = NULL;
     static struct tm now_buf;
+    static struct tm *tm_now = NULL;
+
+    time_t now;
+    time_t stat_time;
+
+    struct tm *tm_then;
     
     if (!tm_now) {
-        time_t now = time(NULL);
+        now = time(NULL);
         tm_now = gmtime_r(&now, &now_buf);
     }
 
-    time_t time = (time_t)st_time;
-    struct tm *tm_then = gmtime(&time);
+    stat_time = (time_t)st_time;
+    tm_then = gmtime(&stat_time);
 
     if (tm_then->tm_year == tm_now->tm_year) {
         strftime(buf, buf_size, "%b %e %H:%M", tm_then);
@@ -55,7 +60,9 @@ get_date_string(int st_time, char *buf, size_t buf_size)
 static void
 get_mode_string(struct ls_dirent *ent, char *buf)
 {
-    int st_mode = ent->stat.st_mode;
+    int st_mode;
+    
+    st_mode = ent->stat.st_mode;
 
     switch (ent->dirent.d_type) {
         case DT_DIR:
@@ -121,36 +128,55 @@ ls_print_color(struct ls_dirent *entry)
 static void
 ls_pretty_print(struct ls_dirent **contents, int nentries)
 {
-    int entries = 0;
-    int longest = 0;
+    int col;
+    int cols;
+    int entries;
+    int i;
+    int longest;
+    int padding;
+    int row;
 
-    for (int i = 0; i < nentries; i++) {
-        struct ls_dirent *entry = contents[i];
-        int len = strlen(entry->dirent.d_name);
+    struct winsize ws;
+
+    entries = 0;
+    longest = 0;
+
+    for (i = 0; i < nentries; i++) {
+        int len;
+        struct ls_dirent *entry;
+        
+        len = strlen(entry->dirent.d_name);
+        entry = contents[i];
+
         if (len > longest) {
             longest = len;
         }
         entries++;
     }
 
-    struct winsize ws;
     ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
 
-    int cols = (ws.ws_col - longest )  / (longest + 2);
-    int padding = longest + 2;
-    int row = 0;
-    int col = 0;
+    cols = (ws.ws_col - longest )  / (longest + 2);
+    padding = longest + 2;
+    row = 0;
+    col = 0;
 
-    for (int i = 0; i < nentries; i++) {
-        struct ls_dirent *entry = contents[i];
-        int len = strlen(entry->dirent.d_name);
+    for (i = 0; i < nentries; i++) {
+        int len;
+        struct ls_dirent *entry;
+
+        entry = contents[i];
+        len = strlen(entry->dirent.d_name);
 
         ls_print_color(entry);
         printf("%s\033[0m", entry->dirent.d_name);
 
         if (col != cols) {
-            int spaces = padding - len;
-            for (int i = 0; i < spaces; i++) {
+            int j;
+            int spaces;
+            
+            spaces = padding - len;
+            for (j = 0; j < spaces; j++) {
                 printf(" ");
             }
         }
@@ -170,16 +196,23 @@ ls_pretty_print(struct ls_dirent **contents, int nentries)
 static void
 ls_long_print(struct ls_dirent **entries, int nentries)
 {
-    for (int i = 0; i < nentries; i++) {
-        struct ls_dirent *entry = entries[i];
-        char mode_str[11];
-        char date_str[15];
+    int i;
+
+    char mode_str[11];
+    char date_str[15];
+
+    struct group *grp;
+    struct ls_dirent *entry;
+    struct passwd *pwd;
+
+    for (i = 0; i < nentries; i++) {
+        entry = entries[i];
 
         get_date_string(entry->stat.st_mtime, date_str, 15);
         get_mode_string(entry, mode_str);
 
-        struct passwd *pwd = getpwuid(entry->stat.st_uid);
-        struct group *grp = getgrgid(entry->stat.st_gid);
+        pwd = getpwuid(entry->stat.st_uid);
+        grp = getgrgid(entry->stat.st_gid);
 
         printf("%s ", mode_str);
         
@@ -206,10 +239,16 @@ ls_long_print(struct ls_dirent **entries, int nentries)
 static void
 sort_dirents_alphabetical(struct ls_dirent **entries, int nentries)
 {
-    for (int i = 0; i < nentries; i++) {
-        for (int j = i + 1; j < nentries; j++) {
-            struct ls_dirent *entry1 = entries[i];
-            struct ls_dirent *entry2 = entries[j];
+    int i;
+    int j;
+
+    struct ls_dirent *entry1;
+    struct ls_dirent *entry2;
+
+    for (i = 0; i < nentries; i++) {
+        for (j = i + 1; j < nentries; j++) {
+            entry1 = entries[i];
+            entry2 = entries[j];
 
             if (strcmp(entry1->dirent.d_name, entry2->dirent.d_name) > 0) {
                 entries[i] = entry2;
@@ -222,10 +261,16 @@ sort_dirents_alphabetical(struct ls_dirent **entries, int nentries)
 static void
 sort_dirents_modified_time(struct ls_dirent **entries, int nentries)
 {
-    for (int i = 0; i < nentries; i++) {
-        for (int j = i + 1; j < nentries; j++) {
-            struct ls_dirent *entry1 = entries[i];
-            struct ls_dirent *entry2 = entries[j];
+    int i;
+    int j;
+
+    struct ls_dirent *entry1;
+    struct ls_dirent *entry2;
+
+    for (i = 0; i < nentries; i++) {
+        for (j = i + 1; j < nentries; j++) {
+            entry1 = entries[i];
+            entry2 = entries[j];
 
             if (entry1->stat.st_mtime > entry2->stat.st_mtime) {
                 entries[i] = entry2;
@@ -238,9 +283,14 @@ sort_dirents_modified_time(struct ls_dirent **entries, int nentries)
 static void
 reverse_dirents(struct ls_dirent **entries, int nentries)
 {
-    for (int i = 1; i <= nentries; i++) {
-        struct ls_dirent *entry1 = entries[nentries - i];
-        struct ls_dirent *entry2 = entries[i - 1];
+    int i;
+
+    struct ls_dirent *entry1;
+    struct ls_dirent *entry2;
+
+    for (i = 1; i <= nentries; i++) {
+        entry1 = entries[nentries - i];
+        entry2 = entries[i - 1];
 
         entries[nentries - i] = entry2;
         entries[i - 1] = entry1;
@@ -250,23 +300,34 @@ reverse_dirents(struct ls_dirent **entries, int nentries)
 static int
 read_dirents(struct ls_options *options, struct ls_dirent **entries, int nentries)
 {
-    DIR *dirp = opendir(options->path);
+    bool show_all;
+
+    int n;
+    int results;
+
+    DIR *dirp;
+
+    char buf[512];
+
+    struct dirent *dirent;
+    
+    dirp = opendir(options->path);
 
     if (!dirp) {
         return -1;
     }
 
-    struct dirent *dirent;
-    int results = 0;
-    bool show_all = (options->flags & LS_INC_HIDDEN);
+    results = 0;
+    show_all = (options->flags & LS_INC_HIDDEN);
 
-    for (int n = 0; n < nentries && (dirent = readdir(dirp)); n++) {
+    for (n = 0; n < nentries && (dirent = readdir(dirp)); n++) {
+        struct ls_dirent *entry;
+
         if (dirent->d_name[0] != '.' || show_all) {
-            struct ls_dirent *entry = (struct ls_dirent*)calloc(1, sizeof(struct ls_dirent));
+            entry = calloc(1, sizeof(struct ls_dirent));
             memcpy(&entry->dirent, dirent, sizeof(struct dirent));
             entries[results++] = entry;
 
-            char buf[512];
             snprintf(buf, 512, "%s/%s", options->path, entry->dirent.d_name);
 
             if (stat(buf, &entry->stat)) {
@@ -284,6 +345,7 @@ static int
 parse_arguments(struct ls_options *options, int argc, char *argv[])
 {
     int c;
+    char *path;
 
     while (optind < argc) {
         if ((c = getopt(argc, argv, "alrt")) != -1) {
@@ -304,8 +366,7 @@ parse_arguments(struct ls_options *options, int argc, char *argv[])
                     return -1;
             }
         } else {
-            char *path = argv[optind++];
-
+            path = argv[optind++];
             options->path = path;
         }
     }
@@ -320,15 +381,18 @@ parse_arguments(struct ls_options *options, int argc, char *argv[])
 int
 main(int argc, char *argv[])
 {
+    int count;
+
     struct ls_options options;
+    struct ls_dirent *entries[512];
+
     memset(&options, 0, sizeof(struct ls_options));
 
     if (parse_arguments(&options, argc, argv)) {
         return -1;
     }
 
-    struct ls_dirent *entries[512];
-    int count = read_dirents(&options, entries, 512);
+    count = read_dirents(&options, entries, 512);
 
     if (count < 0) {
         perror("ls");

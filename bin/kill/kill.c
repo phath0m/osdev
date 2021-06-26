@@ -15,26 +15,30 @@ usage()
 int
 main(int argc, const char *argv[])
 {
+    int pid;
+    int sig;
+
     if (argc < 2) {
         usage();
         return -1;
     }
 
-    int sig = SIGTERM;
+    sig = SIGTERM;
 
-    if (!strncmp(argv[1], "-", 1)) {
-        
+    if (!strncmp(argv[1], "-", 1)) {        
+        const char *opt;
+
         if (argc != 3) {
             usage();
             return -1;
         }
 
-        const char *opt = &argv[1][1];
+        opt = &argv[1][1];
 
         sig = atoi(opt);
     }
 
-    int pid = atoi(argv[argc - 1]);
+    pid = atoi(argv[argc - 1]);
 
     if (kill(pid, sig) != 0) {
         perror("kill");

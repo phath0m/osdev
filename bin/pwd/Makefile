@@ -1,9 +1,6 @@
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
 
-CFLAGS = -c -std=gnu99 -Wall -Werror
-LDFLAGS =
-
 PWD_OBJECTS += pwd.o
 
 PWD = pwd

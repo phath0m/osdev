@@ -1,9 +1,6 @@
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
 
-CFLAGS = -c -std=gnu99 -Wall -Werror
-LDFLAGS =
-
 CP_OBJECTS += cp.o
 
 CP = cp

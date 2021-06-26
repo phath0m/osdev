@@ -6,13 +6,19 @@
 static int
 settime(const char *timestr)
 {
-    time_t now = time(NULL);
+    int res;
+    size_t len;
+    time_t now;
+    struct timeval tv;
     struct tm tm;
+
+    now = time(NULL);
+
     localtime_r(&now, &tm);
 
-    size_t len = strlen(timestr);
+    len = strlen(timestr);
 
-    int res = -1;
+    res = -1;
 
     switch (len) {
         case 4: /* HHmm */
@@ -38,7 +44,6 @@ settime(const char *timestr)
         return -1;
     }
 
-    struct timeval tv;
     tv.tv_sec = mktime(&tm);
     tv.tv_usec = 0;
 
@@ -53,10 +58,13 @@ settime(const char *timestr)
 int
 main(int argc, char *argv[])
 {
-    time_t now = time(NULL);
+    time_t now;
+    struct tm *nowp;
+
+    now = time(NULL);
 
     if (argc == 1) {
-        struct tm *nowp = gmtime(&now);
+        nowp = gmtime(&now);
         fputs(asctime(nowp), stdout);
         return 0;
     }
@@ -65,4 +73,3 @@ main(int argc, char *argv[])
 
     return 0;
 }
-

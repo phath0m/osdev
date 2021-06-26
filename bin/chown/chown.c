@@ -9,25 +9,32 @@
 int
 main(int argc, char *argv[])
 {
+    uid_t new_uid;
+    gid_t new_gid;
+
+    char *file;
+    char *new_owner;
+ 
+    struct stat buf;
+    struct passwd *pwd;
+
     if (argc != 3) {
         fprintf(stderr, "usage: chown OWNER[:GROUP] FILE\n");
         return -1; 
     }
 
-    char *new_owner = argv[1];
-    char *file = argv[2];
-
-    struct stat buf;
+    new_owner = argv[1];
+    file = argv[2];
 
     if (stat(file, &buf) != 0) {
         perror("chown");
         return -1;
     }
 
-    uid_t new_uid = buf.st_uid;
-    gid_t new_gid = buf.st_gid;
+    new_uid = buf.st_uid;
+    new_gid = buf.st_gid;
 
-    struct passwd *pwd = NULL;
+    pwd = NULL;
 
     if (!strrchr(new_owner, ':')) {
         pwd = getpwnam(new_owner);
@@ -42,10 +49,8 @@ main(int argc, char *argv[])
 
     if (chown(file, new_uid, new_gid) != 0) {
         perror("chown");
-
         return -1;
     }
 
     return 0;
 }
-

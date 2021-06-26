@@ -1,8 +1,7 @@
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
 
-CFLAGS = -c -std=gnu99 -Wall -Werror
-LDFLAGS = -lcollections
+LDFLAGS += -lcollections
 
 SHELL_OBJECTS += parser.o
 SHELL_OBJECTS += shell.o
