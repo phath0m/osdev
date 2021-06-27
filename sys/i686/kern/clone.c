@@ -49,6 +49,7 @@ init_child_proc(void *statep)
     /* defined in sys/i686/kern/usermode.asm */
     extern void return_to_usermode(uintptr_t target, uintptr_t stack, uintptr_t bp, uintptr_t ret);
 
+    uintptr_t entrypoint;
     uint32_t *stack;
     struct clone_state *state;
     
@@ -63,6 +64,7 @@ init_child_proc(void *statep)
 
     list_append(&current_proc->threads, sched_curr_thread);
 
+    entrypoint = (uintptr_t)state->func;
     stack = (uint32_t*)state->u_stack_top;
 
     --stack;
@@ -72,7 +74,7 @@ init_child_proc(void *statep)
 
     free(statep);
 
-    return_to_usermode((uintptr_t)state->func, (uintptr_t)stack, (uintptr_t)stack, 0);
+    return_to_usermode(entrypoint, (uintptr_t)stack, (uintptr_t)stack, 0);
     
     return 0;
 }

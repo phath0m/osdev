@@ -390,7 +390,7 @@ sys_lseek64(struct thread *th, syscall_args_t argv)
 
     offset = (offset_low | (offset_high << 32));
 
-    TRACE_SYSCALL("lseek64", "%d, %d, %d, %d", fd, offset_low, offset_high whence);
+    TRACE_SYSCALL("lseek64", "%d, %d, %d, %d", fd, offset_low, offset_high, whence);
 
     file = procdesc_getfile(fd);
 
