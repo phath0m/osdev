@@ -44,7 +44,7 @@
 #define INOIDX(igp, i) (((i) - 1) % (igp))
 
 static int  ext2_lookup(struct vnode *, struct vnode **, const char *);
-static int  ext2_mount(struct vnode *, struct cdev *, struct vnode **);
+static int  ext2_mount(struct vnode *, struct file *, struct vnode **);
 static int  ext2_chmod(struct vnode *, mode_t);
 static int  ext2_chown(struct vnode *, uid_t, gid_t);
 static int  ext2_creat(struct vnode *, struct vnode **, const char *, mode_t);
@@ -1150,12 +1150,27 @@ ext2_lookup(struct vnode *parent, struct vnode **result, const char *name)
 }
 
 static int
-ext2_mount(struct vnode *parent, struct cdev *cdev, struct vnode **root)
+ext2_mount(struct vnode *parent, struct file *dev_fp, struct vnode **root)
 {
+    int res;
     struct ext2_superblock superblock;
+    struct stat sb;
 
+    struct cdev *cdev;
     struct ext2fs *fs;
     struct vnode *vn;
+
+    res = fop_stat(dev_fp, &sb);
+
+    if (res != 0) {
+        return res;
+    }
+
+    cdev = cdev_from_devno(sb.st_dev);
+
+    if (cdev == NULL) {
+        return -(ENODEV);
+    }
 
     cdev_read(cdev, (char*)&superblock, sizeof(superblock), 1024);
 

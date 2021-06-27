@@ -27,9 +27,10 @@ extern "C" {
 #ifdef __KERNEL__
 
 #include <sys/types.h>
+#include <sys/file.h>
 #include <sys/vnode.h>
 
-typedef int     (*fs_mount_t)(struct vnode *, struct cdev *, struct vnode **);
+typedef int     (*fs_mount_t)(struct vnode *, struct file *, struct vnode **);
 typedef bool    (*fs_probe_t)(struct cdev *, int, const uint8_t *);
 
 struct fs_ops {
@@ -48,8 +49,8 @@ struct mount {
     uint64_t                flags;
 };
 
-int     fs_mount(struct vnode *, struct cdev *, const char *, const char *, int);
-int     fs_open(struct cdev *, struct vnode **, const char *, int);
+int     fs_mount(struct vnode *, const char *, const char *, const char *, int);
+int     fs_open(struct file *, struct vnode **, const char *, int);
 bool    fs_probe(struct cdev *, const char *, int, const uint8_t *);
 void    fs_register(char *, struct fs_ops *);
 

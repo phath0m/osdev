@@ -50,8 +50,8 @@ ksym_init()
     shdr = (struct elf32_shdr*)PTOKVA(multiboot_header->u.elf_sec.addr);
 
     /* note to self: this is a hack, we're assuming where these are*/
-    symtab = &shdr[16];
-    strtab = &shdr[17];
+    symtab = &shdr[15];
+    strtab = &shdr[16];
     
     all_strings = (char*)PTOKVA(strtab->sh_addr);
     all_syms = (struct elf32_sym*)PTOKVA(symtab->sh_addr);

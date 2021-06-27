@@ -149,7 +149,7 @@ rootfs_open(const uint8_t *uuid)
 
     list_iter_t iter;
     struct cdev *dev;
-    struct vnode *root;
+    //struct vnode *root;
     bool found = false;
 
     list_get_iter(&device_list, &iter);
@@ -167,14 +167,17 @@ rootfs_open(const uint8_t *uuid)
         return NULL;
     }
 
+    /*
     if (fs_open(dev, &root, "ext2", 0) != 0) {
         panic("could not mount rootfs!");
     }
+    */
+    panic("Fix me");
 
-    current_proc->root = root;
-    current_proc->cwd = root;
+    //current_proc->root = root;
+    //current_proc->cwd = root;
 
-    return root;
+    return NULL;//root;
 }
 
 /* stage three of kernel initialization; exec /sbin/doit */

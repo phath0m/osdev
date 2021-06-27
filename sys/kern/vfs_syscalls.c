@@ -443,12 +443,6 @@ sys_mknod(struct thread *th, syscall_args_t argv)
 static int
 sys_mount(struct thread *th, syscall_args_t argv)
 {
-    int res;
-
-    struct stat sb;
-    struct cdev *cdev;
-    struct file *file;
-
     DEFINE_SYSCALL_PARAM(const char *, source, 0, argv);
     DEFINE_SYSCALL_PARAM(const char *, target, 1, argv);
     DEFINE_SYSCALL_PARAM(const char *, fstype, 2, argv);
@@ -466,29 +460,7 @@ sys_mount(struct thread *th, syscall_args_t argv)
         return -(EFAULT);
     }
 
-    if (source) {
-        res = vfs_open_r(current_proc, &file, source, O_RDONLY);
-
-        if (res != 0) {
-            return res;
-        }
-
-        res = fop_stat(file, &sb);
-
-        if (res != 0) {
-            return res;
-        }
-
-        fop_close(file);
-
-        cdev = cdev_from_devno(sb.st_dev);
-
-        if (!cdev) {
-            return -(ENXIO);
-        }
-    }
-
-    return fs_mount(current_proc->root, cdev, fstype, target, mountflags);
+    return fs_mount(current_proc->root, source, fstype, target, mountflags);
 }
 
 static int

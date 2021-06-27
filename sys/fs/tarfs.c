@@ -39,7 +39,7 @@ struct ramfs_node;
 struct tar_header;
 
 static int ramfs_lookup(struct vnode *, struct vnode **, const char *);
-static int ramfs_mount(struct vnode *, struct cdev *, struct vnode **);
+static int ramfs_mount(struct vnode *, struct file *, struct vnode **);
 static struct ramfs_node *ramfs_node_new();
 static int ramfs_read(struct vnode *, void *, size_t, uint64_t);
 static int ramfs_readdirent(struct vnode *, struct dirent *, uint64_t);
@@ -238,13 +238,13 @@ ramfs_lookup(struct vnode *parent, struct vnode **result, const char *name)
 }
 
 static int
-ramfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
+ramfs_mount(struct vnode *parent, struct file *dev, struct vnode **root)
 {
     extern void *start_initramfs;
 
     struct vnode *node;
 
-    node = vn_new(parent, dev, &ramfs_file_ops);
+    node = vn_new(parent, NULL, &ramfs_file_ops);
 
     node->state = parse_tar_archive(start_initramfs);
     
@@ -366,9 +366,8 @@ ramfs_stat(struct vnode *node, struct stat *stat)
     return 0;
 }
 
-__attribute__((constructor))
 void
-_init_ramfs()
+init_tarfs()
 {
-    fs_register("initramfs", &ramfs_ops);
+    fs_register("tarfs", &ramfs_ops);
 }

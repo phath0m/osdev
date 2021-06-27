@@ -182,7 +182,7 @@ getcwd_r(struct vnode *child, struct vnode *parent, char **components, int depth
     char *key;
     struct vnode *node;
 
-    if (child == NULL) {
+    if (child == NULL || parent == current_proc->root) {
         return depth;
     }
 

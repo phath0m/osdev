@@ -34,7 +34,7 @@ static int devfs_ioctl(struct vnode *, uint64_t, void *);
 
 static int devn_lookup(struct vnode *, struct vnode **, const char *);
 static int devfs_mmap(struct vnode *, uintptr_t, size_t, int, off_t);
-static int devfs_mount(struct vnode *, struct cdev *, struct vnode **);
+static int devfs_mount(struct vnode *, struct file *, struct vnode **);
 static int devfs_read(struct vnode *, void *, size_t, uint64_t);
 static int devfs_readdirent(struct vnode *, struct dirent *, uint64_t);
 static int devfs_seek(struct vnode *, off_t *, off_t, int);
@@ -133,11 +133,11 @@ devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offs
 }
 
 static int
-devfs_mount(struct vnode *parent, struct cdev *dev, struct vnode **root)
+devfs_mount(struct vnode *parent, struct file *dev_fp, struct vnode **root)
 {
     struct vnode *node;
 
-    node = vn_new(parent, dev, &devfs_file_ops);
+    node = vn_new(parent, NULL, &devfs_file_ops);
 
     node->inode = 0;
     node->gid = 0;

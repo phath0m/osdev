@@ -53,7 +53,7 @@ getfsbyname(const char *name)
 }
 
 int
-fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags)
+fs_open(struct file *dev_fp, struct vnode **vn_res, const char *fsname, int flags)
 {
     int res;
     struct filesystem *fs;
@@ -64,11 +64,11 @@ fs_open(struct cdev *dev, struct vnode **root, const char *fsname, int flags)
     if (fs) {
         vn = NULL;
 
-        res = fs->ops->mount(NULL, dev, &vn);
+        res = fs->ops->mount(NULL, dev_fp, &vn);
 
         if (vn) {
             vn->mount_flags = flags;
-            *root = vn;
+            *vn_res = vn;
         }
 
         return res;
@@ -91,25 +91,43 @@ fs_register(char *name, struct fs_ops *ops)
 }
 
 int
-fs_mount(struct vnode *root, struct cdev *dev, const char *fsname, const char *path, int flags)
+fs_mount(struct vnode *root, const char *dev, const char *fsname, const char *path, int flags)
 {
+    int res;
     struct vnode *mount;
-    struct file *file;
+    struct file *dev_fp;
+    struct file *mount_fp;
     struct vnode *mount_point;
 
-    if (fs_open(dev, &mount, fsname, flags) == 0) {
-        if (vfs_open(current_proc, &file, path, O_RDONLY) == 0) {
-            if (fop_getvn(file, &mount_point) == 0) { 
-                mount_point->ismount = true;
-                mount_point->mount = mount;
-            
-                VN_INC_REF(mount);
-            }
-            return 0;
-        }
+    mount_fp = NULL;
+    dev_fp = NULL;
+
+    if (dev && vfs_open(current_proc, &dev_fp, dev, O_RDONLY) != 0) {
+        return -(ENOENT);
     }
 
-    return -1;
+    res = fs_open(mount_fp, &mount, fsname, flags);
+
+    if (res != 0) goto cleanup;
+
+    if (vfs_open(current_proc, &mount_fp, path, O_RDONLY) == 0) {
+        if (fop_getvn(mount_fp, &mount_point) == 0) { 
+            mount_point->ismount = true;
+            mount_point->mount = mount;
+        
+            VN_INC_REF(mount);
+        }
+    } else {
+        res = -1;
+    }
+
+cleanup:
+
+    if (dev_fp) {
+        fop_close(dev_fp);
+    }
+
+    return res;
 }
 
 bool
