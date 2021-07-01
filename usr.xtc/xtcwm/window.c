@@ -14,6 +14,10 @@
 #include "window.h"
 #include "wm.h"
 
+
+#define WINDOW_CLIENT_X     6
+#define WINDOW_CLIENT_Y     27
+
 /* for some reason newlib isn't putting this prototype inside unistd.h */
 extern int ftruncate(int fd, off_t length); 
 
@@ -39,8 +43,8 @@ window_new(int x, int y, int width, int height)
     window->prev_y = y;
     window->width = width;
     window->height = height;
-    window->absolute_width = width + 2;
-    window->absolute_height = height + 21;
+    window->absolute_width = width + 12;
+    window->absolute_height = height + 33;
 
     window->redraw = 1;
 
@@ -103,33 +107,78 @@ window_draw(struct window *win, canvas_t *canvas)
             chisel_color_light = XTC_GET_PROPERTY(XTC_CHISEL_ACTIVE_LIGHT_COL);
         }
 
-        canvas_fill(canvas, win->x + 1, win->y, win->width, 19, title_color);
-        canvas_fill(canvas, win->x + 2, win->y + 1, win->width - 1, 1, chisel_color_light);
-        canvas_fill(canvas, win->x + 2, win->y + 18, win->width - 1, 1, chisel_color_dark);
-        canvas_fill(canvas, win->x + 1, win->y + 1, 1, 19, chisel_color_light);
-        canvas_fill(canvas, win->x + win->width, win->y + 1, 1, 19, chisel_color_dark); 
-        canvas_rect(canvas, win->x, win->y, win->width + 1, 19, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
-        canvas_rect(canvas, win->x, win->y, win->width + 1, win->height + 20, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
+        canvas_fill(canvas, win->x, win->y, win->absolute_width, win->absolute_height, title_color);
+        canvas_rect(canvas, win->x, win->y, win->absolute_width, win->absolute_height, chisel_color_light);
+
+        canvas_rect(canvas, win->x, win->y + win->absolute_height - 1, win->absolute_width, 1, chisel_color_dark);
+        canvas_rect(canvas, win->x + win->absolute_width - 1, win->y, 1, win->absolute_height, chisel_color_dark);
+        canvas_fill(canvas, win->x + 5, win->y + win->absolute_height - 5, win->absolute_width - 10, 1, chisel_color_light);
+        canvas_fill(canvas, win->x + win->absolute_width - 5, win->y + 5, 1, win->absolute_height - 10, chisel_color_light);
+        canvas_fill(canvas, win->x + 5, win->y + 5, win->absolute_width - 10, 1, chisel_color_dark);
+        canvas_fill(canvas, win->x + 5, win->y + 5, 1, win->absolute_height - 10, chisel_color_dark);
+        //canvas_rect(canvas, win->x, win->y, win->width, win->height, chisel_color_light);
+
+        //canvas_fill(canvas, win->x + 4, win->y, win->width - 4, 19, title_color);
+        //canvas_fill(canvas, win->x + 2, win->y + 1, win->width - 1, 1, chisel_color_light);
+        //canvas_fill(canvas, win->x + 2, win->y + 18, win->width - 1, 1, chisel_color_dark);
+        //canvas_fill(canvas, win->x + 1, win->y + 1, 1, 19, chisel_color_light);
+        //canvas_fill(canvas, win->x + win->width, win->y + 1, 1, 19, chisel_color_dark); 
+        //canvas_rect(canvas, win->x, win->y, win->width + 1, 19, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
+        //canvas_rect(canvas, win->x, win->y, win->width + 1, win->height + 20, XTC_GET_PROPERTY(XTC_WIN_BORDER_COL));
 
         if (!iconified) {
             // iconify button
-            canvas_rect(canvas, win->x + 4, win->y + 3, 12, 12, text_color);
-            canvas_fill(canvas, win->x + 7, win->y + 11, 7, 2, text_color);
+            canvas_rect(canvas, win->x + 6, win->y + 6, 19, 19, chisel_color_dark);
+            canvas_fill(canvas, win->x + 6, win->y + 25, 19, 1, chisel_color_light);
+            canvas_fill(canvas, win->x + 6, win->y + 6, 1, 19, chisel_color_light);
+            canvas_fill(canvas, win->x + 10, win->y + 14, 12, 4, chisel_color_dark);
+            canvas_fill(canvas, win->x + 6, win->y + 25, win->absolute_width - 12, 1, chisel_color_light);
+            canvas_fill(canvas, win->x + 6, win->y + 26, win->absolute_width - 12, 1, chisel_color_dark);
+
+            canvas_fill(canvas, win->x, win->y + 25, 5, 1, chisel_color_dark);
+            canvas_fill(canvas, win->x, win->y + 26, 5, 1, chisel_color_light);
+
+            canvas_fill(canvas, win->x + win->absolute_width - 5, win->y + 26, 5, 1, chisel_color_dark);
+            canvas_fill(canvas, win->x + win->absolute_width - 5, win->y + 25, 5, 1, chisel_color_light);
+
+            canvas_fill(canvas, win->x + 25, win->y, 1, 5, chisel_color_dark);
+            canvas_fill(canvas, win->x + 26, win->y, 1, 5, chisel_color_light);
+
+            canvas_fill(canvas, win->x + win->absolute_width - 25, win->y, 1, 5, chisel_color_light);
+            canvas_fill(canvas, win->x + win->absolute_width - 26, win->y, 1, 5, chisel_color_dark);
+
+
+            canvas_fill(canvas, win->x, win->y + win->absolute_height - 25, 5, 1, chisel_color_dark);
+            canvas_fill(canvas, win->x, win->y + win->absolute_height - 26, 5, 1, chisel_color_light);
+
+            canvas_fill(canvas, win->x + win->absolute_width - 5, win->y + win->absolute_height - 25, 5, 1, chisel_color_light);
+            canvas_fill(canvas, win->x + win->absolute_width - 5, win->y + win->absolute_height - 26, 5, 1, chisel_color_dark);
+            canvas_fill(canvas, win->x + 25, win->y + win->absolute_height - 5, 1, 5, chisel_color_dark);
+            canvas_fill(canvas, win->x + 26, win->y + win->absolute_height - 5, 1, 5, chisel_color_light);
+
+            canvas_fill(canvas, win->x + win->absolute_width - 26, win->y + win->absolute_height - 5, 1, 5, chisel_color_dark);
+            canvas_fill(canvas, win->x + win->absolute_width - 25, win->y + win->absolute_height - 5, 1, 5, chisel_color_light);
+
+
+            //canvas_rect(canvas, win->x + 4, win->y + 3, 12, 12, text_color);
+            //canvas_fill(canvas, win->x + 7, win->y + 11, 7, 2, text_color);
 
             // maximize button
-            canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 12, 12, text_color);
-            canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 8, 8, text_color);
-            canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 5, 5, text_color);
+            //canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 12, 12, text_color);
+            //canvas_puts(canvas, win->x + win->width - 15, win->y + 3, "x", 0x0);
+
+            //canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 8, 8, text_color);
+            //canvas_rect(canvas, win->x + win->width - 16, win->y + 3, 5, 5, text_color);
         }
 
         int text_width = strlen(win->title) * 10;
 
         int center_x = win->width / 2 - text_width / 2;
 
-        canvas_puts(canvas, win->x + center_x, win->y + 4, win->title, text_color);
+        canvas_puts(canvas, win->x + center_x, win->y + 10, win->title, text_color);
 
         if (!iconified) {
-            canvas_putcanvas(canvas, win->x + 1, win->y + 20, 0, 0, 
+            canvas_putcanvas(canvas, win->x + 6, win->y + 27, 0, 0, 
                     win->width, win->height, win->canvas);
 
             canvas_invalidate_region(canvas, win->prev_x, win->prev_y,
@@ -147,7 +196,7 @@ window_draw(struct window *win, canvas_t *canvas)
         int width = buf->max_x - buf->min_x;
         int height = buf->max_y - buf->min_y;
 
-        canvas_putcanvas(canvas, win->x + 1 + buf->min_x, win->y + 20 + buf->min_y, buf->min_x,
+        canvas_putcanvas(canvas, win->x + 6 + buf->min_x, win->y + 27 + buf->min_y, buf->min_x,
                 buf->min_y, width, height, win->canvas);
         buf->dirty = 0;
     }
@@ -159,7 +208,7 @@ window_click(struct window *self, struct click_event *event)
     int relative_y = event->y - self->y;
     int relative_x = event->x - self->x;
 
-    if (relative_y < 20 && relative_x > 20) {
+    if (relative_y < 27 && relative_x > 27) {
         self->state |= WIN_DRAGGED;
         self->prev_x = self->x;
         self->prev_y = self->y;
@@ -233,8 +282,8 @@ window_resize(struct window *self, int color, int width, int height)
 {
     self->width = width;
     self->height = height;
-    self->absolute_width = width + 2;
-    self->absolute_height = height + 21;
+    self->absolute_width = width + 12;
+    self->absolute_height = height + 33;
     //self->canvas->width = width;
     //self->canvas->height = height;
     //self->canvas->buffersize = width*height*4;
