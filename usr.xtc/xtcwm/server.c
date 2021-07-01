@@ -258,6 +258,30 @@ handle_next_event(struct xtc_session *session, struct xtc_msg_hdr *hdr)
 }
 
 static void
+handle_poll_events(struct xtc_session *session, struct xtc_msg_hdr *hdr)
+{
+    uint32_t window_id;
+    uint32_t params[3];
+    struct window *win;
+
+    window_id = hdr->parameters[0];
+
+    if (window_id >= SESSION_MAX_WINDOWS ||
+            !session->windows[window_id])
+    {
+        send_response(session, NULL, 0, XTC_ERR_NOSUCHWIN);
+        printf("XTC_ERR_NOSUCHWIN\n");
+        return;
+    }
+
+    win = session->windows[window_id];
+
+    params[0] = LIST_SIZE(&win->events);
+
+    send_response(session, params, 1, 0);
+}
+
+static void
 handle_resize(struct xtc_session *session, struct xtc_msg_hdr *hdr)
 {
     uint32_t window_id = hdr->parameters[0];
@@ -307,6 +331,9 @@ handle_request(struct xtc_session *session, struct xtc_msg_hdr *hdr, void *paylo
             break;
         case XTC_RESIZE:
             handle_resize(session, hdr);
+            break;
+        case XTC_POLLEVENTS:
+            handle_poll_events(session, hdr);
             break;
     }
 }
