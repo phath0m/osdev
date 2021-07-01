@@ -233,31 +233,12 @@ static void
 handle_mouse_event(struct mouse_event *eventbuf)
 {
     if (eventbuf->x == 1 || eventbuf->x == -1) {
-        //eventbuf->x = 0;
+        eventbuf->x = 0;
     }
 
     if (eventbuf->y == 1 || eventbuf->y == -1) {
-        //eventbuf->y = 0;
+        eventbuf->y = 0;
     }
-    /*
-    actual_mouse_delta_x = eventbuf->x;
-    actual_mouse_delta_y = eventbuf->y;
-
-    switch (eventbuf->event) {
-        case MOUSE_LEFT_CLICK:
-        case MOUSE_RIGHT_CLICK:
-        case MOUSE_MOVE:
-            
-            xtc_context.mouse_delta_x = eventbuf->x;
-            xtc_context.mouse_delta_y = eventbuf->y;
-            break;
-        case MOUSE_NOP:
-            xtc_context.mouse_delta_x = eventbuf->x;
-            xtc_context.mouse_delta_y = eventbuf->y;
-            return;
-        default:
-            break;
-    }*/
 
     if (eventbuf->x != 0 && eventbuf->x != actual_mouse_delta_x) {
         xtc_context.mouse_delta_x = eventbuf->x;
@@ -369,21 +350,6 @@ draw_icon(canvas_t *canvas, int x, int y, int *icon)
     }
 }
 
-/* draw debug information */
-
-static void
-draw_debug_info(canvas_t *canvas)
-{
-    char debug_str[512];
-
-    sprintf(debug_str, "X: %d Y: %d dX: %d dY: %d\n",
-        xtc_context.mouse_x, xtc_context.mouse_y,
-        xtc_context.mouse_delta_x, xtc_context.mouse_delta_y);
-
-    canvas_fill(canvas, 0, 0, 400, 15, 0xFFFFFF);
-    canvas_puts(canvas, 0, 0, debug_str, 0x00000);
-}
-
 /* thread responsible for rendering the screen, roughly 120 times a second */
 static void *
 display_loop(void *argp)
@@ -440,8 +406,6 @@ display_loop(void *argp)
             canvas_putcanvas(backbuffer, 0, 0, 0, 0, bg->width, bg->height, bg);
             xtc_context.redraw_flag = 0;
         }
-
-        draw_debug_info(backbuffer);
 
         xtc_context.mouse_x += xtc_context.mouse_delta_x;
         xtc_context.mouse_y -= xtc_context.mouse_delta_y;
