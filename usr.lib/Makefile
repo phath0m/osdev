@@ -9,6 +9,8 @@ SUBDIRS += libcollections
 SUBDIRS += libini
 SUBDIRS += libinput
 SUBDIRS += libmemgfx
+SUBDIRS += libthread
+SUBDIRS += libvt
 
 all: $(SUBDIRS)
 	mkdir -p "$(DESTDIR)/$(PREFIX)/lib"
