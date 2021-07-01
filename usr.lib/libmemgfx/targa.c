@@ -21,31 +21,40 @@ struct targa_hdr {
 canvas_t *
 canvas_from_targa(const char *path, int flags)
 {
-    FILE *fp = fopen(path, "r");
+    int bpp;
+    int image_size;
+    int x;
+    int y;
+
+    color_t *pixels;
+    pixbuf_t *pixbuf;
+    uint8_t *image;
+    uint8_t *rgb;
+    FILE *fp;
+
+    struct targa_hdr header;
+
+    fp = fopen(path, "r");
 
     if (!fp) {
         return NULL;
     }
 
-    struct targa_hdr header;
-
     fread(&header, 1, sizeof(header), fp);
 
-    int bpp = header.bpp / 8;
-
-    int image_size = bpp*header.width*header.height;
-    uint8_t *image = calloc(1, image_size);
+    bpp = header.bpp / 8;
+    image_size = bpp*header.width*header.height;
+    image = calloc(1, image_size);
     
     fread(image, 1, image_size, fp);
     fclose(fp);
 
-    pixbuf_t *pixbuf = pixbuf_new(header.width, header.height);
-    color_t *pixels = pixbuf->pixels;
+    pixbuf = pixbuf_new(header.width, header.height);
+    pixels = pixbuf->pixels;
    
-    //for (int y = header.height - 1; y >= 0; y--)
-    for (int y = 0; y < header.height; y++)
-    for (int x = 0; x < header.width; x++) {
-        uint8_t *rgb = &image[(y*header.width+x)*bpp];
+    for (y = 0; y < header.height; y++)
+    for (x = 0; x < header.width; x++) {
+        rgb = &image[(y*header.width+x)*bpp];
 
         pixels[y * header.width + x] = rgb[0] | (rgb[1] << 8) | (rgb[2] << 16);
     }

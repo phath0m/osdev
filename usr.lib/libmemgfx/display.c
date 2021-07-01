@@ -12,8 +12,13 @@
 display_t *
 display_open()
 {
-    
-    int fd = open("/dev/lfb", O_RDWR);
+    int fd;
+    display_t *display;
+
+    struct lfb_info fbinfo;
+
+
+    fd = open("/dev/lfb", O_RDWR);
 
     if (fd == -1) {
         return NULL;
@@ -22,11 +27,10 @@ display_open()
     /* First; reset the textscreen (This ensures kernel output will be visible if panic) */
     ioctl(fd, TXIORST, NULL);
 
-    struct lfb_info fbinfo;
-
+    /* Now get the framebuffer dimensions */
     ioctl(fd, FBIOGETINFO, &fbinfo);
 
-    display_t *display = calloc(1, sizeof(display_t));
+    display = calloc(1, sizeof(display_t));
     
     display->width = fbinfo.width;
     display->height = fbinfo.height;
@@ -58,16 +62,24 @@ display_height(display_t *display)
 void
 display_render(display_t *display, canvas_t *canvas, int x, int y, int width, int height)
 {
-    pixbuf_t *pixbuf = canvas->frontbuffer;
+    int max_height;
+    int max_width;
+    int max_y;
+    int min_width;
+    int min_height;
 
-    color_t *srcpixels = pixbuf->pixels;
-   
-    color_t *fb = (color_t*)display->state;
+    color_t *fb;
+    color_t *srcpixels;
+    pixbuf_t *pixbuf;
 
-    int max_width = width;
-    int max_height = height;
-    int min_width = display->width - x;
-    int min_height = display->height - y;
+    pixbuf = canvas->frontbuffer;
+    srcpixels = pixbuf->pixels;
+    fb = display->state;
+
+    max_width = width;
+    max_height = height;
+    min_width = display->width - x;
+    min_height = display->height - y;
 
     width = MIN(max_width, min_width);
     height = MIN(max_height, min_height);
@@ -76,11 +88,14 @@ display_render(display_t *display, canvas_t *canvas, int x, int y, int width, in
         return;
     }
 
-    int max_y = y + height;
+    max_y = y + height;
 
     while (y < max_y) {
-        void *dst = &fb[display->width * y + x];
-        void *src = &srcpixels[canvas->width * y + x];
+        void *dst;
+        void *src;
+
+        dst = &fb[display->width * y + x];
+        src = &srcpixels[canvas->width * y + x];
         
         fast_memcpy_d(dst, src, width*4);
         y++;

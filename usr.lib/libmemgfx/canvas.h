@@ -38,8 +38,10 @@ canvas_t *canvas_from_mem(int width, int height, int flags, pixbuf_t *pixels);
 canvas_t *canvas_from_targa(const char *path, int flags);
 
 void canvas_destroy(canvas_t *canvas);
+void canvas_circle(canvas_t *, int, int, int, color_t);
 void canvas_clear(canvas_t *canvas, color_t col);
 void canvas_fill(canvas_t *canvas, int x, int y, int width, int height, uint32_t col);
+void canvas_line(canvas_t *, int, int, int, int, color_t);
 void canvas_rect(canvas_t *canvas, int x, int y, int width, int height, uint32_t col);
 void canvas_resize(canvas_t *canvas, color_t col, int width, int height);
 void canvas_paint(canvas_t *canvas);
