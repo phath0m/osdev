@@ -55,6 +55,7 @@ set_sgr_parameter(struct termstate *state, int param)
         case 37:
             VTOPS_SET_ATTR(state->emu, VT_ATTR_FOREGROUND, param - 30);
             break;    
+
         case 39:
             VTOPS_SET_ATTR(state->emu, VT_ATTR_DEF_FOREGROUND, 0);
             break;
@@ -71,6 +72,16 @@ set_sgr_parameter(struct termstate *state, int param)
         case 49:
             VTOPS_SET_ATTR(state->emu, VT_ATTR_DEF_BACKGROUND, 0);
             break;
+        case 90:
+        case 91:
+        case 92:
+        case 93:
+        case 94:
+        case 95:
+        case 96:
+        case 97:
+            VTOPS_SET_ATTR(state->emu, VT_ATTR_FOREGROUND, param - 82);
+            break;    
         default:
             printf("got uknown SGR parameter %d\n", param);
             break;
