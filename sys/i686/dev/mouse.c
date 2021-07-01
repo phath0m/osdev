@@ -34,6 +34,8 @@ struct driver mouse_driver = {
 static uint8_t mouse_x;
 static uint8_t mouse_y;
 static uint8_t mouse_buttons;
+static bool mouse_packet_ready;
+
 //static int received_mouse_data = 0;
 
 static void
@@ -41,12 +43,12 @@ mouse_wait(int a_type)
 {
     int timeout;
     
-    timeout = 10000;
+    timeout = 100000;
 
     if (a_type) {
-        while (timeout-- && io_read8(0x64));
+        while (timeout-- && (io_read8(0x64) & 0x2) == 0);
     } else {
-        while (timeout-- && !(io_read8(0x64) & 1));
+        while (timeout-- && (io_read8(0x64) & 0x1) == 0);
     }
 }
 
@@ -69,20 +71,30 @@ mouse_recv_resp()
 static int
 mouse_irq_handler(struct device *dev, int inum)
 {
-    static int mouse_cycle;
-    static uint8_t mouse_data[3];
+    static int mouse_cycle = 0;
+    static uint8_t mouse_data[4];
+
+    uint8_t data;
+
+    data = io_read8(0x60);
 
     switch (mouse_cycle) {
-        case 0x00:
+        case 0x00: {
+            if (mouse_packet_ready) break;
+            if ((data & 0x8) == 0) break; /* out of sync */
+            mouse_data[mouse_cycle++] = data;
+            break;
+        }
         case 0x01:
-            mouse_data[mouse_cycle++] = io_read8(0x60);
+            mouse_data[mouse_cycle++] = data;
             break;
         default:
-            mouse_data[mouse_cycle] = io_read8(0x60);
+            mouse_data[mouse_cycle] = data;
             mouse_buttons = mouse_data[0];
             mouse_x = mouse_data[1];
             mouse_y = mouse_data[2];
             mouse_cycle = 0;
+            mouse_packet_ready = true;
             //__sync_lock_test_and_set(&received_mouse_data, 1);
             break;
         
@@ -98,17 +110,21 @@ mouse_attach(struct driver *driver, struct device *dev)
     struct cdev_ops mouse_ops;
     struct cdev *cdev;
 
-    mouse_wait(1);
+
+    /* Enable mouse */
     io_write8(0x64, 0xA8);
     mouse_wait(1);
+
     io_write8(0x64, 0x20);
     mouse_wait(0);
 
-    status = io_read8(0x60) | 2;
+    status = io_read8(0x60) | 0x02;
 
     mouse_wait(1);
+
     io_write8(0x64, 0x60);
     mouse_wait(1);
+
     io_write8(0x60, status);
 
     mouse_send_cmd(0xF6);
@@ -132,6 +148,8 @@ mouse_attach(struct driver *driver, struct device *dev)
 
     cdev = cdev_new("mouse", 0666, DEV_MAJOR_MOUSE, 0, &mouse_ops, NULL);
 
+    irq_register(dev, 12, mouse_irq_handler);
+
     if (cdev && cdev_register(cdev) == 0) {
         return 0;
     }
@@ -153,6 +171,8 @@ mouse_read(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
     buf[0] = mouse_buttons;
     buf[1] = mouse_x;
     buf[2] = mouse_y;
+
+    mouse_packet_ready = false;
 
     return nbyte;
 }
