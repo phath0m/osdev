@@ -21,6 +21,7 @@ xtc_win_t xtc_window_new(int width, int height, int flags);
 int xtc_set_window_title(xtc_win_t win, const char *title);
 int xtc_next_event(xtc_win_t win, xtc_event_t *event);
 int xtc_clear(xtc_win_t win, int col);
+int xtc_poll_events(xtc_win_t);
 int xtc_put_string(xtc_win_t win, int x, int y, const char *str, int col);
 int xtc_redraw(xtc_win_t win);
 int xtc_resize(xtc_win_t win, color_t fillcolor, int width, int height);
