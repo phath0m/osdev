@@ -5,6 +5,7 @@ export PREFIX
 
 MAKE = make
 
+SUBDIRS += xtcclock
 SUBDIRS += xtclauncher
 SUBDIRS += xtcterm
 SUBDIRS += xtclogin
