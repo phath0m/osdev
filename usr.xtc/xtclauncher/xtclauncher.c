@@ -118,7 +118,13 @@ main(int argc, const char *argv[])
     terminal_entry.text = "Terminal";
     terminal_entry.program = "/usr/xtc/bin/xtcterm";
 
+    struct menu_entry clock_entry;
+    clock_entry.text = "Clock";
+    clock_entry.program = "/usr/xtc/bin/xtcclock";
+
     list_append(&ctx.entries, &terminal_entry);
+    list_append(&ctx.entries, &clock_entry);
+
 
     int width = get_longest_entry(&ctx)*12 + MENU_TEXT_PADDING*2;
     int height = LIST_SIZE(&ctx.entries)*12 + MENU_TEXT_PADDING*4;
