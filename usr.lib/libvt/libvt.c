@@ -91,7 +91,9 @@ set_sgr_parameter(struct termstate *state, int param)
 static void
 select_graphic_rendition(struct termstate *state, int args[], int argc)
 {
-    for (int i = 0; i < argc; i++) {
+    int i;
+
+    for (i = 0; i < argc; i++) {
         set_sgr_parameter(state, args[i]);
     }
 }
@@ -109,14 +111,14 @@ cursor_position(struct termstate *state, int args[], int argc)
 static void
 device_status_report(struct termstate *state, int args[], int argc)
 {
+    int cursor_x;
+    int cursor_y;
+
+    char buf[16];
+
     if (argc == 1 && args[0] == 6) {
-        int cursor_x, cursor_y;
-
         VTOPS_GET_CURSOR(state->emu, &cursor_x, &cursor_y);
-
-        char buf[16];
         sprintf(buf, "\x1B[%d;%dR", cursor_y+1, cursor_x+1);
-
         write(state->ptm, buf, strlen(buf));
     }
 }
@@ -124,16 +126,14 @@ device_status_report(struct termstate *state, int args[], int argc)
 static void
 erase_in_line(struct termstate *state, int args[], int argc)
 {
-    int cursor_x, cursor_y;
+    int cursor_x;
+    int cursor_y;
+    int n;
 
     VTOPS_GET_CURSOR(state->emu, &cursor_x, &cursor_y);
 
-    int n = 0;
+    n = (argc == 1) ? args[0] : 0;
 
-    if (argc == 1) {
-        n = args[0];
-    }
-    
     switch (n) {
         case 0:
             VTOPS_ERASE_AREA(state->emu, cursor_x, cursor_y, state->width, cursor_y);
@@ -150,15 +150,13 @@ erase_in_line(struct termstate *state, int args[], int argc)
 static void
 erase_in_display(struct termstate *state, int args[], int argc)
 {
-    int cursor_x, cursor_y;
+    int cursor_x;
+    int cursor_y;
+    int param;
 
     VTOPS_GET_CURSOR(state->emu, &cursor_x, &cursor_y);
 
-    int param = 0;
-
-    if (argc == 1) {
-        param = args[0];
-    }
+    param = (argc == 1) ? args[0] : 0; 
 
     switch (param) {
         case 0:
@@ -207,11 +205,16 @@ eval_csi_parameter(struct termstate *state, char command, int args[], int argc)
 static void
 eval_csi_command(struct termstate *state, char final_byte)
 {
-    char *last_parameter = state->csi_buf;
+    int argc;
+    int i;
     int args[64];
-    int argc = 0;
 
-    for (int i = 0; i < state->csi_len; i++) {
+    char *last_parameter;
+    
+    last_parameter = state->csi_buf;
+    argc = 0;
+
+    for (i = 0; i < state->csi_len; i++) {
         if (state->csi_buf[i] == ';') {
             state->csi_buf[i] = 0;
             args[argc++] = atoi(last_parameter);
@@ -222,30 +225,34 @@ eval_csi_command(struct termstate *state, char final_byte)
     args[argc++] = atoi(last_parameter);
 
     eval_csi_parameter(state, final_byte, args, argc);
-
     memset(state->csi_buf, 0, sizeof(state->csi_buf));
+
     state->csi_len = 0;
 }
 
 static void
 eval_custom_sequence(struct termstate *state)
 {
+    char c;
+    int pal_index;
+    int rgb;
+
     switch (state->csi_buf[0]) {
         case 'P': {
-            char c = state->csi_buf[1];
-            int pal_index = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
-            int rgb = strtol(&state->csi_buf[2], NULL, 16);
+            c = state->csi_buf[1];
+            pal_index = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
+            rgb = strtol(&state->csi_buf[2], NULL, 16);
             
             VTOP_SET_PALETTE(state->emu, pal_index, rgb);
             break;
         }
         case 'B': {
-            int rgb = strtol(&state->csi_buf[1], NULL, 16);
+            rgb = strtol(&state->csi_buf[1], NULL, 16);
             VTOP_SET_PALETTE(state->emu, 0x10, rgb);
             break;
         }
         case 'F': {
-            int rgb = strtol(&state->csi_buf[1], NULL, 16);
+            rgb = strtol(&state->csi_buf[1], NULL, 16);
             VTOP_SET_PALETTE(state->emu, 0x11, rgb);
             break;
         }
@@ -290,9 +297,12 @@ eval_escape_char(struct termstate *state, char ch)
 static inline void
 process_term_char(struct termstate *state, char ch)
 {
+    bool is_final_byte;
+    bool is_parameter;
+    
     if (state->csi_initiated) {
-        bool is_parameter = (ch >= 0x30 && ch < 0x40);
-        bool is_final_byte = (ch >= 0x40 && ch < 0x7F);
+        is_parameter = (ch >= 0x30 && ch < 0x40);
+        is_final_byte = (ch >= 0x40 && ch < 0x7F);
 
         if (is_parameter) {
             state->csi_buf[state->csi_len++] = ch;
@@ -352,7 +362,9 @@ process_term_char(struct termstate *state, char ch)
 static void
 process_term_data(struct termstate *state, char *buf, int size)
 {
-    for (int i = 0; i < size; i++) {
+    int i;
+
+    for (i = 0; i < size; i++) {
         process_term_char(state, buf[i]);
     }
     
@@ -363,16 +375,19 @@ process_term_data(struct termstate *state, char *buf, int size)
 vtemu_t *
 vtemu_new(struct vtops *ops, void *state)
 {
-    vtemu_t *emu = calloc(1, sizeof(vtemu_t));
+    int ptm;
+    vtemu_t *emu;
+    struct termstate *vtstate;
+
+    emu = calloc(1, sizeof(vtemu_t));
+    vtstate = calloc(1, sizeof(struct termstate));
 
     memcpy(&emu->ops, ops, sizeof(struct vtops));
-
-    struct termstate *vtstate = calloc(1, sizeof(struct termstate));
 
     emu->state = state;
     emu->_private = vtstate;
     
-    int ptm = mkpty();
+    ptm = mkpty();
 
     vtstate->emu = emu;
     vtstate->ptm = ptm;
@@ -383,21 +398,33 @@ vtemu_new(struct vtops *ops, void *state)
 void
 vtemu_resize(vtemu_t *emu, int width, int height)
 {
-    struct termstate *state = emu->_private;
+    struct winsize newsize;
+    struct termstate *state;
+    
+    state = emu->_private;
 
     state->width = width;
     state->height = height;
+
+    newsize.ws_col = width;
+    newsize.ws_row = height;
+
+    ioctl(state->ptm, TIOCSWINSZ, &newsize);
 }
 
 void
 vtemu_run(vtemu_t *emu)
 {
-    struct termstate *state = emu->_private;
-
     char buf[1024];
 
+    struct termstate *state;
+    
+    state = emu->_private;
+
     for (;;) {
-        ssize_t nread = read(state->ptm, buf, 1024);
+        ssize_t nread;
+        
+        nread = read(state->ptm, buf, 1024);
         
         if (nread > 0) {
             process_term_data(state, buf, nread);
@@ -408,7 +435,9 @@ vtemu_run(vtemu_t *emu)
 void
 vtemu_sendchar(vtemu_t *emu, char ch)
 {
-    struct termstate *state = emu->_private;
+    struct termstate *state;
+    
+    state = emu->_private;
 
     write(state->ptm, &ch, 1);
 }
@@ -416,7 +445,9 @@ vtemu_sendchar(vtemu_t *emu, char ch)
 void
 vtemu_sendkey(vtemu_t *emu, vt_key_t key)
 {
-    struct termstate *state = emu->_private;
+    struct termstate *state;
+    
+    state = emu->_private;
 
     switch (key) {
         case VT_KEY_UP_ARROW:
@@ -437,36 +468,46 @@ vtemu_sendkey(vtemu_t *emu, vt_key_t key)
         case VT_KEY_PAGE_DOWN:
             write(state->ptm, "\x1B[6~", 4);
             break;    
-
     }
 }
 
 int
 vtemu_spawn(vtemu_t *emu, char *bin)
 {
-    pid_t child = fork();
+    int i;
+    int fd;
+    pid_t child;
+
+    char *pts;
+    char **argv;    
+
+    struct winsize winsize;
+ 
+    struct termstate *state;
+
+
+    child = fork();
 
     if (child) {
         return 0;
     }
 
-    struct termstate *state = emu->_private;
+    state = emu->_private;
+    pts = ttyname(state->ptm);
 
-    char *pts = ttyname(state->ptm);
-
-    char *argv[] = {
+    argv = (char*[]){
         bin,
         NULL
     };
 
-    int fd = open(pts, O_RDWR);
+    fd = open(pts, O_RDWR);
 
-    struct winsize winsize;
     winsize.ws_row = state->height;
     winsize.ws_col = state->width;
+
     ioctl(fd, TIOCSWINSZ, &winsize);
 
-    for (int i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++) {
         dup2(fd, i);
     }
 
