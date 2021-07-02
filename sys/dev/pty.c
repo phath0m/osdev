@@ -36,6 +36,7 @@
 
 static int ptm_close(struct file *);
 static int ptm_getdev(struct file *, struct cdev **);
+static int ptm_ioctl(struct file *, uint64_t, void *);
 static int ptm_read(struct file *, void *, size_t);
 static int ptm_stat(struct file *, struct stat *);
 static int ptm_write(struct file *, const void *, size_t);
@@ -47,6 +48,7 @@ static int pts_write(struct cdev *, const char *, size_t, uint64_t);
 struct fops ptm_ops = {
     .close      = ptm_close,
     .getdev     = ptm_getdev,
+    .ioctl      = ptm_ioctl,
     .read       = ptm_read,
     .stat       = ptm_stat,
     .write      = ptm_write
@@ -127,6 +129,67 @@ pty_flush_buf(struct pty *pty)
 }
 
 static int
+pty_ioctl(struct pty *pty, uint64_t request, uintptr_t argp)
+{
+    pid_t pgid;
+    struct pgrp *pgrp;
+    struct session *session;
+
+    switch (request) {
+    case TCGETS:
+        memcpy((void*)argp, &pty->termios, sizeof(struct termios));
+        break;
+    case TCSETS:
+        memcpy(&pty->termios, (void*)argp, sizeof(struct termios));
+        break;
+    case TCSETSW:
+        memcpy(&pty->termios, (void*)argp, sizeof(struct termios));
+        break;
+    case TCSETSF:
+        pty_flush_buf(pty);
+        memcpy(&pty->termios, (void*)argp, sizeof(struct termios));
+        break;
+    case TIOCSWINSZ:
+        memcpy(&pty->winsize, (void*)argp, sizeof(struct winsize));
+        break;
+    case TIOCGWINSZ:
+        memcpy((void*)argp, &pty->winsize, sizeof(struct winsize));
+        break; 
+    case TIOCSCTTY: {
+        session = PROC_GET_SESSION(current_proc);
+    
+        if (!session->ctty) {
+            session->ctty = pty->slave;
+            return 0;
+        }
+
+        return -1;
+    }
+    case TIOCSPGRP: {
+        pgid = *((pid_t*)argp);
+        pgrp = pgrp_find(pgid);
+
+        if (pgrp) {
+            pty->foreground = pgid;
+            return 0;
+        }
+
+        return -(ESRCH);
+    }
+    case TIOCGPGRP: {
+        *((pid_t*)argp) = pty->foreground;
+        
+        return 0;
+    }
+    default:
+        printf("got unknown IOCTL %d!\n", request);
+        break;
+    }
+
+    return 0;
+}
+
+static int
 pty_inprocess(struct pty *pty, const char *buf, size_t nbyte)
 {
     int i;
@@ -200,6 +263,13 @@ ptm_getdev(struct file *fp, struct cdev **result)
     return 0;
 }
 
+static int
+ptm_ioctl(struct file *fp, uint64_t request, void *argp)
+{
+    return pty_ioctl(fp->state, request, (uintptr_t)argp);
+}
+
+
 /*
 static int
 ptm_destroy(struct vnode *node)
@@ -267,65 +337,7 @@ ptm_write(struct file *fp, const void *buf, size_t nbyte)
 static int
 pts_ioctl(struct cdev *dev, uint64_t request, uintptr_t argp)
 {
-    pid_t pgid;
-    struct pgrp *pgrp;
-    struct pty *pty;
-    struct session *session;
-
-    pty = (struct pty*)dev->state; 
-
-    switch (request) {
-    case TCGETS:
-        memcpy((void*)argp, &pty->termios, sizeof(struct termios));
-        break;
-    case TCSETS:
-        memcpy(&pty->termios, (void*)argp, sizeof(struct termios));
-        break;
-    case TCSETSW:
-        memcpy(&pty->termios, (void*)argp, sizeof(struct termios));
-        break;
-    case TCSETSF:
-        pty_flush_buf(pty);
-        memcpy(&pty->termios, (void*)argp, sizeof(struct termios));
-        break;
-    case TIOCSWINSZ:
-        memcpy(&pty->winsize, (void*)argp, sizeof(struct winsize));
-        break;
-    case TIOCGWINSZ:
-        memcpy((void*)argp, &pty->winsize, sizeof(struct winsize));
-        break; 
-    case TIOCSCTTY: {
-        session = PROC_GET_SESSION(current_proc);
-    
-        if (!session->ctty) {
-            session->ctty = dev;
-            return 0;
-        }
-
-        return -1;
-    }
-    case TIOCSPGRP: {
-        pgid = *((pid_t*)argp);
-        pgrp = pgrp_find(pgid);
-
-        if (pgrp) {
-            pty->foreground = pgid;
-            return 0;
-        }
-
-        return -(ESRCH);
-    }
-    case TIOCGPGRP: {
-        *((pid_t*)argp) = pty->foreground;
-        
-        return 0;
-    }
-    default:
-        printf("got unknown IOCTL %d!\n", request);
-        break;
-    }
-
-    return 0;
+    return pty_ioctl(dev->state, request, argp);
 }
 
 static int
