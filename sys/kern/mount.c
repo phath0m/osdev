@@ -106,7 +106,7 @@ fs_mount(struct vnode *root, const char *dev, const char *fsname, const char *pa
         return -(ENOENT);
     }
 
-    res = fs_open(mount_fp, &mount, fsname, flags);
+    res = fs_open(dev_fp, &mount, fsname, flags);
 
     if (res != 0) goto cleanup;
 
