@@ -173,68 +173,11 @@ proc_find(int pid)
 
     return ret;
 }
-static int
-getcwd_r(struct vnode *child, struct vnode *parent, char **components, int depth)
-{
-    int ret;
-    list_iter_t iter;
-
-    char *key;
-    struct vnode *node;
-
-    if (child == NULL || parent == current_proc->root) {
-        return depth;
-    }
-
-    ret = 0;
-
-    dict_get_keys(&child->children, &iter);
-
-    while (iter_move_next(&iter, (void**)&key)) {
-        dict_get(&child->children, key, (void**)&node);  
-
-        if (node != parent) {
-            continue;
-        }
-
-        components[depth] = key;
-        
-        ret = depth + 1;
-
-        if (node->parent->parent) {
-            ret = getcwd_r(node->parent->parent, node->parent, components, ret);
-        }
-        
-        break;
-    }
-
-    iter_close(&iter);
-    
-    return ret;
-}
 
 void
 proc_getcwd(struct proc *proc, char *buf, int bufsize)
 {
-    int i;
-    int ncomponents;
-    size_t component_size;
-    char *components[256];
-
-    ncomponents = getcwd_r(proc->cwd->parent, proc->cwd, components, 0);
-
-    for (i = ncomponents - 1; i >= 0; i--) {
-        *(buf++) = '/';
-        component_size = strlen(components[i]);
-        strcpy(buf, components[i]);
-        buf += component_size;
-    }
-   
-    if (ncomponents == 0) {
-        *(buf++) = '/';
-    }
-
-    *(buf++) = 0;
+    return vn_resolve_name(proc->cwd, buf, bufsize);
 }
 
 void

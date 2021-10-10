@@ -21,12 +21,17 @@
 extern "C" {
 #endif
 
+//#include <sys/limits.h>
+#define PATH_MAX 256
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #define CTL_KERN            0x01
 
 #define KERN_PROC           1
 #define KERN_PROC_ALL       1
+#define KERN_PROC_VMMAP     2
+#define KERN_PROC_FILES     3
 
 struct kinfo_proc {
     pid_t   pid;
@@ -38,6 +43,20 @@ struct kinfo_proc {
     char    cmd[256];
     char    tty[32];
     time_t  stime;
+};
+
+struct kinfo_ofile {
+    int     fd;
+    int     type;
+    int     seek;
+    dev_t   dev;
+    char    path[PATH_MAX+1];
+};
+
+struct kinfo_vmentry {
+    uintptr_t   start;
+    uintptr_t   end;
+    int         prot;
 };
 
 #ifdef __KERNEL__

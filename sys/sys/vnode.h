@@ -128,6 +128,8 @@ int             vn_lookup(struct vnode *, struct vnode **, const char *);
 struct vnode *  vn_new(struct vnode *, struct cdev *, struct vops *);
 int             vn_open(struct vnode *, struct vnode *, struct vnode **, const char *);
 
+void            vn_resolve_name(struct vnode *, char *, int);
+
 
 /*
  * new functions

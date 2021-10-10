@@ -140,13 +140,13 @@ fb_putc(struct lfb_state *state, int val, int fg_col, int bg_col)
 
     fb = (uint32_t*)state->framebuffer;
     fg = (uint32_t*)state->foreground;
-    c = number_font[val];
+    c = &number_font[val*16];
 
     for (j = 0 ; j < FONT_HEIGHT; j++) {
         pos = (y + j) * state->width + x;
 
         for (i = 0; i < FONT_WIDTH; i++) {
-            if (c[j] & (1 << (8-i))) {
+            if (c[j] & (1 << i)) {
                 row[i] = fg_col;
             } else {       
                 row[i] = bg_col;

@@ -133,6 +133,19 @@ thread_exit_requested()
     return sched_curr_thread->exit_requested;
 }
 
+static inline int
+PROC_COUNT_FILEDESC(struct proc *p)
+{
+    int i;
+    int r;
+
+    for (i = 0, r = 0; i < 4096; i++) {
+        if (p->files[i]) r++;
+    }
+
+    return r;
+}
+
 /*
  * Pointer to the currently running process, defined in architecture specific scheduler implementation 
  */

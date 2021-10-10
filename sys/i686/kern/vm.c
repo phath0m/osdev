@@ -362,7 +362,11 @@ vm_unmap(struct vm_space *space, void *addr, size_t length)
         va_free_block(space->kva_map, (uintptr_t)addr, length);
     } else {
         stacktrace(4);
-        panic("attempted to unmap non-mapped address 0x%p", addr);
+        panic("attempted to unmap non-mapped address 0x%p\n\r"
+            "user base: %p user limit %p\n\r"
+            "kernel base: %p kernel limit: %p\n\r",
+            addr, space->uva_map->base, space->uva_map->limit, space->kva_map->base, space->kva_map->limit
+        );
     }
 
     for (i = 0; i < required_pages; i++) {
@@ -491,7 +495,7 @@ vm_space_new()
 #endif
 
     vm_space->uva_map = va_map_new(0, KERNEL_VIRTUAL_BASE);
-    vm_space->kva_map = va_map_new(KERNEL_VIRTUAL_BASE + 0x1FC00000, 0xE0000000);
+    vm_space->kva_map = va_map_new(KERNEL_VIRTUAL_BASE + 0x1FC00000, 0xEA000000);
     vm_space->state_physical = (void*)KVATOP(directory);
     vm_space->state_virtual = (void*)directory;
 

@@ -111,6 +111,7 @@ handle_page_fault(int inum, struct regs *regs)
         printf("%s[%d] segfault at %p ip: %p sp %p\n\r", current_proc->name,
                 current_proc->pid, fault_addr, regs->eip, regs->uesp);
 
+        print_stack(regs, 6);
         proc_kill(current_proc, 11);
 
         return 0;
