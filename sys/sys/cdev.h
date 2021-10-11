@@ -15,13 +15,14 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_CDEV_H
-#define _SYS_CDEV_H
+#ifndef _ELYSIUM_SYS_CDEV_H
+#define _ELYSIUM_SYS_CDEV_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <sys/errno.h>
 #include <sys/types.h>
 
 #define minor(n) (n & 0xFF)
@@ -41,24 +42,7 @@ typedef int (*cdev_open_t)(struct cdev *);
 typedef int (*cdev_read_t)(struct cdev *, char *, size_t, uint64_t);
 typedef int (*cdev_write_t)(struct cdev *, const char *, size_t, uint64_t);
 
-/* represents a character device */
-struct cdev {
-    char *          name;       /* name of the device */
-    int             mode;       /* default mode to use for devfs */
-    int             uid;        /* owner */
-    int             majorno;    /* device major; identifies type of device */
-    int             minorno;    /* device minor; identifies instance of device */
-    cdev_close_t    close;
-    cdev_init_t     init;
-    cdev_ioctl_t    ioctl;
-    cdev_isatty_t   isatty;
-    cdev_mmap_t     mmap;
-    cdev_open_t     open;
-    cdev_read_t     read; 
-    cdev_write_t    write;
-    void *          state;      /* private data */
-};
-
+/* character device methods */
 struct cdev_ops {
     cdev_close_t    close;
     cdev_init_t     init;
@@ -70,24 +54,106 @@ struct cdev_ops {
     cdev_write_t    write;
 };
 
+
+/* represents a character device */
+struct cdev {
+    char *          name;       /* name of the device */
+    int             mode;       /* default mode to use for devfs */
+    int             uid;        /* owner */
+    int             majorno;    /* device major; identifies type of device */
+    int             minorno;    /* device minor; identifies instance of device */
+    struct cdev_ops ops;
+    void *          state;      /* private data */
+};
+
 struct vnode;
 
 struct cdev *	cdev_new(const char *, int, int, int, struct cdev_ops *, void *);
 struct cdev *   cdev_from_devno(dev_t);
 struct file *   cdev_to_file(struct vnode *, dev_t);
 
-int             cdev_close(struct cdev *);
 int             cdev_destroy(struct cdev *);
-int             cdev_ioctl(struct cdev *, uint64_t, uintptr_t);
-int             cdev_isatty(struct cdev *);
-int             cdev_mmap(struct cdev *, uintptr_t, size_t, int, off_t);
-int             cdev_open(struct cdev *);
-int             cdev_read(struct cdev *, char *, size_t, uint64_t);
 int             cdev_register(struct cdev *);
-int             cdev_write(struct cdev *, const char *, size_t, uint64_t);
+
+__attribute__((always_inline))
+static inline int
+CDEVOPS_CLOSE(struct cdev *dev)
+{
+    if (dev->ops.close) {
+        return dev->ops.close(dev);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+CDEVOPS_IOCTL(struct cdev *dev, uint64_t request, uintptr_t argp)
+{
+    if (dev->ops.ioctl) {
+        return dev->ops.ioctl(dev, request, argp);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+CDEVOPS_ISATTY(struct cdev *dev)
+{
+    if (dev->ops.isatty) {
+        return dev->ops.isatty(dev);
+    }
+
+    return 0;
+}
+
+__attribute__((always_inline))
+static inline int
+CDEVOPS_MMAP(struct cdev *dev, uintptr_t addr, size_t size, int prot, off_t offset)
+{
+    if (dev->ops.mmap) {
+        return dev->ops.mmap(dev, addr, size, prot, offset);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+CDEVOPS_OPEN(struct cdev *dev)
+{
+    if (dev->ops.open) {
+        return dev->ops.open(dev);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+CDEVOPS_READ(struct cdev *dev, char *buf, size_t nbyte, uint64_t pos)
+{
+    if (dev->ops.read) {
+        return dev->ops.read(dev, buf, nbyte, pos);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+CDEVOPS_WRITE(struct cdev *dev, const char *buf, size_t nbyte, uint64_t pos)
+{
+    if (dev->ops.write) {
+        return dev->ops.write(dev, buf, nbyte, pos);
+    }
+
+    return -(ENOTSUP);
+}
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus
 }
 #endif 
-#endif /* _SYS_CDEV_H */
+#endif /* _ELYSIUM_SYS_CDEV_H */

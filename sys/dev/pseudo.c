@@ -34,11 +34,11 @@ struct cdev full_device = {
     .mode       =   0666,
     .majorno    =   DEV_MAJOR_PSEUDO,
     .minorno    =   0,
-    .close      =   pseudo_close,
-    .ioctl      =   NULL,
-    .open       =   pseudo_open,
-    .read       =   zero_read,
-    .write      =   full_write
+    .ops.close      =   pseudo_close,
+    .ops.ioctl      =   NULL,
+    .ops.open       =   pseudo_open,
+    .ops.read       =   zero_read,
+    .ops.write      =   full_write
 };
 
 struct cdev null_device = {
@@ -46,11 +46,11 @@ struct cdev null_device = {
     .mode       =   0666,
     .majorno    =   DEV_MAJOR_PSEUDO,
     .minorno    =   1,
-    .close      =   pseudo_close,
-    .ioctl      =   NULL,
-    .open       =   pseudo_open,
-    .read       =   null_read,
-    .write      =   zero_write
+    .ops.close      =   pseudo_close,
+    .ops.ioctl      =   NULL,
+    .ops.open       =   pseudo_open,
+    .ops.read       =   null_read,
+    .ops.write      =   zero_write
 };
 
 struct cdev random_device = {
@@ -58,10 +58,10 @@ struct cdev random_device = {
     .mode       =   0666,
     .majorno    =   DEV_MAJOR_PSEUDO,
     .minorno    =   2,
-    .close      =   pseudo_close,
-    .ioctl      =   NULL,
-    .open       =   pseudo_open,
-    .read       =   random_read
+    .ops.close      =   pseudo_close,
+    .ops.ioctl      =   NULL,
+    .ops.open       =   pseudo_open,
+    .ops.read       =   random_read
 };
 
 struct cdev zero_device = {
@@ -69,11 +69,11 @@ struct cdev zero_device = {
     .mode       =   0666,
     .majorno    =   DEV_MAJOR_PSEUDO,
     .minorno    =   3,
-    .close      =   pseudo_close,
-    .ioctl      =   NULL,
-    .open       =   pseudo_open,
-    .read       =   zero_read,
-    .write      =   zero_write,
+    .ops.close      =   pseudo_close,
+    .ops.ioctl      =   NULL,
+    .ops.open       =   pseudo_open,
+    .ops.read       =   zero_read,
+    .ops.write      =   zero_write,
     .state      =   NULL
 };
 

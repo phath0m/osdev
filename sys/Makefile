@@ -7,7 +7,7 @@ CFLAGS += -Wdeclaration-after-statement
 CFLAGS += -I "$(shell realpath ./)"
 CFLAGS += -D "__KERNEL__"
 
-KERNEL_OBJECTS += dev/pseudo_device.o
+KERNEL_OBJECTS += dev/pseudo.o
 KERNEL_OBJECTS += dev/pty.o
 
 KERNEL_OBJECTS += ds/dict.o
@@ -20,8 +20,8 @@ KERNEL_OBJECTS += fs/ext2.o
 KERNEL_OBJECTS += fs/tarfs.o
 KERNEL_OBJECTS += fs/tmpfs.o
 
+KERNEL_OBJECTS += kern/cdev.o
 KERNEL_OBJECTS += kern/clock.o
-KERNEL_OBJECTS += kern/device.o
 KERNEL_OBJECTS += kern/device_file.o
 KERNEL_OBJECTS += kern/interrupt.o
 KERNEL_OBJECTS += kern/fifo.o
@@ -31,7 +31,6 @@ KERNEL_OBJECTS += kern/ksym.o
 KERNEL_OBJECTS += kern/malloc.o
 KERNEL_OBJECTS += kern/mem_syscalls.o
 KERNEL_OBJECTS += kern/misc_syscalls.o
-KERNEL_OBJECTS += kern/mount.o
 KERNEL_OBJECTS += kern/pipe.o
 KERNEL_OBJECTS += kern/pool.o
 KERNEL_OBJECTS += kern/printf.o
@@ -53,7 +52,6 @@ KERNEL_OBJECTS += kern/vnode.o
 KERNEL_OBJECTS += kern/wait_queue.o
 KERNEL_OBJECTS += kern/world.o
 
-KERNEL_OBJECTS += net/klink.o
 KERNEL_OBJECTS += net/un.o
 
 # Kernel runtime library

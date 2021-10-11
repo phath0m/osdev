@@ -31,6 +31,7 @@
 
 static int dev_file_destroy(struct file *);
 static int dev_file_getdev(struct file *, struct cdev **);
+static int dev_file_getvn(struct file *, struct vnode **);
 static int dev_file_ioctl(struct file *, uint64_t, void *);
 static int dev_file_mmap(struct file *, uintptr_t, size_t, int, off_t);
 static int dev_file_read(struct file *, void *, size_t);
@@ -41,6 +42,7 @@ static int dev_file_write(struct file *, const void *, size_t);
 struct fops dev_file_ops = {
     .destroy    = dev_file_destroy,
     .getdev     = dev_file_getdev,
+    .getvn      = dev_file_getvn,
     .ioctl      = dev_file_ioctl,
     .mmap       = dev_file_mmap,
     .read       = dev_file_read,
@@ -72,7 +74,7 @@ dev_file_destroy(struct file *fp)
 {
     struct cdev_file *file;
     
-    file = (struct cdev_file*)fp->state;
+    file = fp->state;
 
     VN_DEC_REF(file->host);
 
@@ -86,9 +88,21 @@ dev_file_getdev(struct file *fp, struct cdev **result)
 {
     struct cdev_file *file;
     
-    file = (struct cdev_file*)fp->state;
+    file = fp->state;
 
     *result = file->device;
+
+    return 0;
+}
+
+static int
+dev_file_getvn(struct file *fp, struct vnode **result)
+{
+    struct cdev_file *file;
+
+    file = fp->state;
+
+    *result = file->host;
 
     return 0;
 }
@@ -98,9 +112,9 @@ dev_file_ioctl(struct file *fp, uint64_t request, void *arg)
 {
     struct cdev_file *file;
     
-    file = (struct cdev_file*)fp->state;
+    file = fp->state;
 
-    return cdev_ioctl(file->device, request, (uintptr_t)arg);
+    return CDEVOPS_IOCTL(file->device, request, (uintptr_t)arg);
 }
 
 static int
@@ -108,9 +122,9 @@ dev_file_mmap(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offs
 {
     struct cdev_file *file;
     
-    file = (struct cdev_file*)fp->state;
+    file = fp->state;
 
-    return cdev_mmap(file->device, addr, size, prot, offset);
+    return CDEVOPS_MMAP(file->device, addr, size, prot, offset);
 }
 
 static int
@@ -118,9 +132,9 @@ dev_file_read(struct file *fp, void *buf, size_t nbyte)
 {
     struct cdev_file *file;
     
-    file = (struct cdev_file*)fp->state;
+    file = fp->state;
 
-    return cdev_read(file->device, buf, nbyte, fp->position);
+    return CDEVOPS_READ(file->device, buf, nbyte, fp->position);
 }
 
 
@@ -170,7 +184,7 @@ dev_file_write(struct file *fp, const void *buf, size_t nbyte)
 {
     struct cdev_file *file;
     
-    file = (struct cdev_file*)fp->state;
+    file = fp->state;
 
-    return cdev_write(file->device, buf, nbyte, fp->position);
+    return CDEVOPS_WRITE(file->device, buf, nbyte, fp->position);
 }

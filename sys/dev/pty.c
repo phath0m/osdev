@@ -45,6 +45,13 @@ static int pts_isatty(struct cdev *);
 static int pts_read(struct cdev *, char *, size_t, uint64_t);
 static int pts_write(struct cdev *, const char *, size_t, uint64_t);
 
+struct cdev_ops pts_cdevops = {
+    .ioctl = pts_ioctl,
+    .isatty = pts_isatty,
+    .read = pts_read,
+    .write = pts_write
+};
+
 struct fops ptm_ops = {
     .close      = ptm_close,
     .getdev     = ptm_getdev,
@@ -78,16 +85,9 @@ mkpty_slave(struct pty *pty)
 
     sprintf(name, "pt%d", pty_counter++);
 
-    pts_dev->name = name;
-    pts_dev->mode = 0600;
+    pts_dev = cdev_new(name, 0600, DEV_MAJOR_PTS, pty_counter, &pts_cdevops, pty);
+
     pts_dev->uid = current_proc->creds.uid;
-    pts_dev->majorno = DEV_MAJOR_PTS;
-    pts_dev->minorno = pty_counter;
-    pts_dev->state = pty;
-    pts_dev->ioctl = pts_ioctl;
-    pts_dev->isatty = pts_isatty;
-    pts_dev->read = pts_read;
-    pts_dev->write = pts_write;
 
     cdev_register(pts_dev);
 
@@ -107,8 +107,8 @@ mkpty()
     pty->termios.c_lflag = ECHO | ICANON;
     pty->termios.c_oflag = OPOST;
 
-    create_pipe(pty->input_pipe);
-    create_pipe(pty->output_pipe);
+    create_pipe(pty->input_pipe, NULL);
+    create_pipe(pty->output_pipe, NULL);
 
     pty->slave = mkpty_slave(pty);
 

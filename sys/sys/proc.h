@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_PROC_H
-#define _SYS_PROC_H
+#ifndef _ELYSIUM_SYS_PROC_H
+#define _ELYSIUM_SYS_PROC_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -191,4 +191,4 @@ struct thread * thread_new(struct vm_space *);
 #ifdef __cplusplus
 }
 #endif
-#endif /* _SYS_PROC_H */
+#endif /* _ELYSIUM_SYS_PROC_H */

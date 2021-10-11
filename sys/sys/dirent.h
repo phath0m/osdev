@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_DIRENT_H
-#define _SYS_DIRENT_H
+#ifndef _ELYSIUM_SYS_DIRENT_H
+#define _ELYSIUM_SYS_DIRENT_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -52,4 +52,4 @@ void            rewinddir(DIR *);
 #ifdef __cplusplus
 }
 #endif
-#endif /* _SYS_DIRENT_H */
+#endif /* _ELYSIUM_SYS_DIRENT_H */

@@ -52,7 +52,7 @@ puts(const char *str)
     nbyte = strlen(str);
 
     if (output_device) {
-        cdev_write(output_device, str, nbyte, 0);
+        CDEVOPS_WRITE(output_device, str, nbyte, 0);
     }
 }   
 

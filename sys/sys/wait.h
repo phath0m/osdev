@@ -1,5 +1,5 @@
-#ifndef SYS_WAIT_H
-#define SYS_WAIT_H
+#ifndef _ELYSIUM_SYS_WAIT_H
+#define _ELYSIUM_SYS_WAIT_H
 
 #include <ds/list.h>
 #include <sys/types.h>

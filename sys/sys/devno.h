@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_DEVNO_H
-#define _SYS_DEVNO_H
+#ifndef _ELYSIUM_SYS_DEVNO_H
+#define _ELYSIUM_SYS_DEVNO_H
 
 #define DEV_MAJOR_CON       0x01
 #define DEV_MAJOR_PTS       0x02

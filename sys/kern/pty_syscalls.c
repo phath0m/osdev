@@ -45,7 +45,7 @@ sys_isatty(struct thread *th, syscall_args_t argv)
         return -(ENOTTY);
     }
 
-    if (!cdev_isatty(tty)) {
+    if (!CDEVOPS_ISATTY(tty)) {
         return -(ENOTTY);
     }
 
@@ -73,7 +73,7 @@ sys_ttyname(struct thread *th, syscall_args_t argv)
         return -(ENOTTY);
     }
 
-    if (!cdev_isatty(tty)) {
+    if (!CDEVOPS_ISATTY(tty)) {
         return -(ENOTTY);
     }
 

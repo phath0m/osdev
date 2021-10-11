@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_FCNTL_H
-#define _SYS_FCTNL_H
+#ifndef _ELYSIUM_SYS_FCNTL_H
+#define _ELYSIUM_SYS_FCNTL_H
 
 #define F_DUPFD     0x00
 #define F_GETFD     0x01

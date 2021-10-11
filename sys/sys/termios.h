@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_TERMIOS_H
-#define _SYS_TERMIOS_H
+#ifndef _ELYSIUM_SYS_TERMIOS_H
+#define _ELYSIUM_SYS_TERMIOS_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -135,4 +135,4 @@ int         tcsetattr(int, int, struct termios *);
 #ifdef __cplusplus
 }
 #endif
-#endif /* _SYS_TERMIOS_H */
+#endif /* _ELYSIUM_SYS_TERMIOS_H */

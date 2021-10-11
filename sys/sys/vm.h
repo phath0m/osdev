@@ -1,5 +1,5 @@
-#ifndef _SYS_VM_H
-#define _SYS_VM_H
+#ifndef _ELYSIUM_SYS_VM_H
+#define _ELYSIUM_SYS_VM_H
 
 #include <ds/list.h>
 #include <sys/types.h>

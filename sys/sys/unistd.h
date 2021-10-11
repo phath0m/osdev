@@ -1,5 +1,5 @@
-#ifndef _SYS_UNISTD_H
-#define _SYS_UNISTD_H
+#ifndef _ELYSIUM_SYS_UNISTD_H
+#define _ELYSIUM_SYS_UNISTD_H
 
 #include <sys/types.h>
 

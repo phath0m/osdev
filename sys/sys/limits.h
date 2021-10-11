@@ -15,9 +15,10 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_LIMITS_H
-#define _SYS_LIMITS_H
+#ifndef _ELYSIUM_SYS_LIMITS_H
+#define _ELYSIUM_SYS_LIMITS_H
 
+#define ARG_MAX     128
 #define PATH_MAX    256
 
 #endif

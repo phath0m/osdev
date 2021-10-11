@@ -54,18 +54,29 @@ struct serial_state serial3_state = {
     .port   =   PORT3
 };
 
-struct cdev serial0_device = {
-    .name       =   "ttyS0",
-    .mode       =   0600,
-    .majorno    =   DEV_MAJOR_TTYS,
-    .minorno    =   0,
+
+/*
+Some day these structures will be initialized dynamically and the ops will be reflected by this.
+
+I can't quite do this yet because the early kernel initialization needs to point to some output
+device for printf (so I need some pre-initialized global variable pointing to the current output device )
+
+struct cdev_ops serial_cdevops = {
     .close      =   serial_close,
     .init       =   NULL,
     .ioctl      =   serial_ioctl,
     .isatty     =   serial_isatty,
     .open       =   serial_open,
     .read       =   serial_read,
-    .write      =   serial_write,
+    .write      =   serial_write
+};
+*/
+
+struct cdev serial0_device = {
+    .name       =   "ttyS0",
+    .mode       =   0600,
+    .majorno    =   DEV_MAJOR_TTYS,
+    .minorno    =   0,
     .state      =   &serial0_state
 };
 
@@ -74,13 +85,13 @@ struct cdev serial1_device = {
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   1,
-    .close      =   serial_close,
-    .init       =   NULL,
-    .ioctl      =   serial_ioctl,
-    .isatty     =   serial_isatty,
-    .open       =   serial_open,
-    .read       =   serial_read,
-    .write      =   serial_write,
+    .ops.close  =   serial_close,
+    .ops.init   =   NULL,
+    .ops.ioctl  =   serial_ioctl,
+    .ops.isatty =   serial_isatty,
+    .ops.open   =   serial_open,
+    .ops.read   =   serial_read,
+    .ops.write  =   serial_write,
     .state      =   &serial1_state
 };
 
@@ -89,13 +100,13 @@ struct cdev serial2_device = {
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   2,
-    .close      =   serial_close,
-    .init       =   NULL,
-    .ioctl      =   serial_ioctl,
-    .isatty     =   serial_isatty,
-    .open       =   serial_open,
-    .read       =   serial_read,
-    .write      =   serial_write,
+    .ops.close  =   serial_close,
+    .ops.init   =   NULL,
+    .ops.ioctl  =   serial_ioctl,
+    .ops.isatty =   serial_isatty,
+    .ops.open   =   serial_open,
+    .ops.read   =   serial_read,
+    .ops.write  =   serial_write,
     .state      =   &serial2_state
 };
 
@@ -104,13 +115,13 @@ struct cdev serial3_device = {
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   3,
-    .close      =   serial_close,
-    .init       =   NULL,
-    .ioctl      =   serial_ioctl,
-    .isatty     =   serial_isatty,
-    .open       =   serial_open,
-    .read       =   serial_read,
-    .write      =   serial_write,
+    .ops.close  =   serial_close,
+    .ops.init   =   NULL,
+    .ops.ioctl  =   serial_ioctl,
+    .ops.isatty =   serial_isatty,
+    .ops.open   =   serial_open,
+    .ops.read   =   serial_read,
+    .ops.write  =   serial_write,
     .state      =   &serial3_state
 };
 

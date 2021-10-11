@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_FILE_H
-#define _SYS_FILE_H
+#ifndef _ELYSIUM_SYS_FILE_H
+#define _ELYSIUM_SYS_FILE_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -107,4 +107,4 @@ int         fop_write(struct file *, const char *, size_t);
 #ifdef __cplusplus
 }
 #endif
-#endif /* _SYS_FILE_H */
+#endif /* _ELYSIUM_SYS_FILE_H */

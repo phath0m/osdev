@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_MALLOC_H
-#define _SYS_MALLOC_H
+#ifndef _ELYSIUM_SYS_MALLOC_H
+#define _ELYSIUM_SYS_MALLOC_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,4 +40,4 @@ void *  sbrk_a(size_t, uintptr_t);
 #ifdef __cplusplus
 }
 #endif
-#endif /* __SYS_MALLOC_H */
+#endif /* __ELYSIUM_SYS_MALLOC_H */

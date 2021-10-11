@@ -76,7 +76,7 @@ devfs_ioctl(struct vnode *node, uint64_t mode, void *arg)
     dev = (struct cdev*)node->state;
     
     if (dev) {
-        return cdev_ioctl(dev, mode, (uintptr_t)arg);
+        return CDEVOPS_IOCTL(dev, mode, (uintptr_t)arg);
     }
 
     return 0;
@@ -126,7 +126,7 @@ devfs_mmap(struct vnode *node, uintptr_t addr, size_t size, int prot, off_t offs
 
     if (dev && node->inode != 0) {
         panic("mmap");
-        return cdev_mmap(dev, addr, size, prot, offset);
+        return CDEVOPS_MMAP(dev, addr, size, prot, offset);
     }
 
     return -(ENOTSUP); 
@@ -158,7 +158,7 @@ devfs_read(struct vnode *node, void *buf, size_t nbyte, uint64_t pos)
     dev = (struct cdev*)node->state;
 
     if (dev && node->inode != 0) {
-        return cdev_read(dev, buf, nbyte, pos);
+        return CDEVOPS_READ(dev, buf, nbyte, pos);
     }
 
     return -1;
@@ -250,7 +250,7 @@ devfs_write(struct vnode *node, const void *buf, size_t nbyte, uint64_t pos)
         return -1;
     }
 
-    return cdev_write(dev, buf, nbyte, pos);
+    return CDEVOPS_WRITE(dev, buf, nbyte, pos);
 }
 
 void

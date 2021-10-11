@@ -15,19 +15,21 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_PIPE_H
-#define _SYS_PIPE_H
+#ifndef _ELYSIUM_SYS_PIPE_H
+#define _ELYSIUM_SYS_PIPE_H
 #ifdef __cplusplus
 extern "C" {
 #endif
 #ifdef __KERNEL__
-#include <sys/file.h>
 
-void            create_pipe(struct file **);
+#include <sys/file.h>
+#include <sys/vnode.h>
+
+void            create_pipe(struct file **, struct vnode *);
 struct file *   fifo_to_file(struct vnode *, mode_t);
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus
 }
 #endif
-#endif /* _SYS_PIPE_H */
+#endif /* _ELYSIUM_SYS_PIPE_H */

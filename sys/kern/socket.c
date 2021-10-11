@@ -30,11 +30,9 @@
 #include <sys/vnode.h>
 
 /* the built-in protocols */
-extern struct protocol klink_protocol;
 extern struct protocol un_protocol;
 
 struct protocol *socket_builtin_protocols[] = {
-    &klink_protocol,
     &un_protocol,
     NULL
 };
@@ -48,59 +46,50 @@ static struct list protocol_list;
 static int
 sock_file_close(struct file *fp)
 {
-    struct socket *sock;
-    
-    sock = fp->state;
-
-    return sock_close(sock);
+    return SOCK_CLOSE(fp->state);
 }
 
 static int
 sock_file_destroy(struct file *fp)
 {
-    struct socket *sock;
-    
-    sock = fp->state;
+    int res;
 
-    sock_destroy(sock);
+    res = SOCK_DESTROY(fp->state);
 
-    return 0;
+    if (res == 0) free(fp->state);
+
+    return res;
 }
 
 static int
 sock_file_duplicate(struct file *fp)
 {
-    struct socket *sock;
-    
-    sock = fp->state;
+    return SOCK_DUPLICATE(fp->state); 
+}
 
-    return sock_duplicate(sock); 
+static int
+sock_file_getvn(struct file *fp, struct vnode **vn)
+{
+    return SOCK_GETVN(fp->state, vn);
 }
 
 static int
 sock_file_read(struct file *fp, void *buf, size_t nbyte)
 {
-    struct socket *sock;
-    
-    sock = fp->state;
-
-    return sock_recv(sock, buf, nbyte);
+    return SOCK_RECV(fp->state, buf, nbyte);
 }
 
 static int
 sock_file_write(struct file *fp, const void *buf, size_t nbyte)
 {
-    struct socket *sock;
-    
-    sock = fp->state;
-
-    return sock_send(sock, buf, nbyte);
+    return SOCK_SEND(fp->state, buf, nbyte);
 }
 
 struct fops sock_file_ops = {
     .close      = sock_file_close,
     .destroy    = sock_file_destroy,
     .duplicate  = sock_file_duplicate,
+    .getvn      = sock_file_getvn,
     .read       = sock_file_read,
     .write      = sock_file_write,
 };
@@ -136,113 +125,6 @@ register_protocol(struct protocol *protocol)
 }
 
 int
-sock_accept(struct socket *sock, struct socket **result, void *address, size_t *address_len)
-{
-    struct protocol *prot;
-
-    if (!sock) {
-        return -(EINVAL);
-    }
-
-    prot = sock->protocol;
-
-    if (!prot->ops || !prot->ops->accept) {
-        return -(ENOTSUP);
-    }
-
-    return prot->ops->accept(sock, result, address, address_len);
-}
-
-int
-sock_bind(struct socket *sock, void *address, size_t address_len)
-{
-    struct protocol *prot;
-
-    if (!sock) {
-        return -(EINVAL);
-    }
-
-    prot = sock->protocol;
-
-    if (!prot->ops || !prot->ops->bind) {
-        return -(ENOTSUP);
-    }
-
-    return prot->ops->bind(sock, address, address_len);
-}
-
-int
-sock_close(struct socket *sock)
-{
-    int ret;
-    struct protocol *prot;
-    
-    prot = sock->protocol;
-
-    if (!prot->ops || !prot->ops->close) {
-        ret = 0;
-    } else {
-        ret = prot->ops->close(sock);
-    }
-
-    return ret;
-}
-
-int
-sock_connect(struct socket *sock, void *address, size_t address_size)
-{
-    struct protocol *prot;
-
-    if (!sock) {
-        return -(EINVAL);
-    }
-
-    prot = sock->protocol;
-
-    if (!prot->ops || !prot->ops->connect) {
-        return -(ENOTSUP);
-    }
-
-    return prot->ops->connect(sock, address, address_size);
-}
-
-int
-sock_destroy(struct socket *sock)
-{
-    int ret;
-    struct protocol *prot;
-    
-    prot = sock->protocol;
-
-    if (!prot->ops || !prot->ops->close) {
-        ret = 0;
-    } else {
-        ret = prot->ops->destroy(sock);
-    }
-
-    free(sock);
-
-    return ret;
-}
-
-int
-sock_duplicate(struct socket *sock)
-{   
-    int ret;
-    struct protocol *prot;
-    
-    prot  = sock->protocol;
-    
-    if (!prot->ops || !prot->ops->duplicate) {
-        ret = 0;
-    } else {
-        ret = prot->ops->duplicate(sock);
-    }
-    
-    return ret;
-}
-
-int
 sock_new(struct socket **result, int domain, int type, int protocol)
 {
     struct protocol *prot;
@@ -268,42 +150,6 @@ sock_new(struct socket **result, int domain, int type, int protocol)
     return 0;
 }
 
-size_t
-sock_recv(struct socket *sock, void *buf, size_t nbyte)
-{
-    struct protocol *prot;
-
-    if (!sock) {
-        return -(EINVAL);
-    }
-
-    prot = sock->protocol;
-
-    if (!prot->ops || !prot->ops->recv) {
-        return -(ENOTSUP);
-    }
-
-    return prot->ops->recv(sock, buf, nbyte);
-}
-
-size_t
-sock_send(struct socket *sock, const void *buf, size_t nbyte)
-{
-    struct protocol *prot;
-
-    if (!sock) {
-        return -(EINVAL);
-    }
-
-    prot = sock->protocol;
-
-    if (!prot->ops || !prot->ops->send) {
-        return -(ENOTSUP);
-    }
-
-    return prot->ops->send(sock, buf, nbyte);
-}
-
 struct file *
 sock_to_file(struct socket *sock)
 {
@@ -322,11 +168,7 @@ sock_to_file(struct socket *sock)
 struct socket *
 file_to_sock(struct file *file)
 {
-    struct socket *sock;
-    
-    sock = file->state;
-
-    return sock;
+    return file->state;
 }
 
 void

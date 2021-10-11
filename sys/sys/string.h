@@ -1,5 +1,5 @@
-#ifndef _STRING_H
-#define _STRING_H
+#ifndef _ELYSIUM_SYS_STRING_H
+#define _ELYSIUM_SYS_STRING_H
 
 #include <stdarg.h>
 #include <sys/types.h>

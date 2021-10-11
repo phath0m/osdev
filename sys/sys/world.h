@@ -1,5 +1,5 @@
-#ifndef _SYS_WORLD_H
-#define _SYS_WORLD_H
+#ifndef _ELYSIUM_SYS_WORLD_H
+#define _ELYSIUM_SYS_WORLD_H
 #ifdef __cplusplus
 extern "C" {
 #endif

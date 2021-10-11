@@ -73,7 +73,7 @@ fifo_open_read(struct vnode *vn)
     fifo->read_refs = 1;
     fifo->host = vn;
 
-    create_pipe(fifo->pipe);
+    create_pipe(fifo->pipe, NULL);
 
     fp = file_new(&fifo_ops, fifo);
 

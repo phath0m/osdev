@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_DEVICE_H
-#define _SYS_DEVICE_H
+#ifndef _ELYSIUM_SYS_DEVICE_H
+#define _ELYSIUM_SYS_DEVICE_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,4 +59,4 @@ int     driver_register(struct driver *);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-#endif /* _SYS_DEVICE_H */
+#endif /* _ELYSIUM_SYS_DEVICE_H */

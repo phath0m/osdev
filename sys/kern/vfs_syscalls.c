@@ -286,7 +286,7 @@ sys_pipe(struct thread *th, syscall_args_t argv)
 
     TRACE_SYSCALL("pipe", "%p", pipefd);
 
-    create_pipe(files);
+    create_pipe(files, NULL);
 
     pipefd[0] = procdesc_newfd(files[0]);
     pipefd[1] = procdesc_newfd(files[1]);

@@ -34,10 +34,128 @@
 // delete me
 #include <sys/systm.h>
 
+/* Basic filesystem routines */
+struct list fs_list;
+
+static struct filesystem *
+getfsbyname(const char *name)
+{
+    list_iter_t iter;
+
+    struct filesystem *fs;
+    struct filesystem *res;
+
+    list_get_iter(&fs_list, &iter);
+
+    res = NULL;
+
+    while (iter_move_next(&iter, (void**)&fs)) {
+        if (strcmp(name, fs->name) == 0) {
+            res = fs;
+            break;
+        }
+    }
+    
+    iter_close(&iter);
+
+    return res;
+}
+
+int
+fs_open(struct file *dev_fp, struct vnode **vn_res, const char *fsname, int flags)
+{
+    int res;
+    struct filesystem *fs;
+    struct vnode *vn;
+
+    fs = getfsbyname(fsname);
+
+    if (fs) {
+        vn = NULL;
+
+        res = fs->ops->mount(NULL, dev_fp, &vn);
+
+        if (vn) {
+            vn->mount_flags = flags;
+            *vn_res = vn;
+        }
+
+        return res;
+    }
+
+    return -1;
+}
+
+void
+fs_register(char *name, struct fs_ops *ops)
+{
+    struct filesystem *fs;
+    
+    fs = malloc(sizeof(struct filesystem));
+
+    fs->name = name;
+    fs->ops = ops;
+
+    list_append(&fs_list, fs);
+}
+
+int
+fs_mount(struct vnode *root, const char *dev, const char *fsname, const char *path, int flags)
+{
+    int res;
+    struct vnode *mount;
+    struct file *dev_fp;
+    struct file *mount_fp;
+    struct vnode *mount_point;
+
+    mount_fp = NULL;
+    dev_fp = NULL;
+
+    if (dev && vfs_open(current_proc, &dev_fp, dev, O_RDONLY) != 0) {
+        return -(ENOENT);
+    }
+
+    res = fs_open(dev_fp, &mount, fsname, flags);
+
+    if (res != 0) goto cleanup;
+
+    if (vfs_open(current_proc, &mount_fp, path, O_RDONLY) == 0) {
+        if (fop_getvn(mount_fp, &mount_point) == 0) { 
+            mount_point->ismount = true;
+            mount_point->mount = mount;
+        
+            VN_INC_REF(mount);
+        }
+    } else {
+        res = -1;
+    }
+
+cleanup:
+
+    if (dev_fp) {
+        fop_close(dev_fp);
+    }
+
+    return res;
+}
+
+bool
+fs_probe(struct cdev *dev, const char *fsname, int uuid_length, const uint8_t *uuid)
+{
+    struct filesystem *fs;
+    
+    fs = getfsbyname(fsname);
+
+    if (!fs) {
+        return false;
+
+    }
+
+    return fs->ops->probe(dev, uuid_length, uuid);
+}
 
 /*
- * First, implement methods for struct file * interface to map them to their
- * corresponding vnode counterparts
+ * Methods for struct file *
  */
 static int
 vfop_chmod(struct file *fp, mode_t mode)
@@ -47,7 +165,7 @@ vfop_chmod(struct file *fp, mode_t mode)
     vn = fp->state;
 
     if (vn) {
-        return vop_fchmod(vn, mode);
+        return VOP_FCHMOD(vn, mode);
     }
 
     return -(ENOTSUP);
@@ -62,7 +180,7 @@ vfop_chown(struct file *fp, uid_t owner, uid_t group)
     vn = fp->state;
 
     if (vn) {
-        return vop_fchown(vn, owner, group);
+        return VOP_FCHOWN(vn, owner, group);
     }
 
     return -(ENOTSUP);
@@ -146,7 +264,7 @@ vfop_readdirent(struct file *fp, struct dirent *dirent, uint64_t entry)
     vn = fp->state;
 
     if (vn) {
-        return vop_readdirent(vn, dirent, entry);
+        return VOP_READDIRENT(vn, dirent, entry);
     }
 
     return -(ENOTSUP);
@@ -160,7 +278,7 @@ vfop_read(struct file *fp, void *buf, size_t nbyte)
     vn = fp->state;
 
     if (vn) {
-        return vop_read(vn, buf, nbyte, FILE_POSITION(fp));
+        return VOP_READ(vn, buf, nbyte, FILE_POSITION(fp));
     }
 
     return -(ENOTSUP);
@@ -175,7 +293,7 @@ vfop_seek(struct file *fp, off_t *pos, off_t off, int whence)
 
     vn = fp->state;
 
-    if (vop_stat(vn, &stat) != 0) {
+    if (VOP_STAT(vn, &stat) != 0) {
         return -(ESPIPE);
     }
 
@@ -208,7 +326,7 @@ vfop_stat(struct file *fp, struct stat *stat)
     vn = fp->state;
 
     if (vn) {
-        return vop_stat(vn, stat);
+        return VOP_STAT(vn, stat);
     }
     
     return -(ENOTSUP);
@@ -222,7 +340,7 @@ vfop_truncate(struct file *fp, off_t length)
     vn = fp->state;
 
     if (vn) {
-        return vop_ftruncate(vn, length);
+        return VOP_FTRUNCATE(vn, length);
     }
 
     return -(ENOTSUP);
@@ -236,7 +354,7 @@ vfop_write(struct file *fp, const void *buf, size_t nbyte)
     vn = fp->state;
 
     if (vn) {
-        return vop_write(vn, buf, nbyte, FILE_POSITION(fp));
+        return VOP_WRITE(vn, buf, nbyte, FILE_POSITION(fp));
     }
 
     return -(ENOTSUP);
@@ -791,5 +909,4 @@ vfs_utimes(struct proc *proc, const char *path, struct timeval times[2])
     }
 
     return -(ENOTSUP);
-
 }

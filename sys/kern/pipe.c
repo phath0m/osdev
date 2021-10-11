@@ -23,6 +23,7 @@
 #include <sys/proc.h>
 #include <sys/string.h>
 #include <sys/types.h>
+#include <sys/vnode.h>
 #include <sys/wait.h>
 
 struct pipe {
@@ -40,6 +41,7 @@ struct pipe {
     int                 buf_size;
     int                 read_refs;
     int                 write_refs;
+    struct vnode    *   vn;
 };
 
 static int pipe_close(struct file *);
@@ -56,8 +58,8 @@ struct fops pipe_ops = {
     .write      = pipe_write
 };
 
-struct pipe *
-pipe_new()
+static struct pipe *
+pipe_new(struct vnode *vn)
 {
     struct pipe *pipe;
     
@@ -67,18 +69,21 @@ pipe_new()
     pipe->ref_count = 2;
     pipe->write_refs = 1;
     pipe->read_refs = 1;
+    pipe->vn = vn;
+
+    if (vn) VN_INC_REF(vn);
 
     return pipe;
 }
 
 void
-create_pipe(struct file **pipes)
+create_pipe(struct file **pipes, struct vnode *vn)
 {
     struct pipe *pipe;
     struct file *read_end;
     struct file *write_end;
  
-    pipe = pipe_new();
+    pipe = pipe_new(vn);
     read_end = file_new(&pipe_ops, NULL);
     write_end = file_new(&pipe_ops, NULL);
   
@@ -111,6 +116,7 @@ pipe_close(struct file *fp)
     if (pipe->write_refs == 0) {
         pipe->write_closed = true;
     }
+
     return 0;
 }
 
@@ -120,6 +126,8 @@ pipe_destroy(struct file *fp)
     struct pipe *pipe;
     
     pipe = fp->state;
+
+    if (pipe->vn) VN_DEC_REF(pipe->vn);
 
     free(pipe->buf);
     free(pipe);

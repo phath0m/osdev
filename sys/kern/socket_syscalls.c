@@ -43,7 +43,7 @@ sys_accept(struct thread *th, syscall_args_t argv)
 
     sock = file_to_sock(fp);
 
-    res = sock_accept(sock, &client, address, address_len);
+    res = SOCK_ACCEPT(sock, &client, address, address_len);
 
     if (res == 0) {
         file = sock_to_file(client);
@@ -72,7 +72,7 @@ sys_bind(struct thread *th, syscall_args_t argv)
 
     sock = file_to_sock(fp);
 
-    return sock_bind(sock, address, address_len);
+    return SOCK_BIND(sock, address, address_len);
 }
 
 static int
@@ -90,7 +90,7 @@ sys_connect(struct thread *th, syscall_args_t argv)
     if (fp) {
         sock = file_to_sock(fp);
 
-        return sock_connect(sock, address, address_len);
+        return SOCK_CONNECT(sock, address, address_len);
     }
 
     return -(EBADF);

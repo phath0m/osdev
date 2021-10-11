@@ -15,8 +15,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifndef _SYS_VFS_H
-#define _SYS_VFS_H
+#ifndef _ELYSIUM_SYS_VNODE_H
+#define _ELYSIUM_SYS_VNODE_H
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,6 +25,7 @@ extern "C" {
 #include <ds/dict.h>
 #include <sys/cdev.h>
 #include <sys/dirent.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -131,17 +132,6 @@ int             vn_open(struct vnode *, struct vnode *, struct vnode **, const c
 void            vn_resolve_name(struct vnode *, char *, int);
 
 
-/*
- * new functions
- */
-int             vop_fchmod(struct vnode *, mode_t);
-int             vop_fchown(struct vnode *, uid_t, gid_t);
-int             vop_ftruncate(struct vnode *, off_t);
-int             vop_read(struct vnode *, char *, size_t, off_t);
-int             vop_readdirent(struct vnode *, struct dirent *, int);
-int             vop_stat(struct vnode *, struct stat *);
-int             vop_write(struct vnode *, const char *, size_t, off_t);
-
 int             vfs_open(struct proc *, struct file **, const char *, int);
 int             vfs_open_r(struct proc *, struct file **, const char *, int);
 int             vfs_access(struct proc *, const char *, int);
@@ -155,8 +145,117 @@ int             vfs_truncate(struct proc *, const char *, off_t);
 int             vfs_unlink(struct proc *, const char *);
 int             vfs_utimes(struct proc *, const char *, struct timeval[2]);
 
+
+/* macros */
+__attribute__((always_inline))
+static inline int     
+VOP_FCHMOD(struct vnode *vn, mode_t mode)
+{       
+    struct vops *ops;
+    
+    ops = vn->ops;
+    
+    if (ops && ops->chmod) {
+        return ops->chmod(vn, mode);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+VOP_FCHOWN(struct vnode *vn, uid_t owner, gid_t group)
+{
+    struct vops *ops;
+    
+    ops = vn->ops;
+
+    if (ops && ops->chown) {
+        return ops->chown(vn, owner, group);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+VOP_FTRUNCATE(struct vnode *vn, off_t length)
+{
+    struct vops *ops;
+    
+    ops = vn->ops;
+
+    if (ops && ops->truncate) {
+        return ops->truncate(vn, length);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+VOP_READ(struct vnode *vn, char *buf, size_t nbyte, off_t offset)
+{
+    struct vops *ops;
+    
+    ops = vn->ops;
+
+    if (ops && ops->read) {
+        return ops->read(vn, buf, nbyte, offset);
+    }
+
+    return -(EPERM);
+}
+
+__attribute__((always_inline))
+static inline int
+VOP_READDIRENT(struct vnode *vn, struct dirent *dirent, int dirno)
+{
+    struct vops *ops;
+    
+    ops = vn->ops;
+
+    if (ops && ops->readdirent) {
+        return ops->readdirent(vn, dirent, dirno);
+    }
+
+    return -(EPERM);
+}
+
+__attribute__((always_inline))
+static inline int
+VOP_STAT(struct vnode *vn, struct stat *stat)
+{
+    struct vops *ops;
+    
+    ops = vn->ops;
+
+    if (ops->stat) {
+        return ops->stat(vn, stat);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+VOP_WRITE(struct vnode *vn, const char *buf, size_t nbyte, off_t offset)
+{
+    int written;
+    struct vops *ops;
+    
+    ops = vn->ops;
+
+    if (ops->write) {
+        written = ops->write(vn, buf, nbyte, offset);
+
+        return written;
+    }
+
+    return -(EPERM);
+}
 #endif /* __KERNEL__ */
 #ifdef __cplusplus
 }
 #endif
-#endif /* _SYS_VFS_H */
+#endif /* _ELYSIUM_SYS_VNODE_H */

@@ -38,6 +38,7 @@ static int un_close(struct socket *sock);
 static int un_connect(struct socket *socket, void *address, size_t address_len);
 static int un_destroy(struct socket *sock);
 static int un_duplicate(struct socket *sock);
+static int un_getvn(struct socket *, struct vnode **);
 static int un_init(struct socket *socket, int type, int protocol);
 static size_t un_recv(struct socket *sock, void *buf, size_t size);
 static size_t un_send(struct socket *sock, const void *buf, size_t size);
@@ -49,6 +50,7 @@ struct socket_ops un_ops = {
     .connect    = un_connect,
     .destroy    = un_destroy,
     .duplicate  = un_duplicate,
+    .getvn      = un_getvn,
     .init       = un_init,
     .recv       = un_recv,
     .send       = un_send
@@ -220,8 +222,8 @@ un_connect(struct socket *socket, void *address, size_t address_len)
 
     socket->state = conn;
 
-    create_pipe(conn->tx_pipe);
-    create_pipe(conn->rx_pipe);
+    create_pipe(conn->tx_pipe, host);
+    create_pipe(conn->rx_pipe, host);
 
     list_append(&host->un.un_connections, conn);
 
@@ -235,6 +237,20 @@ un_connect(struct socket *socket, void *address, size_t address_len)
 static int
 un_init(struct socket *socket, int type, int protocol)
 {
+    return 0;
+}
+
+static int
+un_getvn(struct socket *socket, struct vnode **vn)
+{
+    struct un_conn *conn;
+
+    conn = socket->state;
+
+    if (!conn) return -1;
+
+    *vn = conn->host;
+
     return 0;
 }
 
