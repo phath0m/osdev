@@ -42,8 +42,8 @@ can_execute_file(const char *path)
     struct file *file;
 
     if (vfs_open(current_proc, &file, path, O_RDONLY) == 0) {
-        fop_stat(file, &buf);
-        fop_close(file);
+        FOP_STAT(file, &buf);
+        file_close(file);
         
         if ((buf.st_mode & S_IXUSR) && buf.st_uid == current_proc->creds.euid) {
             return 0;
@@ -85,9 +85,9 @@ sys_chdir(struct thread *th, syscall_args_t args)
             VN_DEC_REF(current_proc->cwd);
         }
 
-        if (fop_getvn(file, &newdir) == 0) current_proc->cwd = newdir;
+        if (FOP_GETVN(file, &newdir) == 0) current_proc->cwd = newdir;
 
-        fop_close(file);
+        file_close(file);
     }
 
     return res;
@@ -162,8 +162,8 @@ sys_execve(struct thread *th, syscall_args_t args)
     status = vfs_open(current_proc, &fd, file, O_RDONLY);
 
     if (status == 0) {
-        if (fop_read(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
-            fop_read(fd, interpreter, 512);
+        if (FOP_READ(fd, interpreter, 2) == 2 && !strncmp(interpreter, "#!", 2)) {
+            FOP_READ(fd, interpreter, 512);
         
             for (i = 0; i < 512; i++) {
                 if (interpreter[i] == '\n') {
@@ -179,7 +179,7 @@ sys_execve(struct thread *th, syscall_args_t args)
             new_argv[0] = interpreter;
             new_argv[1] = (char*)file;
 
-            fop_close(fd);
+            file_close(fd);
 
             exec_err = can_execute_file(file);
 
@@ -189,7 +189,7 @@ sys_execve(struct thread *th, syscall_args_t args)
             return proc_execve(interpreter, (const char **)new_argv, envp);
 
         } else {
-            fop_close(fd);
+            file_close(fd);
         }
     }
 

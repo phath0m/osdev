@@ -1160,7 +1160,7 @@ ext2_mount(struct vnode *parent, struct file *dev_fp, struct vnode **root)
     struct ext2fs *fs;
     struct vnode *vn;
 
-    res = fop_stat(dev_fp, &sb);
+    res = FOP_STAT(dev_fp, &sb);
 
     if (res != 0) {
         return res;

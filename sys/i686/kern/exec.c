@@ -233,15 +233,15 @@ proc_execve(const char *path, const char **argv, const char **envp)
         return -(ENOENT);
     }
 
-    fop_seek(exe, 0, SEEK_END);
+    FOP_SEEK(exe, 0, SEEK_END);
 
     size = FILE_POSITION(exe);
 
-    fop_seek(exe, 0, SEEK_SET);
+    FOP_SEEK(exe, 0, SEEK_SET);
 
     elf = calloc(1, size);
 
-    fop_read(exe, (char*)elf, size);
+    FOP_READ(exe, (char*)elf, size);
 
     cp_argv = copy_strings(argv, &argv_size, &argc);
     cp_envp = copy_strings(envp, &envp_size, &envc);
@@ -259,7 +259,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
     elf_load_image(space, elf);
     elf_zero_sections(space, elf);
 
-    fop_close(exe);
+    file_close(exe);
 
     proc->base = prog_low;
     proc->brk = prog_high;
@@ -311,7 +311,7 @@ proc_execve(const char *path, const char **argv, const char **envp)
 
         if (fp && (fp->flags & O_CLOEXEC)) {
             proc->files[i] = NULL;
-            fop_close(fp);
+            file_close(fp);
         }
     }
 

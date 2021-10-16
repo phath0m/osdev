@@ -24,6 +24,7 @@ extern "C" {
 
 #include <sys/cdev.h>
 #include <sys/dirent.h>
+#include <sys/fcntl.h>
 #include <sys/pool.h>
 #include <sys/proc.h>
 #include <sys/stat.h>
@@ -85,23 +86,224 @@ extern struct pool  file_pool;
 #define FILE_POSITION(fp) ((fp)->position)
 
 struct file *file_new(struct fops *, void *);
-struct file *vfs_duplicate_file(struct file *);
+struct file *file_duplicate(struct file *);
 
-int         fop_close(struct file *);
-int         fop_fchmod(struct file *, mode_t);
-int         fop_fchown(struct file *, uid_t, gid_t);
-int         fop_ftruncate(struct file *, off_t);
-int         fop_close(struct file *);
+int         file_close(struct file *);
 int         fop_creat(struct proc *, struct file **, const char *, mode_t);
-int         fop_getdev(struct file *, struct cdev **);
-int         fop_getvn(struct file *, struct vnode **);
-int         fop_ioctl(struct file *, uint64_t, void *);
-int         fop_mmap(struct file *, uintptr_t, size_t, int, off_t);
-int         fop_read(struct file *, char *, size_t);
-int         fop_readdirent(struct file *, struct dirent *);
-int         fop_seek(struct file *, off_t, int);
-int         fop_stat(struct file *, struct stat *);
-int         fop_write(struct file *, const char *, size_t);
+
+__attribute__((always_inline))
+static inline int
+FOP_FCHMOD(struct file *fp, mode_t mode)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops && ops->chmod) {
+        return ops->chmod(fp, mode);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_FCHOWN(struct file *fp, uid_t owner, gid_t group)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops && ops->chown) {
+        return ops->chown(fp, owner, group);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_FTRUNCATE(struct file *fp, off_t length)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops && ops->truncate) {
+        return ops->truncate(fp, length);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_GETDEV(struct file *fp, struct cdev **result)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops && ops->getdev) {
+        return ops->getdev(fp, result);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_GETVN(struct file *fp, struct vnode **result)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+    
+    if (ops && ops->getvn) {
+        return ops->getvn(fp, result);
+    }
+    
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_IOCTL(struct file *fp, uint64_t request, void *arg)
+{
+    struct fops *ops = fp->ops;
+
+    if (ops->ioctl) {
+        return ops->ioctl(fp, request, arg);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_MMAP(struct file *fp, uintptr_t addr, size_t size, int prot, off_t offset)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops->mmap) {
+        return ops->mmap(fp, addr, size, prot, offset);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_READ(struct file *fp, char *buf, size_t nbyte)
+{
+    int read;
+    struct fops *ops;
+
+    if (fp->flags == O_WRONLY) {
+        return -(EPERM);
+    }
+
+    ops = fp->ops;
+
+    if (ops->read) {
+        read = ops->read(fp, buf, nbyte);
+    
+        if (read > 0) {
+            fp->position += read;
+        }
+
+        return read;
+    }
+
+    return -(EPERM);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_READDIRENT(struct file *fp, struct dirent *dirent)
+{
+    int res;
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops->readdirent) {
+        res = ops->readdirent(fp, dirent, fp->position);
+
+        if (res == 0) {
+            fp->position++;
+        }
+
+        return res;
+    }
+
+    return -(EPERM);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_SEEK(struct file *fp, off_t off, int whence)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops->seek) {
+        return ops->seek(fp, &fp->position, off, whence);
+    }
+
+    return -(ESPIPE);
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_STAT(struct file *fp, struct stat *stat)
+{
+    struct fops *ops;
+    
+    ops = fp->ops;
+
+    if (ops->stat) {
+        return ops->stat(fp, stat);
+    }
+
+    return -(ENOTSUP);
+}
+
+__attribute__((always_inline))
+static inline off_t
+FOP_TELL(struct file *fp)
+{
+    return fp->position;
+}
+
+__attribute__((always_inline))
+static inline int
+FOP_WRITE(struct file *fp, const char *buf, size_t nbyte)
+{
+    ssize_t written;
+    struct fops *ops;
+
+    if (fp->flags == O_RDONLY) {
+        return -(EPERM);
+    }
+
+    ops = fp->ops;
+
+    if (ops->write) {
+        written = ops->write(fp, buf, nbyte);
+
+        if (written > 0) {
+            fp->position += (off_t)written;
+        }
+
+        return written;
+    }
+
+    return -(EPERM);
+}
 
 #endif /* __KERNEL__ */
 #ifdef __cplusplus

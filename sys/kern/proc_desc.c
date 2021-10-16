@@ -50,7 +50,7 @@ procdesc_dup2(int oldfd, int newfd)
     existing_fp = current_proc->files[newfd];
 
     if (existing_fp) {
-        fop_close(existing_fp);   
+        file_close(existing_fp);   
     }
 
     fp = current_proc->files[oldfd];

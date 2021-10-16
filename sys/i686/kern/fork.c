@@ -62,7 +62,7 @@ copy_fildes(struct proc *proc, struct proc *new_proc)
 
     for (i = 0; i < 4096; i++) {
         if (proc->files[i]) {
-            new_proc->files[i] = vfs_duplicate_file(proc->files[i]);
+            new_proc->files[i] = file_duplicate(proc->files[i]);
         }
     }
 }

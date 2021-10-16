@@ -34,8 +34,10 @@
 // delete me
 #include <sys/systm.h>
 
-/* Basic filesystem routines */
-struct list fs_list;
+
+int vfs_file_count = 0; /* internal counter of file objects */
+struct list fs_list;    /* registered filesystem types */
+struct pool file_pool;  /* file objects */ 
 
 static struct filesystem *
 getfsbyname(const char *name)
@@ -61,6 +63,73 @@ getfsbyname(const char *name)
     return res;
 }
 
+struct file *
+file_new(struct fops *ops, void *state)
+{
+    struct file *file;
+    
+    file = pool_get(&file_pool);
+
+    file->ops = ops;
+    file->state = state;
+    file->refs = 1;
+    
+    vfs_file_count++;
+
+    return file;
+}
+
+int
+file_close(struct file *file)
+{
+    struct fops *ops;
+    
+    if ((--file->refs) > 0) {
+        return 0;
+    }
+
+    ops = file->ops;
+    
+    if (ops->close) {
+        ops->close(file);
+    }
+
+    vfs_file_count--;
+    
+    pool_put(&file_pool, file);
+
+    return 0; 
+}
+
+struct file *
+file_duplicate(struct file *file)
+{
+    struct file *new_file;
+    struct fops *ops;
+
+    if (!file) {
+        return NULL;
+    }
+
+    new_file = pool_get(&file_pool);
+
+    memcpy(new_file, file, sizeof(struct file));
+
+    new_file->refs = 1;
+
+    vfs_file_count++;
+
+    ops = new_file->ops;
+
+    if (ops && ops->duplicate) {
+        ops->duplicate(new_file);
+    }
+
+    return new_file;
+}
+
+
+/* filesystem routines */
 int
 fs_open(struct file *dev_fp, struct vnode **vn_res, const char *fsname, int flags)
 {
@@ -120,7 +189,7 @@ fs_mount(struct vnode *root, const char *dev, const char *fsname, const char *pa
     if (res != 0) goto cleanup;
 
     if (vfs_open(current_proc, &mount_fp, path, O_RDONLY) == 0) {
-        if (fop_getvn(mount_fp, &mount_point) == 0) { 
+        if (FOP_GETVN(mount_fp, &mount_point) == 0) { 
             mount_point->ismount = true;
             mount_point->mount = mount;
         
@@ -133,7 +202,7 @@ fs_mount(struct vnode *root, const char *dev, const char *fsname, const char *pa
 cleanup:
 
     if (dev_fp) {
-        fop_close(dev_fp);
+        file_close(dev_fp);
     }
 
     return res;
@@ -155,7 +224,7 @@ fs_probe(struct cdev *dev, const char *fsname, int uuid_length, const uint8_t *u
 }
 
 /*
- * Methods for struct file *
+ * Methods for binding struct file * instances to filesystem
  */
 static int
 vfop_chmod(struct file *fp, mode_t mode)
@@ -437,6 +506,8 @@ can_write(struct vnode *node, struct cred *creds)
 
     return (node->mode & S_IWOTH);
 }
+
+/* actual VFS routines */
 
 int
 vfs_access(struct proc *proc, const char *path, int mode)

@@ -63,8 +63,8 @@ extract_file(struct vnode *root, const char *name, void *data, size_t size, mode
         return;
     }
 
-    fop_write(fp, data, size);
-    fop_close(fp);
+    FOP_WRITE(fp, data, size);
+    file_close(fp);
 }
 
 void

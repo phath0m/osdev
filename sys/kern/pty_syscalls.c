@@ -41,7 +41,7 @@ sys_isatty(struct thread *th, syscall_args_t argv)
         return -(EBADF);
     }
 
-    if (fop_getdev(file, &tty) != 0) {
+    if (FOP_GETDEV(file, &tty) != 0) {
         return -(ENOTTY);
     }
 
@@ -69,7 +69,7 @@ sys_ttyname(struct thread *th, syscall_args_t argv)
         return -(EBADF);
     }
 
-    if (fop_getdev(file, &tty) != 0) {
+    if (FOP_GETDEV(file, &tty) != 0) {
         return -(ENOTTY);
     }
 
@@ -104,7 +104,7 @@ sys_mkpty(struct thread *th, syscall_args_t argv)
     fd = procdesc_getfd();
 
     if (fd < 0) {
-        fop_close(fp);
+        file_close(fp);
         return -1;
     } else {
         current_proc->files[fd] = fp;

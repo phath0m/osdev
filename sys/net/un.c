@@ -191,8 +191,8 @@ un_close(struct socket *sock)
     if (conn->refs == 0) {
         KASSERT("un tx/rx pipes should not have been closed already",
                 conn->rx_pipe[0] != NULL && conn->tx_pipe[1] != NULL);
-        fop_close(conn->rx_pipe[0]);
-        fop_close(conn->tx_pipe[1]);
+        file_close(conn->rx_pipe[0]);
+        file_close(conn->tx_pipe[1]);
         
         conn->rx_pipe[0] = NULL;
         conn->tx_pipe[1] = NULL;
@@ -266,7 +266,7 @@ un_recv(struct socket *sock, void *buf, size_t size)
         return -(ECONNRESET);
     }
 
-    ret = fop_read(conn->rx_pipe[0], buf, size);
+    ret = FOP_READ(conn->rx_pipe[0], buf, size);
     
     if (ret == -(EPIPE)) {
         return -(ECONNRESET);
@@ -287,7 +287,7 @@ un_send(struct socket *sock, const void *buf, size_t size)
         return -(ECONNRESET);
     }
 
-    ret = fop_write(conn->tx_pipe[1], buf, size);
+    ret = FOP_WRITE(conn->tx_pipe[1], buf, size);
     
     if (ret == -(ESPIPE)) {
         return -(ECONNRESET);

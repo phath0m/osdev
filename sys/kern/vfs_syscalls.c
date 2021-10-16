@@ -94,7 +94,7 @@ sys_close(struct thread *th, syscall_args_t argv)
     if (fp) {
         current_proc->files[fd] = NULL;
 
-        fop_close(fp);
+        file_close(fp);
 
         return 0;
     }
@@ -126,7 +126,7 @@ sys_creat(struct thread *th, syscall_args_t argv)
         fd = procdesc_getfd();
 
         if (fd < 0) {
-            fop_close(file);
+            file_close(file);
         } else {
             current_proc->files[fd] = file;
         }
@@ -150,7 +150,7 @@ sys_fchmod(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fd);
 
     if (file) {
-        return fop_fchmod(file, mode);
+        return FOP_FCHMOD(file, mode);
     }
 
     return -(EBADF);
@@ -170,7 +170,7 @@ sys_fchown(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fd);
 
     if (file) {
-        return fop_fchown(file, owner, group);
+        return FOP_FCHOWN(file, owner, group);
     }
 
     return -(EBADF);
@@ -189,7 +189,7 @@ sys_ftruncate(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fd);
 
     if (file) {
-        return fop_ftruncate(file, length);
+        return FOP_FTRUNCATE(file, length);
     }
 
     return -(EBADF);
@@ -210,7 +210,7 @@ sys_ioctl(struct thread *th, syscall_args_t argv)
 
     if (file) {
         bus_interrupts_on();
-        return fop_ioctl(file, (uint64_t)request, arg);
+        return FOP_IOCTL(file, (uint64_t)request, arg);
     }
 
     return -(EBADF);
@@ -233,7 +233,7 @@ sys_fstat(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fd);
 
     if (file) {
-        return fop_stat(file, buf);
+        return FOP_STAT(file, buf);
     }
 
     return -(EBADF);
@@ -262,7 +262,7 @@ sys_open(struct thread *th, syscall_args_t argv)
         fd = procdesc_getfd();
 
         if (fd < 0) {
-            fop_close(file);
+            file_close(file);
         } else {
             current_proc->files[fd] = file;
         }
@@ -314,7 +314,7 @@ sys_read(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fildes);
 
     if (file) {
-        return fop_read(file, buf, nbyte);
+        return FOP_READ(file, buf, nbyte);
     }
 
     return -(EBADF);
@@ -337,7 +337,7 @@ sys_readdir(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fildes);
 
     if (file) {
-        return fop_readdirent(file, dirent);
+        return FOP_READDIRENT(file, dirent);
     }
 
     return -(EBADF);
@@ -371,7 +371,7 @@ sys_lseek(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fd);
 
     if (file) {
-        return fop_seek(file, offset, whence);
+        return FOP_SEEK(file, offset, whence);
     }
 
     return -(EBADF);
@@ -395,7 +395,7 @@ sys_lseek64(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fd);
 
     if (file) {
-        return fop_seek(file, offset, whence);
+        return FOP_SEEK(file, offset, whence);
     }
 
     return -(EBADF);
@@ -486,9 +486,9 @@ sys_stat(struct thread *th, syscall_args_t argv)
     res = vfs_open_r(current_proc, &file, path, O_RDONLY);
 
     if (res == 0) {
-        res = fop_stat(file, buf);
+        res = FOP_STAT(file, buf);
 
-        fop_close(file);
+        file_close(file);
     }
 
     return res;
@@ -560,7 +560,7 @@ sys_write(struct thread *th, syscall_args_t argv)
     file = procdesc_getfile(fildes);
 
     if (file) {
-        return fop_write(file, buf, nbyte);
+        return FOP_WRITE(file, buf, nbyte);
     }
 
     return -(EBADF);

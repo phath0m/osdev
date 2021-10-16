@@ -51,7 +51,7 @@ sys_mmap(struct thread *th, syscall_args_t argv)
         return -(EBADF);
     }
 
-    return fop_mmap(file, args->addr, args->length, args->prot, args->offset);
+    return FOP_MMAP(file, args->addr, args->length, args->prot, args->offset);
 }
 
 static int

@@ -74,12 +74,12 @@ fill_file_info(struct kinfo_ofile *ofile, int fd, struct file *filep)
 
     ofile->fd = fd;
 
-    fop_stat(filep, &sb);
+    FOP_STAT(filep, &sb);
 
     ofile->type = sb.st_mode;
     ofile->dev = sb.st_dev;
 
-    if (fop_getvn(filep, &vn) == 0) {
+    if (FOP_GETVN(filep, &vn) == 0) {
         vn_resolve_name(vn, ofile->path, sizeof(ofile->path));        
     }
 }

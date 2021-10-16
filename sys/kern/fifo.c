@@ -110,12 +110,12 @@ fifo_close(struct file *fp)
     }
 
     if (fifo->write_refs == 0) {
-        fop_close(fifo->pipe[1]);
+        file_close(fifo->pipe[1]);
         fifo->write_refs--;
     }
 
     if (fifo->read_refs == 0) {
-        fop_close(fifo->pipe[0]);
+        file_close(fifo->pipe[0]);
         list_remove(&vn->un.fifo_readers, fifo);
         fifo->read_refs--;
     }
@@ -152,7 +152,7 @@ fifo_read(struct file *fp, void *buf, size_t nbyte)
     
     fifo = fp->state;
 
-    return fop_read(fifo->pipe[0], buf, nbyte);
+    return FOP_READ(fifo->pipe[0], buf, nbyte);
 }
 
 static int
@@ -180,5 +180,5 @@ fifo_write(struct file *fp, const void *buf, size_t nbyte)
     
     fifo = (struct fifo*)fp->state;
 
-    return fop_write(fifo->pipe[1], buf, nbyte);
+    return FOP_WRITE(fifo->pipe[1], buf, nbyte);
 }

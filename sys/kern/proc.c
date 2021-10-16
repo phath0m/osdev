@@ -121,7 +121,7 @@ proc_destroy(struct proc *proc)
         fp = proc->files[i];
 
         if (fp) {
-            fop_close(fp);
+            file_close(fp);
         }
     }
 
