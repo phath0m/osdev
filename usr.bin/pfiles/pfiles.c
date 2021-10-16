@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
-//#include <sys/sysctl.h>
-#include "../../sys/sys/sysctl.h"
+#include <elysium/sys/sysctl.h>
 
 #define minor(n) (n & 0xFF)
 #define major(n) ((n >> 8) & 0xFF)

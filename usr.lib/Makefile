@@ -10,6 +10,7 @@ SUBDIRS += libini
 SUBDIRS += libinput
 SUBDIRS += libmemgfx
 SUBDIRS += libthread
+SUBDIRS += libxtc
 SUBDIRS += libvt
 
 all: $(SUBDIRS)

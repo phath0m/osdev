@@ -9,8 +9,7 @@ PATH := "$(TOOLROOT)/bin:$(PATH)"
 
 CC=$(TOOLROOT)/bin/i686-elysium-gcc
 
-all: toolchain userland-libraries userland kernel iso
-
+all: toolchain kernel userland-libraries userland iso
 clean:
 	rm -f $(ISO_IMAGE) $(KERNEL) $(INITRD)
 
@@ -20,23 +19,15 @@ $(ISO_IMAGE):
 	cp -p $(KERNEL) ./build/iso/boot
 	grub2-mkrescue -o $(ISO_IMAGE) build/iso
 
-
 $(INITRD):
-	make -C bin PREFIX=/ DESTDIR=$(BUILDROOT) install
-	make -C sbin PREFIX=/ DESTDIR=$(BUILDROOT) install
-	make -C usr.bin PREFIX=/usr DESTDIR=$(BUILDROOT) install
-	make -C usr.games PREFIX=/usr DESTDIR=$(BUILDROOT) install
-	make -C usr.libexec PREFIX=/usr DESTDIR=$(BUILDROOT) install
-	make -C etc PREFIX=/ DESTDIR=$(BUILDROOT) install
-	make -C usr.share PREFIX=/usr DESTDIR=$(BUILDROOT) install
-	#make -C usr.xtc PREFIX=/usr/xtc DESTDIR=$(BUILDROOT) install
-	#make -C ports PREFIX=/usr/local DESTDIR=$(BUILDROOT) install
 	tar --owner=root -C $(BUILDROOT) -cvf $(INITRD) .
 
 kernel: $(KERNEL)
 
 $(KERNEL):
 	PATH=$(PATH) make -C sys
+	mkdir -p $(TOOLROOT)/usr/include/elysium/sys
+	cp -r sys/sys/*.h $(TOOLROOT)/usr/include/elysium/sys
 
 ports:
 	PATH="$(PATH)" make -C ports
@@ -51,7 +42,17 @@ userland:
 	PATH=$(PATH) make -C usr.bin
 	PATH=$(PATH) make -C usr.games
 	PATH=$(PATH) make -C usr.libexec
-	#PATH=$(PATH) make -C usr.xtc
+	make -C bin PREFIX=/ DESTDIR=$(BUILDROOT) install
+	make -C sbin PREFIX=/ DESTDIR=$(BUILDROOT) install
+	make -C usr.bin PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C usr.games PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C usr.libexec PREFIX=/usr DESTDIR=$(BUILDROOT) install
+	make -C etc PREFIX=/ DESTDIR=$(BUILDROOT) install
+	make -C usr.share PREFIX=/usr DESTDIR=$(BUILDROOT) install
+
+xtc: 
+	PATH=$(PATH) make -C usr.xtc
+	make -C usr.xtc PREFIX=/usr/xtc DESTDIR=$(BUILDROOT) install
 
 userland-libraries:
 	PATH=$(PATH) make DESTDIR=$(TOOLROOT) PREFIX=/usr -C usr.lib

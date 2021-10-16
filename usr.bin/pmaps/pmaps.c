@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <sys/sysctl.h>
-#include "../../sys/sys/sysctl.h"
+#include <elysium/sys/sysctl.h>
 
 int
 main(int argc, char *argv[])
