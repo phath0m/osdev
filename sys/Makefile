@@ -6,7 +6,7 @@ include $(shell realpath "$(ARCH)/config.mk")
 CFLAGS += -Wdeclaration-after-statement
 CFLAGS += -I "$(shell realpath ./)"
 CFLAGS += -D "__KERNEL__"
-
+CFLAGS += -D ELYSIUM_BUILDVER="\"$(shell date +'%Y.%m.%d')\""
 KERNEL_OBJECTS += dev/pseudo.o
 KERNEL_OBJECTS += dev/pty.o
 

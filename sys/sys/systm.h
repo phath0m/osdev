@@ -26,7 +26,7 @@ extern "C" {
 #include <sys/vnode.h>
 
 #define ELYSIUM_SYSNAME     "Elysium"
-#define ELYSIUM_RELEASE     "v0.0.1"
+#define ELYSIUM_RELEASE     ELYSIUM_BUILDVER
 #define ELYSIUM_VERSION     __DATE__ " "__TIME__ 
 
 #define KASSERT(expr, msg) \
