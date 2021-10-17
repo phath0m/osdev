@@ -13,9 +13,17 @@ Compiling this requires a custom GCC capable of targeting this kernel. Patching 
 
 Once in a Centos 7 environment, install the pre-requisites by running:
 ```
-yum install -y gcc gcc-c++ vim git wget m4 perl-Data-Dumper patch gmp-devel mpfr-devel libmpc-devel make nasm grub2 xorriso
+yum install -y gcc gcc-c++ vim git wget m4 perl-Data-Dumper patch gmp-devel mpfr-devel libmpc-devel make nasm grub2 xorriso && yum update -y
 ```
-Then, to build, simply run `make toolchain userland-libraries userland kernel iso`. An ISO image should be created in `build/os.iso`
+Then, to build, run:
+
+```
+git submodule init
+git submodule update
+make toolchain kernel userland-libraries xtc iso
+```
+
+An ISO image should be created in `build/os.iso`
 
 ### Directory Structure
 |Path|Description |
