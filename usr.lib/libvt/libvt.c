@@ -10,8 +10,7 @@
 
 #include "libvt.h"
 
-extern int mkpty();
-
+extern int mkpty(); /* non-standard C function/system call */
 
 #define TERM_BUF_SIZE   1024
 
@@ -256,6 +255,10 @@ eval_custom_sequence(struct termstate *state)
             VTOP_SET_PALETTE(state->emu, 0x11, rgb);
             break;
         }
+        default: {
+            VTOPS_EVAL_CUSTOM_SEQ(state->emu, state->csi_buf);
+            break;
+        }
     }
     memset(state->csi_buf, 0, sizeof(state->csi_buf));
     state->csi_len = 0;
@@ -325,7 +328,7 @@ process_term_char(struct termstate *state, char ch)
                     state->custom_seq_len = 7;
                     break;
                 default:
-                    state->custom_seq_len = 0;
+                    state->custom_seq_len = VTOPS_GET_CUSTOM_SEQ_LEN(state->emu, ch);
                     break;
             }
         }
@@ -416,7 +419,6 @@ void
 vtemu_run(vtemu_t *emu)
 {
     char buf[1024];
-
     struct termstate *state;
     
     state = emu->_private;
@@ -482,9 +484,7 @@ vtemu_spawn(vtemu_t *emu, char *bin)
     char **argv;    
 
     struct winsize winsize;
- 
     struct termstate *state;
-
 
     child = fork();
 
