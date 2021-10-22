@@ -7,11 +7,12 @@ export DESTDIR
 
 MAKE = make
 
-SUBDIRS += date
 SUBDIRS += cat
 SUBDIRS += chmod
 SUBDIRS += chown
 SUBDIRS += cp
+SUBDIRS += date
+SUBDIRS += dmesg
 SUBDIRS += echo
 SUBDIRS += kill
 SUBDIRS += ls
