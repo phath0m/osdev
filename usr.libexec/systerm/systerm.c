@@ -25,6 +25,7 @@ struct termstate {
     int             background;
     int             position;
     int             textscreen;
+    bool            block_input;
 };
 
 static int vtop_get_cursor(vtemu_t *emu, int *x, int *y);
@@ -127,6 +128,35 @@ vtop_put_text(vtemu_t *emu, char *text, size_t nbyte)
     write(state->textscreen, text, nbyte);
 }
 
+static int
+vtop_get_custom_seq_len(vtemu_t *emu, char ch)
+{
+    switch (ch) {
+        case 'K':
+            return 2;
+        default:
+            return 0;
+    }
+}
+
+static int
+vtop_eval_custom_seq(vtemu_t *emu, const char *csi)
+{
+    struct termstate *state;
+
+    state = emu->state;
+
+    switch (csi[1]) {
+        case '0':
+            state->block_input = false;
+            break;
+        case '1':
+            state->block_input = true;
+            break;
+    }
+    return 0;    
+}
+
 static void *
 term_output_thread(void *argp)
 {
@@ -206,12 +236,14 @@ process_character(vtemu_t *emu, uint8_t scancode)
 }
 
 struct vtops vtops = {
-    .erase_area     = vtop_erase_area,
-    .get_cursor     = vtop_get_cursor,
-    .put_text       = vtop_put_text,
-    .set_attributes = vtop_set_attribute,
-    .set_cursor     = vtop_set_cursor,
-    .set_palette    = vtop_set_palette
+    .erase_area         = vtop_erase_area,
+    .get_cursor         = vtop_get_cursor,
+    .put_text           = vtop_put_text,
+    .set_attributes     = vtop_set_attribute,
+    .set_cursor         = vtop_set_cursor,
+    .set_palette        = vtop_set_palette,
+    .get_custom_seq_len = vtop_get_custom_seq_len,
+    .eval_custom_seq    = vtop_eval_custom_seq
 };
 
 static void
@@ -284,7 +316,14 @@ main(int argc, char *argv[])
 
     for (;;) {
         read(kbd, &scancode, 1);
-        process_character(emu, scancode);
+
+        if (state.block_input) {
+            while (state.block_input) {
+                sleep(1);
+            }
+        } else {
+            process_character(emu, scancode);
+        }
     }
 
     return 0;
