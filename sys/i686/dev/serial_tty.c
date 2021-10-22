@@ -77,6 +77,13 @@ struct cdev serial0_device = {
     .mode       =   0600,
     .majorno    =   DEV_MAJOR_TTYS,
     .minorno    =   0,
+    .ops.close  =   serial_close,
+    .ops.init   =   NULL,
+    .ops.ioctl  =   serial_ioctl,
+    .ops.isatty =   serial_isatty,
+    .ops.open   =   serial_open,
+    .ops.read   =   serial_read,
+    .ops.write  =   serial_write,
     .state      =   &serial0_state
 };
 
