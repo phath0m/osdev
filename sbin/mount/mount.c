@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/mount.h>
+#include <elysium/sys/mount.h>
 
 struct mount_options {
     char *          source;
@@ -21,6 +21,11 @@ static int
 parse_arguments(struct mount_options *options, int argc, char *argv[])
 {
     int c;
+
+    if (argc <= 2) {
+        return -1;
+    }
+
     while ((c = getopt(argc, argv, ":t:")) != -1) {
         switch (c) {
             case 't':
