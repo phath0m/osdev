@@ -20,10 +20,13 @@ Then, to build, run:
 ```
 git submodule init
 git submodule update
-make toolchain kernel userland-libraries xtc iso
+make toolchain kernel userland-libraries iso
 ```
 
 An ISO image should be created in `build/os.iso`
+
+### Where's the GUI???
+I have removed the window manager XTC from the repos. The reason is because it isn't crucial right now to my end goals with this project. Once the kernel and userland is more stable, it will be added back.
 
 ### Directory Structure
 |Path|Description |
