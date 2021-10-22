@@ -233,7 +233,6 @@ canvas_rect(canvas_t *canvas, int x, int y, int width, int height, color_t col)
     bool right_face_visible;
     bool bottom_face_visible;
 
-
     int a_y;
     int a_x;
     int max_height;
@@ -394,7 +393,7 @@ canvas_putc(canvas_t *canvas, int x, int y, int ch, color_t col)
     int j;
     uint8_t *c;
 
-    c = number_font[ch];
+    c = &number_font[ch*16];
 
     for (i = 0; i < FONT_WIDTH; i++)
     for (j = 0; j < FONT_HEIGHT; j++) {

@@ -6,9 +6,11 @@ CFLAGS = -c -std=gnu99 -Wall -Werror
 
 LIBMEMGFX_HEADERS += canvas.h
 LIBMEMGFX_HEADERS += display.h
+LIBMEMGFX_HEADERS += sfn.h
 LIBMEMGFX_OBJECTS += canvas.o
 LIBMEMGFX_OBJECTS += display.o
 LIBMEMGFX_OBJECTS += targa.o
+LIBMEMGFX_OBJECTS += ssfn2.o
 
 LIBMEMGFX = libmemgfx.a
 

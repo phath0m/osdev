@@ -45,3 +45,10 @@ I have removed the window manager XTC from the repos. The reason is because it i
 |/usr.lib|Usermode libraries|
 |/usr.libexec|Source for userland binaries installed in /usr/libexec|
 
+### Third Party Software
+The following third party software is included in this operating system by default. 
+
+|Name|Author|URL|
+|------|------|-----|
+|newlib|Redhat|https://sourceware.org/newlib/|
+|Simple Scalable Font|bztsrc|https://gitlab.com/bztsrc/scalable-font|
