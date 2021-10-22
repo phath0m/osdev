@@ -50,10 +50,6 @@ userland:
 	make -C etc PREFIX=/ DESTDIR=$(BUILDROOT) install
 	make -C usr.share PREFIX=/usr DESTDIR=$(BUILDROOT) install
 
-xtc: 
-	PATH=$(PATH) make -C usr.xtc
-	make -C usr.xtc PREFIX=/usr/xtc DESTDIR=$(BUILDROOT) install
-
 userland-libraries:
 	PATH=$(PATH) make DESTDIR=$(TOOLROOT) PREFIX=/usr -C usr.lib
 
