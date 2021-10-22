@@ -20,7 +20,9 @@ do_login(struct passwd *pwd)
         NULL
     };
 
-    pid_t child = fork();
+    pid_t child;
+
+    child = fork();
 
     if (child == 0) {   
         setuid(pwd->pw_uid);
@@ -42,33 +44,40 @@ do_login(struct passwd *pwd)
 static void
 show_motd()
 {
-    FILE *fp = fopen("/etc/motd", "r");
+    size_t nread;
+    char buf[512];
+
+    FILE *fp;
+
+    fp = fopen("/etc/motd", "r");
 
     if (!fp) {
         return;
     }
-
-    size_t nread;
-    char buf[512];
 
     while ((nread = fread(buf, 1, sizeof(buf), fp)) > 0) {
         fwrite(buf, 1, nread, stdout);
     }
     
     fflush(stdout);
+    fclose(fp);
 }
 
 static int
 attempt_login(const char *login, const char *passwd)
 {
-    struct passwd *pwd = getpwnam(login);
+    int login_flags;
+
+    struct login login_buf;
+    struct passwd *pwd;
+
+    pwd = getpwnam(login);
 
     if (!pwd) {
         return -1;
     }
 
-    int login_flags = AUTH_UPDATE_UTMP | AUTH_UPDATE_WTMP | AUTH_UPDATE_LASTLOG | AUTH_UPDATE_BTMP;
-    struct login login_buf;
+    login_flags = AUTH_UPDATE_UTMP | AUTH_UPDATE_WTMP | AUTH_UPDATE_LASTLOG | AUTH_UPDATE_BTMP;
     
     if (authlib_login(&login_buf, login, passwd, login_flags) != 0) {
         return -1;
@@ -79,7 +88,7 @@ attempt_login(const char *login, const char *passwd)
     puts("");
 
     do_login(pwd);
-    
+
     authlib_logout(&login_buf);
     
     return 0;
@@ -88,29 +97,35 @@ attempt_login(const char *login, const char *passwd)
 int
 main(int argc, char *argv[])
 {
-    setsid();
-    ioctl(STDIN_FILENO, TIOCSCTTY, NULL);
+    time_t now;;
 
     char login[512];
     char password[512];
+ 
+    struct termios termios;
+    struct utsname uname_buf;
+ 
+    char *tty;
+    char *tty_name;
+    struct tm *ptm;
 
-    char *tty = ttyname(STDIN_FILENO);
+    setsid();
+    ioctl(STDIN_FILENO, TIOCSCTTY, NULL);
+
+    tty = ttyname(STDIN_FILENO);
 
     if (!tty) {
         return -1;
     }
 
-    char *tty_name = strrchr(tty, '/') + 1;
-    time_t now = time(NULL);
-    struct tm *ptm = gmtime(&now);
+    tty_name = strrchr(tty, '/') + 1;
+    now = time(NULL);
+    ptm = gmtime(&now);
 
     puts(asctime(ptm));
     
-    struct utsname uname_buf;
     uname(&uname_buf);
     printf("%s/%s (%s)\n\n", uname_buf.sysname, uname_buf.machine, tty_name);
-
-    struct termios termios;
 
     tcgetattr(STDIN_FILENO, &termios);
 
@@ -136,6 +151,6 @@ main(int argc, char *argv[])
             sleep(2);
         }
     }
+
     return 0;
 }
-
