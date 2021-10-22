@@ -275,6 +275,8 @@ start_daemon(int argc, const char *argv[])
 {
     const char *console = getenv("CONSOLE");
 
+    char runlevel_str[8];
+
     for (int i = 0; i < 3; i++) {
         open(console, O_RDWR);
     }
@@ -293,6 +295,10 @@ start_daemon(int argc, const char *argv[])
             printf("doit: runlevel=%s\r\n", argv[1]);
         }
     }
+
+    snprintf(runlevel_str, 8, "%d", target);
+
+    setenv("RUNLEVEL", runlevel_str, 1);
 
     memset(&loaded_services, 0, sizeof(loaded_services));
 
