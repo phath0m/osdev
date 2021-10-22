@@ -46,6 +46,9 @@ void    stacktrace(int);
 void    printf(const char *, ...);
 void    vprintf(const char *, va_list);
 
+int     get_kmsgs(char *, int, size_t);
+int     get_kmsgs_size();
+
 void    ksym_declare(const char *, uintptr_t);
 int     ksym_find_nearest(uintptr_t, uintptr_t *, char *, size_t);
 int     ksym_resolve(const char *, uintptr_t *);

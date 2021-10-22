@@ -280,6 +280,7 @@ init_thread(void *argp)
 int
 kmain(const char *args)
 {
+    extern void kmsg_device_init();
     extern void pseudo_devices_init();
  
     /* initialize various pools for the various subsystems  */
@@ -294,6 +295,7 @@ kmain(const char *args)
     /* initialize all system calls*/
     syscalls_init();
 
+    kmsg_device_init();
     pseudo_devices_init();
 
     thread_run((kthread_entry_t)init_thread, NULL, (void*)args);

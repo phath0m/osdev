@@ -26,5 +26,6 @@
 #define DEV_MAJOR_KBD       0x06
 #define DEV_MAJOR_RTC       0x07
 #define DEV_MAJOR_RAW_DISK  0x08
+#define DEV_MAJOR_KMSG      0x09
 
 #endif

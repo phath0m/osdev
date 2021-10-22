@@ -17,17 +17,80 @@
  */
 #include <stdarg.h>
 #include <sys/cdev.h>
+#include <sys/malloc.h>
 #include <sys/string.h>
 #include <sys/systm.h>
 
+/* kernel ringbuf */
+struct ringbuf {
+    int         head;
+    int         tail;
+    int         size;
+    int         written;
+    char        buf[];
+};
+
+
 /* actual output device*/
 static struct cdev *output_device = NULL;
+
+/* kernel ringbuf */
+static struct ringbuf *kmsg_rb = NULL;
+
+static void
+ringbuf_write(struct ringbuf *rb, const char *buf, size_t nbytes)
+{
+    int j;
+
+    for (j = 0; j < nbytes; j++) {
+        rb->buf[rb->tail] = buf[j];
+
+        if (rb->tail == rb->head && rb->written != 0) {
+            rb->head = (rb->head + 1) % rb->size;
+        }
+
+        rb->tail = (rb->tail + 1) % rb->size;
+
+    }
+
+    rb->written += nbytes;
+}
+
+static int
+ringbuf_read(struct ringbuf *rb, int off, char *buf, size_t nbytes)
+{
+    int i;
+    int j;
+
+    for (i = (rb->head + off) % rb->size, j = 0; (i % rb->size) != rb->tail-1 && j < nbytes; i++, j++) {
+        buf[j] = rb->buf[i % rb->size];
+    }
+
+    return j;
+}
+
 
 /* sets the kernel output to the specified device */
 void
 set_kernel_output(struct cdev *dev)
 {
     output_device = dev;
+}
+
+int
+get_kmsgs(char *buf, int off, size_t nbyte)
+{
+    return ringbuf_read(kmsg_rb, off, buf, nbyte);
+}
+
+int
+get_kmsgs_size()
+{
+    if (kmsg_rb->size < kmsg_rb->written) {
+        return kmsg_rb->size;
+    }
+
+    return kmsg_rb->written;
 }
 
 void
@@ -48,8 +111,15 @@ void
 puts(const char *str)
 {   
     size_t nbyte;
-    
+
     nbyte = strlen(str);
+
+    if (!kmsg_rb) {
+        kmsg_rb = calloc(1, sizeof(*kmsg_rb) + 65535);
+        kmsg_rb->size = 65535;
+    }
+
+    ringbuf_write(kmsg_rb, str, nbyte);
 
     if (output_device) {
         CDEVOPS_WRITE(output_device, str, nbyte, 0);
@@ -62,9 +132,7 @@ printf(const char *fmt, ...)
     va_list arg;
 
     va_start(arg, fmt);
-
     vprintf(fmt, arg);
-
     va_end(arg);
 }
 
