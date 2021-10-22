@@ -178,6 +178,7 @@ sys_execve(struct thread *th, syscall_args_t args)
 
             new_argv[0] = interpreter;
             new_argv[1] = (char*)file;
+            new_argv[2] = NULL;
 
             file_close(fd);
 
