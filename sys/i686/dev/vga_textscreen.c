@@ -120,6 +120,7 @@ struct vga_state {
     uint8_t *   video_buffer;
 };
 
+struct cdev *vga_device;
 struct vga_state state;
 
 static int vga_attach(struct driver *driver, struct device *dev);
@@ -371,7 +372,6 @@ static int
 vga_attach(struct driver *driver, struct device *dev)
 {
     struct cdev_ops vga_ops;
-    struct cdev *cdev;
 
     state.position = 0;
     state.foreground_color = 15;
@@ -389,9 +389,9 @@ vga_attach(struct driver *driver, struct device *dev)
         .write  = vga_write
     };
 
-    cdev = cdev_new("vga", 0666, DEV_MAJOR_CON, 0, &vga_ops, &state);
+    vga_device = cdev_new("vga", 0666, DEV_MAJOR_CON, 0, &vga_ops, &state);
 
-    if (cdev && cdev_register(cdev) == 0) {
+    if (vga_device && cdev_register(vga_device) == 0) {
         return 0;
     }
 

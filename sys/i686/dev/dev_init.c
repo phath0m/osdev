@@ -65,6 +65,10 @@ machine_dev_init()
     int i;
     struct driver *driver;
 
+#ifdef ENABLE_DEV_VGA
+    extern struct cdev *vga_device;
+#endif
+
     pci_init();
 
     i = 0;
@@ -73,7 +77,7 @@ machine_dev_init()
         driver_register(driver);
     }
 #ifdef ENABLE_DEV_VGA
-    set_kernel_output(&vga_device);
+    set_kernel_output(vga_device);
 #elif ENABLE_DEV_LFB
     //set_kernel_output(&lfb_device);
 #endif
