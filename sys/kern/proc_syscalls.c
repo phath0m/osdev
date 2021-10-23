@@ -129,7 +129,6 @@ sys_clone(struct thread *th, syscall_args_t argv)
         return -(EFAULT);
     }
 
-    printf("clone(0x%p, 0x%p, %d, 0x%p)\n", func, stack, flags, arg);
     TRACE_SYSCALL("clone", "0x%p, 0x%p, %d, 0x%p", func, stack, flags, arg);
 
     return proc_clone(func, stack, flags, arg);    
@@ -209,11 +208,12 @@ sys_exit(struct thread *th, syscall_args_t args)
     list_remove(&current_proc->threads, sched_curr_thread);
 
     if (LIST_SIZE(&current_proc->threads) == 0) {
-        current_proc->status = status;
         current_proc->exited = true;
         wq_pulse(&current_proc->waiters);
     }
-    
+
+    current_proc->status = status;
+
     thread_schedule(SDEAD, sched_curr_thread);
 
     for (; ;) {
