@@ -19,6 +19,7 @@ SUBDIRS += kill
 SUBDIRS += ls
 SUBDIRS += sh
 SUBDIRS += sha1
+SUBDIRS += test
 SUBDIRS += ps
 SUBDIRS += pwd
 SUBDIRS += mkdir
