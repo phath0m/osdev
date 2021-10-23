@@ -116,9 +116,9 @@ test_string_binop(binary_op_t binop, const char *left, const char *right)
 {
     switch (binop) {
         case BINOP_STR_EQ:
-            return strcmp(left, right) == 0 ? 0 : 1;
+            return TEST_EXPR(strcmp(left, right));
         case BINOP_STR_NE:
-            return strcmp(left, right) != 0 ? 0 : 1;
+            return TEST_EXPR(strcmp(left, right));
         default:
             return -1;
     }
@@ -152,11 +152,11 @@ test_file_unary_op(unary_op_t op, const char *file)
 
     switch (op) {
         case UNARY_OP_FILE_CAN_READ:
-            return access(file, R_OK) == 0 ? 0 : 1;
+            return TEST_EXPR(access(file, R_OK) == 0);
         case UNARY_OP_FILE_CAN_WRITE:
-            return access(file, W_OK) == 0 ? 0 : 1;
+            return TEST_EXPR(access(file, W_OK) == 0);
         case UNARY_OP_FILE_CAN_EXECUTE:
-            return access(file, X_OK) == 0 ? 0 : 1;
+            return TEST_EXPR(access(file, X_OK) == 0);
         default:
             break;
     }
@@ -169,23 +169,23 @@ test_file_unary_op(unary_op_t op, const char *file)
         case UNARY_OP_FILE_EXISTS:
             return 0;
         case UNARY_OP_REG_FILE_EXISTS:
-            return (S_IFMT & sb.st_mode) == S_IFREG ? 0 : 1;
+            return TEST_EXPR((S_IFMT & sb.st_mode) == S_IFREG);
         case UNARY_OP_DIR_EXISTS:
-            return (S_IFMT & sb.st_mode) == S_IFDIR ? 0 : 1;
+            return TEST_EXPR((S_IFMT & sb.st_mode) == S_IFDIR);
         case UNARY_OP_CHARACTER_FILE_EXISTS:
-            return (S_IFMT & sb.st_mode) == S_IFCHR ? 0 : 1;
+            return TEST_EXPR((S_IFMT & sb.st_mode) == S_IFCHR);
         case UNARY_OP_BLOCK_FILE_EXISTS:
-            return (S_IFMT & sb.st_mode) == S_IFBLK ? 0 : 1;
+            return TEST_EXPR((S_IFMT & sb.st_mode) == S_IFBLK);
         case UNARY_OP_SOCKET_FILE_EXISTS:
-            return (S_IFMT & sb.st_mode) == S_IFSOCK ? 0 : 1;
+            return TEST_EXPR((S_IFMT & sb.st_mode) == S_IFSOCK);
         case UNARY_OP_SYMLINK_EXISTS:
-            return (S_IFMT & sb.st_mode) == S_IFLNK ? 0 : 1;
+            return TEST_EXPR((S_IFMT & sb.st_mode) == S_IFLNK);
         case UNARY_OP_FILE_IS_OWNED_BY_EGID:
-            return sb.st_gid == getegid() ? 0 : 1;
+            return TEST_EXPR(sb.st_gid == getegid());
         case UNARY_OP_FILE_IS_OWNED_BY_EUID:
-            return sb.st_uid == geteuid() ? 0 : 1;
+            return TEST_EXPR(sb.st_uid == geteuid());
         case UNARY_OP_FILE_IS_NOT_EMPTY:
-            return sb.st_size != 0;
+            return TEST_EXPR(sb.st_size != 0);
         default:
             return -1;
     }
