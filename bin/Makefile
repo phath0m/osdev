@@ -14,6 +14,7 @@ SUBDIRS += cp
 SUBDIRS += date
 SUBDIRS += dmesg
 SUBDIRS += echo
+SUBDIRS += expr
 SUBDIRS += kill
 SUBDIRS += ls
 SUBDIRS += sh
