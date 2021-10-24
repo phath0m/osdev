@@ -88,9 +88,35 @@ token_new(token_kind_t kind, const char *value, int size)
 static inline bool
 is_symbol_character(int ch)
 {
-    return isalnum(ch) || ch == '/' || ch == '_' || ch == '-' || ch == '.' || ch == ':' || ch == '=' || ch == '\"';
+
+    if (isalnum(ch)) return true;
+
+    switch (ch) {
+        case '/':
+        case '_':
+        case '-':
+        case '.':
+        case ':':
+        case '=':
+        case '"':
+        case '$':
+        case '`':
+        case '\'':
+        case '+':
+        case '*':
+            return true;
+        default:
+            return false;
+    }
 }
 
+static void
+scan_comment(struct tokenizer *scanner)
+{
+    while (peek_char(scanner) && peek_char(scanner) != '\n') {
+        read_char(scanner);
+    }
+}
 
 static void 
 scan_string_literal(struct tokenizer *scanner, char **ptr, size_t *bufsize)
@@ -111,33 +137,78 @@ scan_string_literal(struct tokenizer *scanner, char **ptr, size_t *bufsize)
     strdyncat(ptr, bufsize, &scanner->text[start], size);
 }
 
+static void 
+scan_string_literal2(struct tokenizer *scanner, char delim, char **ptr, size_t *bufsize)
+{
+    int size;
+    int start;
+
+    start = scanner->position;
+
+    read_char(scanner);
+
+    while (peek_char(scanner) != delim) {
+        read_char(scanner);
+    }
+
+    read_char(scanner);
+
+    size = scanner->position - start;
+    strdyncat(ptr, bufsize, &scanner->text[start], size);
+}
+
+
 static struct token *
 scan_symbol(struct tokenizer *scanner)
 {
     char ch;
+    int i;
     int start;
     size_t bufsize;
     char *ptr;
-    
+
+    const char *keywords[] = {
+        "if", "fi", "then", "while", "do", "done", "else", "elif", NULL
+    };
+
     start = scanner->position;
     ptr = NULL;
      
     while (is_symbol_character(peek_char(scanner))) {
         ch = peek_char(scanner);
-      
-        if (ch == '\"') {
-            if (scanner->position != start) {
-                strdyncat(&ptr, &bufsize, &scanner->text[start], scanner->position - start);
+
+        switch (ch) {
+            case '\"': {
+                if (scanner->position != start) {
+                    strdyncat(&ptr, &bufsize, &scanner->text[start], scanner->position - start);
+                }
+                scan_string_literal(scanner, &ptr, &bufsize);
+                start = scanner->position;
+                break;
             }
-            scan_string_literal(scanner, &ptr, &bufsize);
-            start = scanner->position;
-        } else {
-            read_char(scanner);
+            case '`':
+            case '\'': {
+                if (scanner->position != start) {
+                    strdyncat(&ptr, &bufsize, &scanner->text[start], scanner->position - start);
+                }
+                scan_string_literal2(scanner, ch, &ptr, &bufsize);
+                start = scanner->position;
+                break;
+            }
+            default:
+                read_char(scanner);
+                break;
         }
     }
 
     if (ptr == NULL || start != scanner->position) {
         strdyncat(&ptr, &bufsize, &scanner->text[start], scanner->position - start);
+    }
+
+    for (i = 0; keywords[i]; i++) {
+        if (strcmp(ptr, keywords[i]) == 0) {
+            return token_new(TOKEN_KEYWORD, ptr, strlen(ptr));
+        }
     }
 
     return token_new(TOKEN_SYMBOL, ptr, strlen(ptr));
@@ -149,7 +220,9 @@ scan_token(struct tokenizer *scanner)
     int ch;
 
     while (isspace(peek_char(scanner))) {
-        read_char(scanner);
+        ch = read_char(scanner);
+
+        if (ch == '\n') return token_new(TOKEN_NEWLINE, "\n", 1);
     }
 
     ch = peek_char(scanner);
@@ -157,10 +230,31 @@ scan_token(struct tokenizer *scanner)
     switch (ch) {
         case '|':
             read_char(scanner);
-            return token_new(TOKEN_PIPE, "|", 1);
+
+            if (peek_char(scanner) == '|') {
+                read_char(scanner);
+                return token_new(TOKEN_LOGICAL_OR, "||", 2);
+            } else {
+                return token_new(TOKEN_PIPE, "|", 1);
+            }
+        case '&':
+            read_char(scanner);
+
+            if (peek_char(scanner) == '&') {
+                read_char(scanner);
+                return token_new(TOKEN_LOGICAL_AND, "&&", 2);
+            } else {
+                return token_new(TOKEN_AND, "&", 1);
+            }
+        case ';':
+            read_char(scanner);
+            return token_new(TOKEN_SEMICOLON, ";", 1);
         case '>':
             read_char(scanner);
             return token_new(TOKEN_FILE_WRITE, ">", 1);
+        case '#':
+            scan_comment(scanner);
+            return token_new(TOKEN_NEWLINE, "\n", 1);
         default:
             break;
     }

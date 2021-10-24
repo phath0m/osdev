@@ -6,7 +6,13 @@
 typedef enum {
     TOKEN_SYMBOL = 0,
     TOKEN_PIPE = 1,
-    TOKEN_FILE_WRITE = 2
+    TOKEN_FILE_WRITE = 2,
+    TOKEN_SEMICOLON = 3,
+    TOKEN_LOGICAL_OR = 4,
+    TOKEN_LOGICAL_AND = 5,
+    TOKEN_AND = 6,
+    TOKEN_KEYWORD = 7,
+    TOKEN_NEWLINE = 8
 } token_kind_t;
 
 struct token {

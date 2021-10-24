@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 
 #include <fcntl.h>
@@ -19,31 +20,216 @@
 
 typedef int (*command_handler_t)(const char *, int, const char *[]);
 
-static void eval_ast_node(struct ast_node *);
+static int eval_command(const char *);
+static int eval_ast_node(struct ast_node *);
+static char *substitute_string_variables(char *);
 
 struct dict builtin_commands;
+struct dict variables;
 
-ssize_t getline(char **, size_t *, FILE *);
-
-static bool
-is_empty_or_comment(const char *str)
+static size_t
+new_string_size(size_t strsize)
 {
-    bool empty;
+    return (strsize + 1024) & ~0x3FF;
+}
 
-    if (*str == '#') {
-        return true;
+static char *
+strdyncat(char **ptr, size_t *bufsize, char *substr, size_t substrlen)
+{
+    size_t oldstrlen;
+    size_t newstrlen;
+
+    if (substrlen == 0) {
+        return *ptr;
     }
 
-    empty = true;
+    if (!*ptr) {
+        *bufsize = new_string_size(substrlen);
+        *ptr = calloc(1, *bufsize);
+        strncat(*ptr, substr, substrlen);    
+        return *ptr;
+    }
 
-    while (*str) {
-        if (!isspace((int)*str)) {
-            empty = false;
+    oldstrlen = strlen(*ptr);
+    newstrlen = oldstrlen + substrlen;
+
+    if (newstrlen >= *bufsize) {
+        *bufsize = new_string_size(newstrlen);
+        *ptr = realloc(*ptr, *bufsize);
+    }
+
+    strncat(*ptr, substr, substrlen);
+    return *ptr;
+}
+
+static char *
+resolve_variable(char *name, size_t *sizep)
+{
+    char *val;
+
+    if (!dict_get(&variables, name, (void**)&val))
+        val = getenv(name);
+
+    if (val) {
+        *sizep = strlen(val);
+        return val;
+    }
+
+    *sizep = 0;
+
+    return "";
+}
+
+static void
+substitute_command(char *orig, int *p, char **ptr, size_t *ptr_len)
+{
+    char ch;
+    int i;
+    pid_t child;
+
+    char *cmd_subst;
+    char *output;
+    size_t output_len;
+
+    char cmd[512];
+    int fds[2];
+
+    i = 0;
+    output = NULL;
+
+    while ((ch = *(orig++)) && ch != '`') {
+        cmd[i] = ch;
+        i++;
+    }
+
+    cmd[i] = 0;
+    *p += i + 1;
+
+    cmd_subst = substitute_string_variables(cmd);
+
+    pipe(fds);
+
+    child = fork();
+
+    if (child != 0) {
+        int status;
+        int tmp;
+        ssize_t nread;
+        char buf[512];
+
+        tmp = fds[0];
+
+        close(fds[1]);
+
+        while ((nread = read(tmp, buf, sizeof(buf))) > 0) {
+            strdyncat(&output, &output_len, buf, nread);
         }
-        str++;
+
+        close(tmp);
+        wait(&status);
+    } else {
+        close(STDOUT_FILENO);
+        dup2(fds[1], STDOUT_FILENO);
+        close(fds[0]);
+        eval_command(cmd_subst);
+        close(STDOUT_FILENO);
+        exit(0);
     }
 
-    return empty;
+    /* trim out trailing line break */
+
+    for (i = strlen(output) - 1; i >= 0 && output[i] == '\n'; i--) {
+        output[i] = 0;
+    }
+
+    if (output) strdyncat(ptr, ptr_len, output, strlen(output));
+    free(output);
+    free(cmd_subst);
+}
+
+
+static void
+substitute_variable_name(char *orig, int *p, char **ptr, size_t *ptr_len)
+{
+    char ch;
+    int i;
+    size_t subst_len;
+    char *subst_val;
+    char var_name[256];
+
+    i = 0;
+
+    if (*orig == '$') {
+        subst_val = "$";
+        subst_len = 1;
+        i = 1;
+    } else {
+        while ((ch = *(orig++))) {
+            if (!isalnum((int)ch)) break;
+            var_name[i++] = ch;
+        }
+
+        var_name[i] = '\x00';
+
+        subst_val = resolve_variable(var_name, &subst_len);
+    }
+
+    strdyncat(ptr, ptr_len, subst_val, subst_len);
+
+    *p += i;
+}
+
+static void
+substitute_string_literal(char *orig, int *p, char **ptr, size_t *ptr_len)
+{
+    char ch;
+    int lit_len;
+    char *lit;
+
+    lit = orig ;
+    lit_len = 0;
+
+    while ((ch = *(orig++)) && ch != '\'') {
+        lit_len++;
+    }
+
+    strdyncat(ptr, ptr_len, lit, lit_len);
+
+    *p += lit_len;
+}
+
+static char *
+substitute_string_variables(char *orig)
+{
+    int i;
+    size_t ptr_len;
+    char *ptr;
+
+    ptr = NULL;
+    i = 0;
+
+    while (orig[i]) {
+        switch (orig[i]) {
+            case '$':
+                i += 1;
+                substitute_variable_name(orig + i, &i, &ptr, &ptr_len);
+                break;
+            case '\'':
+                i += 1;
+                substitute_string_literal(orig + i, &i, &ptr, &ptr_len);
+                break;
+            case '`':
+                i += 1;
+                substitute_command(orig + i, &i, &ptr, &ptr_len);
+                break;
+            default:
+                strdyncat(&ptr, &ptr_len, orig + i, 1);
+                i++;
+                break;
+        }
+    }
+
+    return ptr;
 }
 
 static bool
@@ -141,12 +327,14 @@ spawn_binary(const char *name, int argc, const char *argv[])
     return status;
 }
 
+
 static int
 run_command(struct ast_node *root)
 {
     command_handler_t func;
 
     int i;
+    int rc;
     list_iter_t iter;
 
     char *name;
@@ -159,31 +347,42 @@ run_command(struct ast_node *root)
 
     list_get_iter(&root->children, &iter);
 
-    for (i = 1; iter_move_next(&iter, (void**)&arg); i++) {
-        argv[i] = arg->value;
+    for (i = 1; iter_next_elem(&iter, (void**)&arg); i++) {
+        argv[i] = substitute_string_variables(arg->value);
     }
 
     argv[i] = 0;
 
     if (dict_get(&builtin_commands, name, (void**)&func)) {
-        return func(argv[0], i, (const char**)argv);
+        rc = func(argv[0], i, (const char**)argv);
+    } else {
+        rc = spawn_binary(argv[0], i, (const char**)argv);
     }
 
-    return spawn_binary(argv[0], i, (const char**)argv);
+    for (i = 1; argv[i]; i++) {
+        free(argv[i]);
+    }
+
+    return rc;
 }
 
 static int
 handle_assign(struct ast_node *root)
 {
     list_iter_t iter;
+    char *val;
     struct ast_node *left;
 
     list_get_iter(&root->children, &iter);
+    iter_next_elem(&iter, (void**)&left);
 
-    iter_move_next(&iter, (void**)&left);
+    if (dict_get(&variables, root->value, (void**)&val)) {
+        free(val);
+    }
 
-    // temporary until I implement export
-    setenv((char*)root->value, (char*)left->value, 1);
+    val = substitute_string_variables(left->value);
+
+    dict_set(&variables, root->value, val);
 
     return 0;
 }
@@ -202,9 +401,9 @@ handle_pipe(struct ast_node *root)
     
     list_get_iter(&root->children, &iter);
     
-    iter_move_next(&iter, (void**)&left);
-    iter_move_next(&iter, (void**)&right);
-
+    iter_next_elem(&iter, (void**)&left);
+    iter_next_elem(&iter, (void**)&right);
+ 
     pipe(fds);
 
     child = fork();
@@ -241,8 +440,8 @@ handle_file_write(struct ast_node *root)
 
     list_get_iter(&root->children, &iter);
 
-    iter_move_next(&iter, (void**)&left);
-    iter_move_next(&iter, (void**)&right);
+    iter_next_elem(&iter, (void**)&left);
+    iter_next_elem(&iter, (void**)&right);
 
     file_fd = open((const char*)right->value, O_WRONLY | O_CREAT);
 
@@ -253,51 +452,159 @@ handle_file_write(struct ast_node *root)
     tmp = dup(STDOUT_FILENO);
 
     dup2(file_fd, STDOUT_FILENO);
-
     eval_ast_node(left);
-
     close(file_fd);
-
     dup2(tmp, STDOUT_FILENO);
 
     return 0;
 }
 
-static void
+static int
+handle_command_list(struct ast_node *root)
+{
+    int rc;
+    list_iter_t iter;
+
+    struct ast_node *child;
+
+    rc = 0;
+    list_get_iter(&root->children, &iter);
+
+    while (iter_next_elem(&iter, (void**)&child)) {
+        rc = eval_ast_node(child);
+    }
+    
+    return rc;
+}
+
+static int
+handle_logical_and(struct ast_node *root)
+{
+    int rc;
+    list_iter_t iter;
+    struct ast_node *left;
+    struct ast_node *right;
+    
+    list_get_iter(&root->children, &iter);
+    
+    iter_next_elem(&iter, (void**)&left);
+    iter_next_elem(&iter, (void**)&right);
+
+    rc = eval_ast_node(left);
+
+    if (rc == 0) {
+        rc = eval_ast_node(right);
+    }
+
+    return rc;
+
+}
+
+static int
+handle_logical_or(struct ast_node *root)
+{
+    int rc;
+    list_iter_t iter;
+    struct ast_node *left;
+    struct ast_node *right;
+    
+    list_get_iter(&root->children, &iter);
+    
+    iter_next_elem(&iter, (void**)&left);
+    iter_next_elem(&iter, (void**)&right);
+
+    rc = eval_ast_node(left);
+
+    if (rc != 0) {
+        rc = eval_ast_node(right);
+    }
+
+    return rc;
+}
+
+static int
+handle_if_stmt(struct ast_node *root)
+{
+    int rc;
+    list_iter_t iter;
+    struct ast_node *expr;
+    struct ast_node *body;
+    struct ast_node *else_body;
+
+    list_get_iter(&root->children, &iter);
+    
+    iter_next_elem(&iter, (void**)&expr);
+    iter_next_elem(&iter, (void**)&body);
+    iter_next_elem(&iter, (void**)&else_body);
+
+    rc = eval_ast_node(expr);
+
+    if (rc == 0) {
+        rc = eval_ast_node(body);
+    } else {
+        rc = eval_ast_node(else_body); 
+    }
+
+    return rc;
+}
+
+static int
+handle_while_stmt(struct ast_node *root)
+{
+    int rc;
+    list_iter_t iter;
+    struct ast_node *expr;
+    struct ast_node *body;
+
+    list_get_iter(&root->children, &iter);
+    
+    iter_next_elem(&iter, (void**)&expr);
+    iter_next_elem(&iter, (void**)&body);
+
+    while ((rc = eval_ast_node(expr)) == 0) {
+        eval_ast_node(body);
+    }
+
+    return rc;
+}
+
+static int
 eval_ast_node(struct ast_node *node)
 {
     switch (node->node_class) {
         case AST_ASSIGNMENT:
-            handle_assign(node);
-            break;
+            return handle_assign(node);
         case AST_COMMAND:
-            run_command(node);
-            break;
+            return run_command(node);
+        case AST_COMMAND_LIST:
+            return handle_command_list(node);
         case AST_FILE_WRITE:
-            handle_file_write(node);
-            break;
+            return handle_file_write(node);
         case AST_PIPE:
-            handle_pipe(node);
-            break;
+            return handle_pipe(node);
+        case AST_LOGICAL_AND:
+            return handle_logical_and(node);
+        case AST_LOGICAL_OR:
+            return handle_logical_or(node);
+        case AST_IF_STMT:
+            return handle_if_stmt(node);
+        case AST_WHILE_STMT:
+            return handle_while_stmt(node);
         default:
-            break;
+            return -1;
     }
 }
 
-static void
+static int
 eval_command(const char *cmd)
 {
+    int rc;
     struct list tokens;
     struct tokenizer scanner;
     struct parser parser;
-
     struct ast_node *root;
 
-    if (is_empty_or_comment(cmd)) {
-        return;
-    }
-
-    memset(&tokens, 0, sizeof(struct list));
+    LIST_INIT(tokens);
 
     tokenizer_init(&scanner, cmd);
     tokenizer_scan(&scanner, &tokens);
@@ -305,32 +612,46 @@ eval_command(const char *cmd)
     parser_init(&parser, &tokens);
 
     root = parser_parse(&parser);
-    
-    eval_ast_node(root);
 
-    ast_node_destroy(root);
-    
-    list_destroy(&tokens, true);
-}
-
-void
-run_file(const char *path)
-{
-    size_t len;
-    ssize_t nread;
-
-    char *line;
-    FILE *fp;
-
-    fp = fopen(path, "r");
-    len = 0;
-    line = NULL;
-
-    while ((nread = getline(&line, &len, fp)) != -1) {
-        eval_command(line);
+    if (!root) {
+        rc = -1;
+        goto cleanup;
     }
 
+    rc = eval_ast_node(root);
+    ast_node_destroy(root);
+
+cleanup:
+    list_fini(&tokens, LIST_DESTROY_DEFAULT_CB, NULL);
+
+    return rc;
+}
+
+int
+run_file(const char *path)
+{
+    char *contents;
+    FILE *fp;
+
+    struct stat sb;
+
+    stat(path, &sb);
+
+    contents = calloc(sb.st_size+1, 1);
+
+    fp = fopen(path, "r");
+
+    if (!fp) {
+        perror("sh");
+        return -1;
+    }
+
+
+    fread(contents, 1, sb.st_size, fp);
+    eval_command(contents);
     fclose(fp);
+
+    return 0;
 }
 
 int
@@ -381,6 +702,18 @@ builtin_exit(const char *name, int argc, const char *argv[])
     }
 
     exit(exit_code);
+}
+
+int
+builtin_export(const char *name, int argc, const char *argv[])
+{
+    char *val;
+
+    if (argc == 2 && dict_get(&variables, argv[1], (void**)&val)) {
+        setenv(argv[1], val, 1);
+    }
+
+    return 0;
 }
 
 int
@@ -539,12 +872,14 @@ shell_repl()
 int
 main(int argc, const char *argv[])
 {
-    memset(&builtin_commands, 0, sizeof(struct dict));
+    memset(&builtin_commands, 0, sizeof(builtin_commands));
+    memset(&variables, 0, sizeof(variables));
 
     dict_set(&builtin_commands, "cd", builtin_cd);
     dict_set(&builtin_commands, "clear", builtin_clear);
     dict_set(&builtin_commands, "exec", builtin_exec);
     dict_set(&builtin_commands, "exit", builtin_exit);
+    dict_set(&builtin_commands, "export", builtin_export);
     dict_set(&builtin_commands, "pwd", builtin_pwd);
     dict_set(&builtin_commands, "setenv", builtin_setenv);
     dict_set(&builtin_commands, "source", builtin_source);

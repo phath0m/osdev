@@ -1,10 +1,11 @@
 CC=i686-elysium-gcc
 LD=i686-elysium-gcc
 
+CFLAGS += -c -Wall -Werror -Wdeclaration-after-statement
 LDFLAGS += -lcollections
 
 SHELL_OBJECTS += parser.o
-SHELL_OBJECTS += shell.o
+SHELL_OBJECTS += sh.o
 SHELL_OBJECTS += tokenizer.o
 
 SH = sh

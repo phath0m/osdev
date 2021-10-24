@@ -4,11 +4,18 @@
 #include <collections/list.h>
 
 typedef enum {
-    AST_COMMAND,
-    AST_ARGUMENT,
-    AST_PIPE,
-    AST_FILE_WRITE,
-    AST_ASSIGNMENT
+    AST_COMMAND = 0,
+    AST_ARGUMENT = 1,
+    AST_PIPE = 2,
+    AST_FILE_WRITE = 3,
+    AST_ASSIGNMENT = 4,
+    AST_COMMAND_LIST = 5,
+    AST_LOGICAL_AND = 6,
+    AST_LOGICAL_OR = 7,
+    AST_BACKGROUND = 8,
+    AST_IF_STMT = 9,
+    AST_EMPTY = 10,
+    AST_WHILE_STMT = 11
 } ast_class_t;
 
 struct ast_node {
@@ -18,6 +25,7 @@ struct ast_node {
 };
 
 struct parser {
+    int             error;
     list_iter_t     iter;
 };
 
