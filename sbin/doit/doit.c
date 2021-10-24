@@ -192,13 +192,17 @@ service_stop(struct service *service)
 static void
 change_runlevel(runlevel_t runlevel)
 {
-    const char *name;
     list_iter_t iter;
 
-    dict_get_keys(&loaded_services, &iter);
+    struct dict_kvp *kvp;
 
-    while (iter_move_next(&iter, (void**)&name)) {
+    list_get_iter(&loaded_services.values, &iter);
+
+    while (iter_next_elem(&iter, (void**)&kvp)) {
+        const char *name;
         struct service *service;
+
+        name = kvp->key;
 
         if (!dict_get(&loaded_services, name, (void**)&service)) continue;
 
@@ -207,10 +211,13 @@ change_runlevel(runlevel_t runlevel)
         }
     }
 
-    dict_get_keys(&loaded_services, &iter);
+    list_get_iter(&loaded_services.values, &iter);
 
-    while (iter_move_next(&iter, (void**)&name)) {
+    while (iter_next_elem(&iter, (void**)&kvp)) {
+        const char *name;
         struct service *service;
+
+        name = kvp->key;
 
         if (!dict_get(&loaded_services, name, (void**)&service)) continue;
 

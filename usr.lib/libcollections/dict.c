@@ -6,88 +6,190 @@
 #include "dict.h"
 #include "list.h"
 
-struct key_value_pair {
-    char            key[128];
-    void *          value;
+
+/* arguments to pass to function responsible for freeing each element inside the dictionary */
+struct dict_destroy_state {
+    dict_free_t func;
+    void    *   state;
 };
 
 static inline uint32_t
-dict_hash(const char *key)
+dict_hash(const char *str)
 {
-    uint32_t hash;
+    uint32_t res = 2166136261;
 
-    for (hash = 0; *key; key++) {
-        hash = *key + 31 * hash;
+    while (*str) {
+        res ^= *str;
+        res *= 0x01000193;
+        str++;
     }
 
-    return hash % DICT_HASH_SIZE;
+    return res & 127;
+}
+
+static void
+dict_destroy_func(void *p, void *s)
+{
+    struct dict_kvp *kvp = p;
+    struct dict_destroy_state *state = s;
+
+    if (state->func) {
+        state->func(kvp->val, state->state);
+    }
+
+    free(kvp);
 }
 
 void
-dict_destroy(struct dict *dict)
+dict_destroy(struct dict *dictp, dict_free_t free_func, void *statep)
 {
-    /* TODO: implement... */
+    dict_fini(dictp, free_func, statep);
+    free(dictp);
+}
+
+void
+dict_fini(struct dict *dictp, dict_free_t free_func, void *statep)
+{
+    struct dict_destroy_state state = {
+        .func   =   free_func,
+        .state  =   statep
+    };
+
+    for (int i = 0; i < DICT_HASH_SIZE; i++) {
+        struct list *listp = &dictp->entries[i];
+
+        if (LIST_COUNT(listp) > 0) {
+            list_fini(listp, NULL, NULL);
+        }
+    }
+
+    list_fini(&dictp->values, dict_destroy_func, &state);
+}
+
+struct dict *
+dict_new()
+{
+    struct dict *dictp = calloc(sizeof(struct dict), 1);
+
+    return dictp;
 }
 
 bool
-dict_get(struct dict *dict, const char *key, void **result)
+dict_has_key(struct dict *dictp, const char *key)
 {
     uint32_t hash = dict_hash(key);
 
-    struct dict_entry *entry = dict->entries[hash];
+    if (LIST_COUNT(&dictp->entries[hash]) == 0) {
+        return false;
+    }
 
-    bool succ = false;
+    struct list *listp = &dictp->entries[hash];
+    struct dict_kvp *kvp;
+    list_iter_t iter;
 
-    struct key_value_pair *kvp;
+    list_get_iter(listp, &iter);
 
-    if (entry && LIST_SIZE(&entry->values) > 1) {
-        list_iter_t iter;
-
-        list_get_iter(&entry->values, &iter);
-
-        while (iter_move_next(&iter, (void**)&kvp)) {
-            if (strcmp(key, kvp->key) == 0) {
-                *result = kvp->value;
-                succ = true;
-                break;
-            }
-        }
-    } else if (entry) {
-        kvp = (struct key_value_pair*)LIST_FIRST(&entry->values);
-
-        if (strcmp(kvp->key, key) == 0) {
-            *result = kvp->value;
-            succ = true;
+    while (iter_next_elem(&iter, (void**)&kvp)) {
+        if (strncmp(kvp->key, key, sizeof(kvp->key)) == 0) {
+            return true;
         }
     }
 
-    return succ;
+    return false;
 }
 
-void
-dict_get_keys(struct dict *dict, list_iter_t *iter)
-{
-    list_get_iter(&dict->keys, iter);
-}
-
-void
-dict_set(struct dict *dict, const char *key, void *value)
+bool
+dict_get(struct dict *dictp, const char *key, void **res)
 {
     uint32_t hash = dict_hash(key);
 
-    struct dict_entry *entry = dict->entries[hash];
-
-    if (!entry) {
-        entry = (struct dict_entry*)calloc(1, sizeof(struct dict_entry));
-        dict->entries[hash] = entry;
+    if (LIST_COUNT(&dictp->entries[hash]) == 0) {
+        return false;
     }
 
-    struct key_value_pair *kvp = (struct key_value_pair*)malloc(sizeof(struct key_value_pair));
-    
-    strncpy(kvp->key, key, 128);
+    struct list *listp = &dictp->entries[hash];
+    struct dict_kvp *kvp;
+    list_iter_t iter;
 
-    kvp->value = value;
+    list_get_iter(listp, &iter);
 
-    list_append(&entry->values, kvp);
-    list_append(&dict->keys, kvp->key);
+    while (iter_next_elem(&iter, (void**)&kvp)) {
+        if (strncmp(kvp->key, key, sizeof(kvp->key)) == 0) {
+            *res = kvp->val;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void
+dict_get_iter(struct dict *dictp, list_iter_t *iter)
+{
+    list_get_iter(&dictp->values, iter);
+}
+
+bool
+dict_remove(struct dict *dictp, const char *key, dict_free_t free_func, void *state)
+{
+    uint32_t hash = dict_hash(key);
+
+    if (LIST_COUNT(&dictp->entries[hash]) == 0) {
+        return false;
+    }
+
+    struct list *listp = &dictp->entries[hash];
+    struct dict_kvp *match = NULL;
+    struct dict_kvp *kvp;
+    list_iter_t iter;
+
+    list_get_iter(listp, &iter);
+
+    while (iter_next_elem(&iter, (void**)&kvp)) {
+        if (strncmp(kvp->key, key, sizeof(kvp->key)) == 0) {
+            match = kvp;
+            break;
+        }
+    }
+
+    if (match) {
+        list_remove(listp, match, NULL, NULL);
+        list_remove(&dictp->values, match, NULL, NULL);
+
+        if (free_func) {
+            free_func(match->val, state);
+        }
+
+        free(match);
+
+        return true;
+    }
+
+    return false;
+}
+
+void
+dict_set(struct dict *dictp, const char *key, void *val)
+{
+    uint32_t hash = dict_hash(key);
+
+    struct list *listp = &dictp->entries[hash];
+    struct dict_kvp *cur_kvp;
+    list_iter_t iter;
+
+    list_get_iter(listp, &iter);
+
+    while (iter_next_elem(&iter, (void**)&cur_kvp)) {
+        if (strncmp(cur_kvp->key, key, sizeof(cur_kvp->key)) == 0) {
+            cur_kvp->val = val;
+            return;
+        }
+    }
+
+    struct dict_kvp *kvp = calloc(sizeof(struct dict_kvp), 1);
+    kvp->val = val;
+    strncpy(kvp->key, key, sizeof(kvp->key)-1);
+
+    list_append(listp, kvp);
+    list_append(&dictp->values, kvp);
 }

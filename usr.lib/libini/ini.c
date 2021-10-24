@@ -169,7 +169,7 @@ ini_open(struct ini *ini, const char *file)
 
     if (ret != 0) {
         free(scanner.text);
-        list_destroy(&ini->values, true);
+        list_fini(&ini->values, LIST_DESTROY_DEFAULT_CB, NULL);
     }
 
     return ret;
@@ -189,7 +189,7 @@ ini_section_get(struct ini *ini, const char *section, const char *keyname)
 
     struct ini_key *key;
 
-    while (iter_move_next(&iter, (void**)&key)) {
+    while (iter_next_elem(&iter, (void**)&key)) {
 
         if (!key->section || strcmp(key->section, section)) continue;
 
@@ -205,5 +205,5 @@ void
 ini_close(struct ini *ini)
 {
     free(ini->text);
-    list_destroy(&ini->values, true);
+    list_fini(&ini->values, LIST_DESTROY_DEFAULT_CB, NULL);
 }

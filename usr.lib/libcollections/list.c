@@ -1,205 +1,156 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "list.h"
 
-void
-list_append(struct list *listp, void *ptr)
+bool
+iter_next_elem(list_iter_t *iterp, void **val)
 {
-    struct list_elem *elem = (struct list_elem*)calloc(1, sizeof(struct list_elem));
+    struct list_elem *elem = (struct list_elem*)*iterp;
 
-    elem->data = ptr;
-    elem->next_elem = NULL;
-    elem->prev_elem = NULL;
-
-    struct list_elem *tail = listp->tail;
-
-    if (tail) {
-        tail->next_elem = elem;
-        elem->prev_elem = tail;
-    } else {
-        listp->head = elem;
+    if (elem) {
+        *val = elem->val;
+        *iterp = (list_iter_t)elem->next;
     }
 
-    listp->tail = elem;
-    
-    listp->count++; 
+    return (elem != NULL);
+}
+
+bool
+iter_peek_elem(list_iter_t *iterp, void **val)
+{
+    struct list_elem *elem = (struct list_elem*)*iterp;
+
+    if (elem) {
+        *val = elem->val;
+    }
+
+    return (elem != NULL);
 }
 
 void
-list_destroy(struct list *listp, bool free_children)
+list_destroy_default_cb(void *val, void *statep)
+{
+    free(val);
+}
+
+void
+list_destroy(struct list *listp, list_free_t free_func, void *state)
+{
+    list_fini(listp, free_func, state);
+    free(listp);
+}
+
+void
+list_fini(struct list *listp, list_free_t free_func, void *state)
 {
     struct list_elem *cur = listp->head;
 
     while (cur) {
-        if (free_children) {
-            free(cur->data);
+        struct list_elem *prev = cur;
+
+        if (free_func) {
+            free_func(prev->val, state);
         }
 
-        if (cur->prev_elem) {
-            free(cur->prev_elem);
-        }
+        cur = cur->next;
 
-        cur = cur->next_elem;
+        free(prev);
     }
+}
+
+struct list *
+list_new()
+{
+    struct list *listp = calloc(sizeof(struct list), 1);
+
+    return listp;
+}
+
+void
+list_append(struct list *listp, void *val)
+{
+    struct list_elem *elem = calloc(sizeof(struct list_elem), 1);
+    elem->val = val;
+    
+    if (!listp->head) {
+        listp->head = elem;
+        listp->tail = elem;
+    } else {
+        elem->prev = listp->tail;
+        elem->prev->next = elem;
+        listp->tail = elem;
+    }
+
+    listp->count++;
+}
+
+void
+list_append_front(struct list *listp, void *val)
+{
+    struct list_elem *elem = calloc(sizeof(struct list_elem), 1);
+    elem->val = val;
+    elem->next = listp->head;
+
+    if (!listp->head) {
+        listp->head = elem;
+        listp->tail = elem;
+    } else {
+        listp->head = elem;
+    }
+    
+    listp->count++;
+}
+
+void *
+list_first(struct list *listp)
+{
+    struct list_elem *cur = listp->head;
+
+    return cur->val;
 }
 
 void
 list_get_iter(struct list *listp, list_iter_t *iterp)
 {
-    iterp->listp = listp;
-    iterp->current_item = listp->head;
-    iterp->iteration = 0;
+    *iterp = (list_iter_t)listp->head;
 }
 
 bool
-list_remove_front(struct list *listp, void **item)
+list_remove(struct list *listp, void *val, list_free_t free_func, void *state)
 {
-    bool res = false;
+    struct list_elem *cur = listp->head;
 
-    struct list_elem *head = listp->head;
-
-    if (head) {
-        listp->head = head->next_elem;
-
-        if (listp->head) {
-            listp->head->prev_elem = NULL;
-        } else {
-            listp->tail = NULL;
-        }
-
-        if (item) {
-            *item = head->data;
-        }
-
-        listp->count--;
-
-        free(head);
-
-        res = true;
-    }
-    return res;
-}
-
-bool
-list_remove(struct list *listp, void *item)
-{
-    bool res = false;
-    
-    struct list_elem *iter = listp->head;
-    struct list_elem *prev = NULL;
-
-    while (iter) {
-        struct list_elem *next = iter->next_elem;
-
-        if (iter->data == item) {
-            if (prev) {
-                prev->next_elem = iter->next_elem;
-            } else {
-                listp->head = next;
+    while (cur) {
+        if (cur->val == val) {
+            if (cur->prev) {
+                cur->prev->next = cur->next;
             }
 
-            if (next) {
-                next->prev_elem = prev;
-            } else if (prev) {
-                listp->tail = prev;
+            if (cur->next) {
+                cur->next->prev = cur->prev;
             }
+
+            if (cur == listp->head) {
+                listp->head = cur->next;
+            }
+
+            if (cur == listp->tail) {
+                listp->tail = cur->prev;
+            }
+
+            if (free_func) {
+                free_func(cur->val, state);
+            }
+
+            free(cur);
 
             listp->count--;
-            res = true;
-            break;
+            return true;
         }
 
-        prev = iter;
-        iter = next;
+        cur = cur->next;
     }
 
-    return res;
-}
-
-bool
-list_remove_back(struct list *listp, void **item)
-{
-    bool res = false;
-
-    struct list_elem *tail = listp->tail;
-
-    if (tail) {
-        listp->tail = tail->prev_elem;
-    
-        if (listp->tail) {
-            listp->tail->next_elem = NULL;
-        }
-
-        if (listp->head == tail) {
-            listp->head = NULL;
-        }
-
-        if (item) {
-            *item = tail->data;
-        }
-
-        listp->count--;
-
-        free(tail);
-
-        res = true;
-    }
-    
-    return res;
-}
-
-bool
-iter_move_next(list_iter_t *iterp, void **item)
-{
-    if (!iterp->current_item) {
-        return false;
-    }
-
-    if (iterp->iteration == 0) {
-        /* Its the very first item, so don't move next this time */
-
-        *item = iterp->current_item->data;
-
-        iterp->iteration++;
-
-        return true;
-    }
-
-    struct list_elem *next = iterp->current_item->next_elem;
-
-    if (!next) {
-        iterp->current_item = NULL;
-        return false;
-    }
-
-    iterp->current_item = next;
-
-    *item = next->data;
-    
-    iterp->iteration++;
-
-    return true;
-}
-
-bool
-iter_peek(list_iter_t *iterp, void **item)
-{
-    if (!iterp->current_item) {
-        return false;
-    }
-
-    if (iterp->iteration == 0) {
-        *item = iterp->current_item->data;
-        return true;
-    }
-
-    struct list_elem *next = iterp->current_item->next_elem;
-
-    if (!next) {
-        return false;
-    }
-
-    *item = next->data;
-
-    return true;
+    return false;
 }
