@@ -101,7 +101,7 @@ test_numeric_bin_op(binary_op_t binop, const char *left_s, const char *right_s)
         case BINOP_GT:
             return TEST_EXPR(left > right);
         case BINOP_LE:
-            return TEXT_EXPR(left <= right);
+            return TEST_EXPR(left <= right);
         case BINOP_LT:
             return TEST_EXPR(left < right);
         case BINOP_NOT_EQUAL:
@@ -146,8 +146,6 @@ test_bin_op(binary_op_t binop, const char *left, const char *right)
 static int
 test_file_unary_op(unary_op_t op, const char *file)
 {
-    int exists;
-    int rc;
     struct stat sb;
 
     switch (op) {
