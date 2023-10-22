@@ -51,6 +51,9 @@ proc_actually_kill(struct proc *proc, int status)
         kill_thread(thread);
     }
 
+
+    wq_pulse(&proc->waiters);
+
     iter_close(&iter);
     
     return 0;
