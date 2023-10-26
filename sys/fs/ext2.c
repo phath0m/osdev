@@ -26,11 +26,13 @@
 #include <sys/string.h>
 #include <sys/types.h>
 #include <sys/vnode.h>
-// delete me
 #include <sys/systm.h>
 
 /* I noticed that EXT2 directory entry lengths are aligned by 4, from Linux anyway so... I do that too */
-#define EXT2_WORD_ALIGN(n) (((n) + 4) & 0xFFFFFFFC)
+#define EXT2_WORD_ALIGN(n) (((n) + 3) & 0xFFFFFFFC)
+
+/* Align to the nearest block */
+#define EXT2_BLOCK_ALIGN(s, n) (((n) + (s-1)) & ~(s-1))
 
 #define MIN(X, Y) ((X < Y) ? X : Y)
 
@@ -244,6 +246,17 @@ ext2fs_read_block(struct ext2fs *fs, uint64_t block_addr, struct ext2_block_buf 
 
     return 0;
 }
+
+static int
+ext2fs_write_block(struct ext2fs *fs, uint64_t block_addr, struct ext2_block_buf *buf)
+{
+    if (CDEVOPS_WRITE(fs->cdev, (char*)buf->buf, fs->bsize, BLOCK_ADDR(fs->bsize, block_addr)) != fs->bsize) {
+        return -1;
+    }
+
+    return 0;
+}
+
 
 static int
 ext2fs_read_bg(struct ext2fs *fs, uint64_t index, struct ext2_bg_desc *desc)
@@ -686,7 +699,7 @@ ext2fs_inode_alloc(struct ext2fs *fs, int64_t preferred_bg)
         fs->superblock.ficount--;
         ext2fs_rewrite_superblock(fs);
 
-        return fs->superblock.first_dblock + fs->igp*bgnum + ret;
+        return fs->superblock.first_dblock + fs->igp*bgnum + ret + 1;
     }
 
     return -1;
@@ -741,8 +754,8 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
     uint32_t *block_ptrs;
     uint32_t *indirect_blocks;
 
-    current_blocks = (inode->size + fs->bsize - 1) / fs->bsize;
-    blocks_needed = (inode->size + newsize + fs->bsize - 1) / fs->bsize;
+    current_blocks = EXT2_BLOCK_ALIGN(fs->bsize, inode->size) / fs->bsize;
+    blocks_needed =  EXT2_BLOCK_ALIGN(fs->bsize, newsize) / fs->bsize;
 
     for (block = current_blocks; block < blocks_needed; block++) {
         new_block = ext2fs_block_alloc(fs, 0);
@@ -761,12 +774,17 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
             }
 
             if (ext2fs_read_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
-                /* FAIL!*/
-                return -1;
+                return -(EIO);
             }
 
             indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
             indirect_blocks[block - 12] = new_block;
+
+            if (ext2fs_write_block(fs, inode->blocks[12], &fs->single_indirect_buf) != 0) {
+                return -(EIO);
+            }
+
+
         } else {
             table_idx = (block - (ptrs_per_block + 12)) / ptrs_per_block;
             ptr_idx = (block - (ptrs_per_block + 12)) % ptrs_per_block;
@@ -776,14 +794,13 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
             }
 
             if (ext2fs_read_block(fs, inode->blocks[13], &fs->single_indirect_buf) != 0) {
-                /* fail */
-                return -1;
+                return -(EIO);
             }
 
             indirect_blocks = (uint32_t*)fs->single_indirect_buf.buf;
 
             if (ext2fs_read_block(fs, indirect_blocks[table_idx], &fs->block_ptr_buf) != 0) {
-                return -1;
+                return -(EIO);
             }
 
             block_ptrs = (uint32_t*)fs->block_ptr_buf.buf;
@@ -792,7 +809,7 @@ ext2fs_grow_inode(struct ext2fs *fs, int ino, struct ext2_inode *inode, size_t n
     }
 
     inode->size = newsize;
-    inode->nblock = (inode->size + fs->bsize) / fs->bsize;
+    inode->nblock = EXT2_BLOCK_ALIGN(fs->bsize, newsize) / 512;
 
     ext2fs_write_inode(fs, ino, inode);
 
@@ -907,6 +924,7 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
     dirent_size = EXT2_WORD_ALIGN(sizeof(struct ext2_dirent) + name_len + 1);
     bgnum = INOTOBG(fs->igp, parent->inode);
     inum = ext2fs_inode_alloc(fs, bgnum);
+
     block_buf = fs->block_cache;
 
     blocks_required = parent_inode.size / fs->bsize;
@@ -915,12 +933,11 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
 
     for (block_num = 0; block_num < blocks_required; block_num++) {
         ext2fs_read_dblock(fs, &parent_inode, block_num, block_buf);
-
         offset = 0;
 
         while (offset < fs->bsize) {
             dirent = (struct ext2_dirent*)&block_buf[offset];
-            min_size = EXT2_WORD_ALIGN(dirent->name_len + sizeof(struct ext2_dirent));
+            min_size = dirent->name_len + sizeof(struct ext2_dirent);
             slackspace = dirent->size - min_size;
 
             if (strncmp(dirent->name, name, dirent->name_len) == 0) {
@@ -928,7 +945,7 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
             }
 
             if (slackspace > dirent_size) {
-                dirent->size = min_size;
+                dirent->size = EXT2_WORD_ALIGN(min_size);
                 offset += dirent->size;
                 space_found = true;
                 break;
@@ -944,7 +961,9 @@ ext2fs_mknod(struct vnode *parent, const char *name, mode_t mode, uint32_t *inum
 
     if (!space_found) {
         offset = 0;
-        ext2fs_grow_inode(fs, parent->inode, &parent_inode, parent_inode.size + fs->bsize);
+        if (ext2fs_grow_inode(fs, parent->inode, &parent_inode, parent_inode.size + fs->bsize) != 0) {
+            return -(EIO);
+        }
     }
 
     dirent = (struct ext2_dirent*)&block_buf[offset];
@@ -1292,7 +1311,6 @@ ext2_rmdir(struct vnode *parent, const char *dirname)
 static int
 ext2_mkdir(struct vnode *parent, const char *name, mode_t mode)
 {
-
     int res;
     uint32_t inum;
 
@@ -1310,7 +1328,10 @@ ext2_mkdir(struct vnode *parent, const char *name, mode_t mode)
     res = ext2fs_mknod(parent, name, mode | S_IFDIR, &inum, &child_inode);
 
     if (res == 0) {
-        ext2fs_grow_inode(fs, inum, &child_inode, fs->bsize);
+        res = ext2fs_grow_inode(fs, inum, &child_inode, fs->bsize);
+
+        if (res != 0)
+            goto out;
 
         memset(block_buf, 0, fs->bsize);
 
@@ -1337,7 +1358,7 @@ ext2_mkdir(struct vnode *parent, const char *name, mode_t mode)
         ext2fs_write_inode(parent->state, parent->inode, &parent_inode);
         ext2fs_write_inode(parent->state, inum, &child_inode);
     }
-
+out:
     return res;
 }
 
@@ -1567,15 +1588,14 @@ ext2_write(struct vnode *vn, const void *buf, size_t nbyte, uint64_t pos)
     inode.mtime = time(NULL);
     inode.atime = inode.mtime;
 
-    /*if (ext2fs_write_inode(vn->state, vn->inode, &inode) != 0) {
+    if (ext2fs_write_inode(vn->state, vn->inode, &inode) != 0) {
         res = -(EIO);
-    } else {*/
+    } else {
         res = bytes_read;
-    //}
+    }
 
 cleanup:
     //ext2fs_unlock(vn->state);
-    printf("Write res=%d pos=%d\n\r", (int)res, (int)pos);
     return res;
 }
 
